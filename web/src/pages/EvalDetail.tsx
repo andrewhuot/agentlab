@@ -56,7 +56,7 @@ export function EvalDetail() {
 
   if (isError || !result) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+      <div className="rounded-lg border border-red-200 bg-red-50 p-5">
         <p className="text-sm font-semibold text-red-800">Unable to load eval details.</p>
         <button
           onClick={() => refetch()}
@@ -73,12 +73,12 @@ export function EvalDetail() {
   return (
     <div className="space-y-6">
       {result.status !== 'completed' && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
           Eval run is currently <strong>{result.status}</strong>. Progress: {result.progress}%.
         </div>
       )}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -97,13 +97,13 @@ export function EvalDetail() {
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-right">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Composite score</p>
+            <p className="text-xs text-gray-500">Composite score</p>
             <ScoreDisplay score={score.overall} size="lg" />
           </div>
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
         <h3 className="mb-4 text-sm font-semibold text-gray-900">Score Breakdown</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <ScoreBar label="Quality" score={score.quality} />
@@ -113,7 +113,7 @@ export function EvalDetail() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3">
           <h3 className="text-sm font-semibold text-gray-900">Per-Case Results</h3>
           <div className="flex flex-wrap items-center gap-2">
@@ -220,15 +220,15 @@ function CaseRow({
           <td colSpan={7} className="px-4 py-4">
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-blue-100 bg-white p-3">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Quality score</p>
+                <p className="text-xs text-gray-500">Quality score</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">{caseData.quality_score.toFixed(1)}</p>
               </div>
               <div className="rounded-lg border border-blue-100 bg-white p-3">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Latency</p>
+                <p className="text-xs text-gray-500">Latency</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">{formatLatency(caseData.latency_ms)}</p>
               </div>
               <div className="rounded-lg border border-blue-100 bg-white p-3">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Safety</p>
+                <p className="text-xs text-gray-500">Safety</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">{caseData.safety_passed ? 'Passed' : 'Failed'}</p>
               </div>
             </div>

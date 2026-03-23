@@ -7,25 +7,24 @@ interface StatusBadgeProps {
   label: string;
 }
 
-const variantStyles: Record<Variant, string> = {
-  success: 'bg-green-50 text-green-700 border-green-200',
-  error: 'bg-red-50 text-red-700 border-red-200',
-  warning: 'bg-amber-50 text-amber-700 border-amber-200',
-  pending: 'bg-gray-50 text-gray-600 border-gray-200',
-  running: 'bg-blue-50 text-blue-700 border-blue-200',
+const dotColors: Record<Variant, string> = {
+  success: 'bg-green-500',
+  error: 'bg-red-500',
+  warning: 'bg-amber-500',
+  pending: 'bg-gray-400',
+  running: 'bg-blue-500',
 };
 
 export function StatusBadge({ variant, label }: StatusBadgeProps) {
   return (
-    <span
-      className={classNames(
-        'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium capitalize',
-        variantStyles[variant]
-      )}
-    >
-      {variant === 'running' && (
-        <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-      )}
+    <span className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+      <span
+        className={classNames(
+          'h-1.5 w-1.5 rounded-full',
+          dotColors[variant],
+          variant === 'running' ? 'animate-pulse' : ''
+        )}
+      />
       {statusLabel(label)}
     </span>
   );

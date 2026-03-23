@@ -19,7 +19,7 @@ export function ToastViewport() {
         <div
           key={toast.id}
           className={classNames(
-            'pointer-events-auto rounded-xl border px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200',
+            'pointer-events-auto rounded-lg border px-4 py-3 shadow-sm backdrop-blur-sm transition-all duration-200',
             toneClasses[toast.tone]
           )}
         >

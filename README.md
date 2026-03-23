@@ -79,13 +79,14 @@ Full eval suite
 
 ## Screenshots
 
-Add screenshots to `docs/screenshots/` and reference them in internal docs/PRs.
-Suggested captures:
-- `dashboard-health.png`
-- `eval-detail-table.png`
-- `optimize-timeline.png`
-- `config-diff.png`
-- `deploy-canary.png`
+Visual QA screenshots captured via Playwright are in `web/screenshots/`:
+
+| Page | Screenshot |
+|------|------------|
+| Dashboard | ![Dashboard](web/screenshots/Dashboard.png) |
+| Settings | ![Settings](web/screenshots/Settings.png) |
+| Command Palette | ![Command Palette](web/screenshots/CommandPalette.png) |
+| Mobile | ![Mobile](web/screenshots/Mobile-Sidebar.png) |
 
 ## CLI At A Glance
 

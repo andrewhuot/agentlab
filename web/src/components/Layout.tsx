@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Command, Menu } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { CommandPalette } from './CommandPalette';
 import { ToastViewport } from './ToastViewport';
@@ -54,10 +54,6 @@ function useGlobalShortcuts() {
 }
 
 function breadcrumbs(pathname: string): Array<{ label: string; href?: string }> {
-  if (pathname === '/') {
-    return [{ label: 'Dashboard' }];
-  }
-
   if (pathname.startsWith('/evals/')) {
     const runId = pathname.split('/')[2] || '';
     return [
@@ -65,12 +61,7 @@ function breadcrumbs(pathname: string): Array<{ label: string; href?: string }> 
       { label: `Run ${runId.slice(0, 8)}` },
     ];
   }
-
-  if (pageTitles[pathname]) {
-    return [{ label: pageTitles[pathname] }];
-  }
-
-  return [{ label: 'AutoAgent' }];
+  return [];
 }
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -89,56 +80,56 @@ export function Layout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-900">
+    <div className="flex min-h-screen bg-[var(--color-surface)] text-gray-900">
       <Sidebar mobileOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)} />
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                onClick={() => setMobileSidebarOpen(true)}
-                className="rounded-md border border-gray-200 bg-white p-2 text-gray-600 hover:bg-gray-50 lg:hidden"
-                aria-label="Open navigation"
-              >
-                <Menu className="h-4 w-4" />
-              </button>
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-gray-200 bg-white/80 px-5 py-3 backdrop-blur-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
+              aria-label="Open navigation"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
 
-              <div className="min-w-0">
-                <h1 className="truncate text-base font-semibold tracking-tight text-gray-900">{title}</h1>
-                <div className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+            <div className="min-w-0">
+              <h1 className="truncate text-[15px] font-semibold text-gray-900">{title}</h1>
+              {crumbItems.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-gray-400">
                   {crumbItems.map((crumb, index) => (
                     <span key={`${crumb.label}-${index}`} className="flex items-center gap-1">
                       {crumb.href ? (
-                        <Link to={crumb.href} className="hover:text-blue-700">
+                        <Link to={crumb.href} className="hover:text-gray-600">
                           {crumb.label}
                         </Link>
                       ) : (
-                        <span>{crumb.label}</span>
+                        <span className="text-gray-500">{crumb.label}</span>
                       )}
-                      {index < crumbItems.length - 1 && <span>/</span>}
+                      {index < crumbItems.length - 1 && <span className="text-gray-300">/</span>}
                     </span>
                   ))}
                 </div>
-              </div>
+              )}
             </div>
-
-            <button
-              onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
-              className="hidden items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 sm:inline-flex"
-              type="button"
-            >
-              <Command className="h-3.5 w-3.5" />
-              Command Palette
-              <span className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px]">
-                Cmd+K
-              </span>
-            </button>
           </div>
+
+          <button
+            onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+            className="hidden items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-400 transition hover:border-gray-300 hover:text-gray-500 sm:inline-flex"
+            type="button"
+          >
+            <Search className="h-3 w-3" />
+            Search...
+            <kbd className="ml-2 rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px] text-gray-400">
+              &#8984;K
+            </kbd>
+          </button>
         </header>
 
-        <main className="flex-1 px-4 py-5 sm:px-6">
-          <div key={location.pathname} className="animate-[fadeIn_220ms_ease-out]">
+        <main className="flex-1 px-5 py-6 sm:px-6">
+          <div key={location.pathname} className="mx-auto max-w-6xl animate-[fadeIn_150ms_ease-out]">
             {children}
           </div>
         </main>

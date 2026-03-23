@@ -77,7 +77,7 @@ export function Dashboard() {
           <>
             <button
               onClick={() => navigate('/evals?new=1')}
-              className="rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+              className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
             >
               New Eval
             </button>
@@ -92,7 +92,7 @@ export function Dashboard() {
       />
 
       {isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Health data could not be refreshed. Try again in a moment.
         </div>
       )}
@@ -150,7 +150,7 @@ export function Dashboard() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">Score Trajectory</h3>
             <button
@@ -170,7 +170,7 @@ export function Dashboard() {
           )}
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
           <h3 className="mb-4 text-sm font-semibold text-gray-900">Recent Optimization Activity</h3>
           {recentAttempts.length > 0 ? (
             <div className="space-y-3">
@@ -194,7 +194,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-lg border border-gray-200 bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900">Timeline</h3>
           <Activity className="h-4 w-4 text-gray-400" />
@@ -217,7 +217,7 @@ export function Dashboard() {
       </div>
 
       {health.anomalies.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-800">Anomalies Detected</h3>
           <ul className="mt-2 space-y-1">
             {health.anomalies.map((anomaly, index) => (

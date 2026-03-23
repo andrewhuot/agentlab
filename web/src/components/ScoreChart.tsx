@@ -29,7 +29,7 @@ export function ScoreChart({ data, height = 240 }: ScoreChartProps) {
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: '#9ca3af' }}
@@ -53,10 +53,10 @@ export function ScoreChart({ data, height = 240 }: ScoreChartProps) {
           <Line
             type="monotone"
             dataKey="score"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            dot={{ r: 3, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
-            activeDot={{ r: 5 }}
+            stroke="#6b7280"
+            strokeWidth={1.5}
+            dot={{ r: 2.5, fill: '#6b7280', stroke: '#fff', strokeWidth: 2 }}
+            activeDot={{ r: 4 }}
           />
         </LineChart>
       </ResponsiveContainer>

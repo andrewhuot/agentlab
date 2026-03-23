@@ -91,7 +91,7 @@ export function LoopMonitor() {
             <button
               onClick={handleStart}
               disabled={startLoop.isPending}
-              className="rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
             >
               {startLoop.isPending ? 'Starting...' : 'Start Loop'}
             </button>
@@ -100,10 +100,10 @@ export function LoopMonitor() {
       />
 
       {!running && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Cycles</label>
+              <label className="mb-1 block text-xs text-gray-500">Cycles</label>
               <input
                 type="number"
                 min={1}
@@ -114,7 +114,7 @@ export function LoopMonitor() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Delay (seconds)</label>
+              <label className="mb-1 block text-xs text-gray-500">Delay (seconds)</label>
               <input
                 type="number"
                 min={0}
@@ -125,7 +125,7 @@ export function LoopMonitor() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Observation window</label>
+              <label className="mb-1 block text-xs text-gray-500">Observation window</label>
               <input
                 type="number"
                 min={10}
@@ -140,20 +140,20 @@ export function LoopMonitor() {
       )}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-xs text-gray-500">Status</p>
           <div className="mt-2">
             <StatusBadge variant={running ? 'running' : 'pending'} label={running ? 'running' : 'idle'} />
           </div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Progress</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-xs text-gray-500">Progress</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">
             {loopStatus?.completed_cycles ?? 0}/{loopStatus?.total_cycles ?? 0}
           </p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Latest Success Rate</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-xs text-gray-500">Latest Success Rate</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">
             {loopStatus?.cycle_history.length
               ? formatPercent(loopStatus.cycle_history[loopStatus.cycle_history.length - 1].health_success_rate)
@@ -163,14 +163,14 @@ export function LoopMonitor() {
       </section>
 
       {trajectoryData.length > 0 && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
           <h3 className="mb-4 text-sm font-semibold text-gray-900">Score Trajectory (Success Rate)</h3>
           <ScoreChart data={trajectoryData} height={260} />
         </section>
       )}
 
       {loopStatus?.cycle_history && loopStatus.cycle_history.length > 0 ? (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
           <h3 className="mb-4 text-sm font-semibold text-gray-900">Cycle Cards</h3>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {loopStatus.cycle_history

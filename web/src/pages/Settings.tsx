@@ -48,7 +48,7 @@ export function Settings() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         {sections.map((section) => (
-          <div key={section.title} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div key={section.title} className="rounded-lg border border-gray-200 bg-white p-5">
             <h3 className="text-sm font-semibold text-gray-900">{section.title}</h3>
             <p className="mt-1 text-sm text-gray-600">{section.description}</p>
             <div className="mt-4 space-y-2">
@@ -64,7 +64,7 @@ export function Settings() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
           <div className="mb-3 flex items-center gap-2">
             <Keyboard className="h-4 w-4 text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-900">Keyboard Shortcuts</h3>
@@ -81,7 +81,7 @@ export function Settings() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
           <h3 className="mb-3 text-sm font-semibold text-gray-900">Resources</h3>
           <div className="space-y-2">
             <a

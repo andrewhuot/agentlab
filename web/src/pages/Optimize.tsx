@@ -139,7 +139,7 @@ export function Optimize() {
           <button
             onClick={handleStart}
             disabled={startOptimize.isPending || taskIsRunning}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
           >
             <Play className="h-4 w-4" />
             {startOptimize.isPending || taskIsRunning ? 'Running...' : 'Start Optimization'}
@@ -147,10 +147,10 @@ export function Optimize() {
         }
       />
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Observation window</label>
+            <label className="mb-1 block text-xs text-gray-500">Observation window</label>
             <input
               type="number"
               min={10}
@@ -185,7 +185,7 @@ export function Optimize() {
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-blue-100">
               <div
-                className="h-full rounded-full bg-blue-600 transition-all duration-200"
+                className="h-full rounded-full bg-gray-600 transition-all duration-200"
                 style={{ width: `${taskStatus.data?.progress ?? 0}%` }}
               />
             </div>
@@ -193,7 +193,7 @@ export function Optimize() {
         )}
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900">Cycle Score Trajectory</h3>
           <Sparkles className="h-4 w-4 text-gray-400" />
@@ -209,7 +209,7 @@ export function Optimize() {
 
       {attempts.length > 0 ? (
         <section className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-gray-200 bg-white p-5">
             <h3 className="mb-4 text-sm font-semibold text-gray-900">Cycle Timeline</h3>
             <div className="space-y-3 border-l border-dashed border-gray-200 pl-2">
               {attempts.map((attempt) => (
@@ -233,7 +233,7 @@ export function Optimize() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-gray-200 bg-white p-5">
             <h3 className="mb-4 text-sm font-semibold text-gray-900">Attempt Details</h3>
             {selectedAttempt ? (
               <div className="space-y-4">

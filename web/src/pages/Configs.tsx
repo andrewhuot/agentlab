@@ -72,16 +72,16 @@ export function Configs() {
       />
 
       {isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Failed to load config metadata.
         </div>
       )}
 
       {compareMode && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Version A</label>
+              <label className="mb-1 block text-xs text-gray-500">Version A</label>
               <select
                 value={compareA ?? ''}
                 onChange={(event) => setCompareA(event.target.value ? Number(event.target.value) : null)}
@@ -96,7 +96,7 @@ export function Configs() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Version B</label>
+              <label className="mb-1 block text-xs text-gray-500">Version B</label>
               <select
                 value={compareB ?? ''}
                 onChange={(event) => setCompareB(event.target.value ? Number(event.target.value) : null)}
@@ -116,12 +116,12 @@ export function Configs() {
 
       {compareMode && diffLoading && <LoadingSkeleton rows={5} />}
       {compareMode && diffData && compareA !== null && compareB !== null && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
           <YamlDiff lines={diffData.diff_lines} versionA={compareA} versionB={compareB} />
         </section>
       )}
 
-      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -162,7 +162,7 @@ export function Configs() {
       </section>
 
       {selectedVersion !== null && !compareMode && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">Config v{selectedVersion}</h3>
             <button

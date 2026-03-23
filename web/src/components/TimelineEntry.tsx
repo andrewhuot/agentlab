@@ -12,8 +12,8 @@ interface TimelineEntryProps {
 export function TimelineEntry({ timestamp, title, description, status }: TimelineEntryProps) {
   return (
     <div className="relative pl-6">
-      <span className="absolute left-0 top-2 h-2 w-2 rounded-full bg-blue-500" />
-      <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+      <span className="absolute left-0 top-2.5 h-1.5 w-1.5 rounded-full bg-gray-400" />
+      <div className="rounded-lg border border-gray-100 bg-white px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-gray-900">{title}</p>

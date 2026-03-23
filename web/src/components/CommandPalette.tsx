@@ -58,6 +58,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const { data: runs } = useEvalRuns();
   const { data: configs } = useConfigs();
@@ -82,21 +83,17 @@ export function CommandPalette() {
   }, []);
 
   useEffect(() => {
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', onEscape);
-    return () => window.removeEventListener('keydown', onEscape);
-  }, []);
+    if (!isOpen) {
+      setQuery('');
+      setSelectedIndex(0);
+    }
+  }, [isOpen]);
 
   const dynamicItems = useMemo<PaletteItem[]>(() => {
     const runItems: PaletteItem[] = (runs || []).slice(0, 6).map((run) => ({
       id: `run-${run.run_id}`,
-      label: `Run ${run.run_id.slice(0, 8)} · ${run.status}`,
-      description: `Score ${run.composite_score.toFixed(1)} · ${run.passed_cases}/${run.total_cases} passed`,
+      label: `Run ${run.run_id.slice(0, 8)}`,
+      description: `${run.status} · Score ${run.composite_score.toFixed(1)}`,
       href: `/evals/${run.run_id}`,
       group: 'Eval Runs',
     }));
@@ -121,10 +118,7 @@ export function CommandPalette() {
   }, [configs, conversations, runs]);
 
   const filteredItems = useMemo(() => {
-    if (!query.trim()) {
-      return dynamicItems;
-    }
-
+    if (!query.trim()) return dynamicItems;
     return dynamicItems.filter((item) => {
       const text = `${item.label} ${item.description || ''} ${item.group}`;
       return matches(text, query);
@@ -141,63 +135,90 @@ export function CommandPalette() {
     }, {});
   }, [filteredItems]);
 
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
+
   function handleNavigate(href: string) {
     navigate(href);
     setIsOpen(false);
-    setQuery('');
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent) {
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSelectedIndex((i) => Math.min(i + 1, filteredItems.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSelectedIndex((i) => Math.max(i - 1, 0));
+    } else if (event.key === 'Enter' && filteredItems[selectedIndex]) {
+      handleNavigate(filteredItems[selectedIndex].href);
+    }
   }
 
   if (!isOpen) return null;
 
+  let flatIndex = 0;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 px-4 pt-[8vh] backdrop-blur-[2px]">
-      <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-        <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3">
-          <Search className="h-4 w-4 text-gray-400" />
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/25 px-4 pt-[12vh] backdrop-blur-[2px]"
+      onClick={() => setIsOpen(false)}
+    >
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2.5 border-b border-gray-100 px-3.5 py-2.5">
+          <Search className="h-4 w-4 text-gray-300" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search evals, configs, conversations, and actions"
-            className="w-full border-none text-sm text-gray-900 outline-none placeholder:text-gray-400"
+            onKeyDown={handleKeyDown}
+            placeholder="Search..."
+            className="w-full border-none bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
             autoFocus
           />
-          <kbd className="rounded border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-[10px] text-gray-500">
+          <kbd className="rounded border border-gray-200 px-1.5 py-0.5 font-mono text-[10px] text-gray-400">
             esc
           </kbd>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto p-3">
+        <div className="max-h-[50vh] overflow-y-auto py-2">
           {filteredItems.length === 0 && (
-            <p className="px-2 py-6 text-center text-sm text-gray-500">No matches found.</p>
+            <p className="px-3.5 py-8 text-center text-sm text-gray-400">No results</p>
           )}
 
           {Object.entries(grouped).map(([groupName, entries]) => (
-            <div key={groupName} className="mb-4 last:mb-0">
-              <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            <div key={groupName} className="mb-1 last:mb-0">
+              <p className="px-3.5 py-1.5 text-[11px] font-medium text-gray-400">
                 {groupName}
               </p>
-              <div className="space-y-1">
-                {entries.map((entry) => (
+              {entries.map((entry) => {
+                const currentIndex = flatIndex++;
+                return (
                   <button
                     key={entry.id}
                     onClick={() => handleNavigate(entry.href)}
-                    className="w-full rounded-lg px-3 py-2 text-left transition hover:bg-blue-50"
+                    className={`flex w-full items-center gap-3 px-3.5 py-2 text-left text-sm transition-colors ${
+                      currentIndex === selectedIndex
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
                   >
-                    <p className="text-sm font-medium text-gray-900">{entry.label}</p>
-                    {entry.description && (
-                      <p className="mt-0.5 text-xs text-gray-600">{entry.description}</p>
-                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{entry.label}</p>
+                      {entry.description && (
+                        <p className="truncate text-xs text-gray-400">{entry.description}</p>
+                      )}
+                    </div>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           ))}
-        </div>
-
-        <div className="border-t border-gray-200 px-4 py-2 text-xs text-gray-500">
-          Tip: use <kbd className="rounded border border-gray-200 px-1.5 py-0.5 font-mono">Cmd</kbd>
-          +
-          <kbd className="rounded border border-gray-200 px-1.5 py-0.5 font-mono">K</kbd> anytime.
         </div>
       </div>
     </div>

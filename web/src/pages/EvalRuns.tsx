@@ -105,7 +105,7 @@ export function EvalRuns() {
         actions={
           <button
             onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
           >
             <Plus className="h-4 w-4" />
             New Eval Run
@@ -114,13 +114,13 @@ export function EvalRuns() {
       />
 
       {isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Unable to load eval runs. Try refreshing the page.
         </div>
       )}
 
       {showCreateForm && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">Start New Evaluation</h3>
             <button onClick={closeForm} className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
@@ -130,7 +130,7 @@ export function EvalRuns() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Config Version</label>
+              <label className="mb-1 block text-xs text-gray-500">Config Version</label>
               <select
                 value={configVersion}
                 onChange={(event) => setConfigVersion(event.target.value)}
@@ -146,7 +146,7 @@ export function EvalRuns() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Category</label>
+              <label className="mb-1 block text-xs text-gray-500">Category</label>
               <input
                 type="text"
                 value={category}
@@ -160,7 +160,7 @@ export function EvalRuns() {
               <button
                 onClick={handleStartEval}
                 disabled={startEval.isPending}
-                className="w-full rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+                className="w-full rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
               >
                 {startEval.isPending ? 'Starting...' : 'Start Eval'}
               </button>
@@ -170,7 +170,7 @@ export function EvalRuns() {
       )}
 
       {comparisonRuns.length === 2 && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">Comparison Mode</h3>
             <button
@@ -201,7 +201,7 @@ export function EvalRuns() {
       )}
 
       {runs && runs.length > 0 ? (
-        <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

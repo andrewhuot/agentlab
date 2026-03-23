@@ -102,34 +102,34 @@ export function Conversations() {
       />
 
       {isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Failed to load conversations.
         </div>
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Visible Conversations</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-xs text-gray-500">Visible Conversations</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">{stats.total}</p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Success Rate</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-xs text-gray-500">Success Rate</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">{formatPercent(stats.successRate)}</p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Avg Latency</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-xs text-gray-500">Avg Latency</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">{formatLatency(stats.avgLatency)}</p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Avg Tokens</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-xs text-gray-500">Avg Tokens</p>
           <p className="mt-1 text-2xl font-semibold text-gray-900">{Math.round(stats.avgTokens)}</p>
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <section className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Outcome</label>
+            <label className="mb-1 block text-xs text-gray-500">Outcome</label>
             <select
               value={outcome}
               onChange={(event) => setOutcome(event.target.value)}
@@ -144,7 +144,7 @@ export function Conversations() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Limit</label>
+            <label className="mb-1 block text-xs text-gray-500">Limit</label>
             <select
               value={limit}
               onChange={(event) => setLimit(Number(event.target.value))}
@@ -158,7 +158,7 @@ export function Conversations() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Search</label>
+            <label className="mb-1 block text-xs text-gray-500">Search</label>
             <input
               type="text"
               value={search}
@@ -171,7 +171,7 @@ export function Conversations() {
       </section>
 
       {conversations && conversations.length > 0 ? (
-        <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
           <DataTable
             columns={columns}
             data={conversations}
@@ -188,7 +188,7 @@ export function Conversations() {
       )}
 
       {expandedConversation && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-mono text-sm text-gray-700">Conversation {expandedConversation.conversation_id.slice(0, 12)}</h3>

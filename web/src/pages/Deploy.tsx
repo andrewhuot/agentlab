@@ -96,7 +96,7 @@ export function Deploy() {
               }
               setShowForm(true);
             }}
-            className="rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
           >
             {showDeployForm ? 'Hide Deploy Form' : 'Deploy Version'}
           </button>
@@ -104,14 +104,14 @@ export function Deploy() {
       />
 
       {isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Could not load deployment status.
         </div>
       )}
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Active Version</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <p className="text-xs text-gray-500">Active Version</p>
           <p className="mt-1 text-3xl font-semibold text-gray-900">
             {deployStatus.active_version ? `v${deployStatus.active_version}` : '—'}
           </p>
@@ -120,8 +120,8 @@ export function Deploy() {
           )}
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Canary Version</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <p className="text-xs text-gray-500">Canary Version</p>
           <p className="mt-1 text-3xl font-semibold text-gray-900">
             {deployStatus.canary_version ? `v${deployStatus.canary_version}` : '—'}
           </p>
@@ -134,15 +134,15 @@ export function Deploy() {
           )}
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Version Count</p>
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <p className="text-xs text-gray-500">Version Count</p>
           <p className="mt-1 text-3xl font-semibold text-gray-900">{deployStatus.total_versions}</p>
           <p className="mt-1 text-xs text-gray-500">Tracked in version manifest</p>
         </div>
       </section>
 
       {deployStatus.canary_status && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-gray-900">Canary Verdict</h3>
             <div className="flex items-center gap-2">
@@ -163,13 +163,13 @@ export function Deploy() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-xs uppercase tracking-wide text-gray-500">Canary success rate</p>
+              <p className="text-xs text-gray-500">Canary success rate</p>
               <p className="mt-1 text-xl font-semibold text-gray-900">
                 {formatPercent(deployStatus.canary_status.canary_success_rate)}
               </p>
             </div>
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-xs uppercase tracking-wide text-gray-500">Baseline success rate</p>
+              <p className="text-xs text-gray-500">Baseline success rate</p>
               <p className="mt-1 text-xl font-semibold text-gray-900">
                 {formatPercent(deployStatus.canary_status.baseline_success_rate)}
               </p>
@@ -179,10 +179,10 @@ export function Deploy() {
       )}
 
       {showDeployForm && (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Version</label>
+              <label className="mb-1 block text-xs text-gray-500">Version</label>
               <select
                 value={version}
                 onChange={(event) => setVersion(event.target.value)}
@@ -198,7 +198,7 @@ export function Deploy() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Strategy</label>
+              <label className="mb-1 block text-xs text-gray-500">Strategy</label>
               <select
                 value={strategy}
                 onChange={(event) => setStrategy(event.target.value as 'canary' | 'immediate')}
@@ -213,7 +213,7 @@ export function Deploy() {
               <button
                 onClick={handleDeploy}
                 disabled={!version || deploy.isPending}
-                className="w-full rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+                className="w-full rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
               >
                 {deploy.isPending ? 'Deploying...' : 'Deploy'}
               </button>
@@ -222,7 +222,7 @@ export function Deploy() {
         </section>
       )}
 
-      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
           <h3 className="text-sm font-semibold text-gray-900">Recent Deployment History</h3>
         </div>
