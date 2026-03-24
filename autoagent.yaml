@@ -56,3 +56,15 @@ eval:
   significance_alpha: 0.05
   significance_min_effect_size: 0.005
   significance_iterations: 2000
+
+# Production cost controls (from R2 simplicity thesis)
+budget:
+  per_cycle_dollars: 1.0
+  daily_dollars: 10.0
+  stall_threshold_cycles: 5
+  tracker_db_path: .autoagent/cost_tracker.db
+
+# Human escape hatches (from R2 simplicity thesis)
+human_control:
+  immutable_surfaces: ["safety_instructions"]
+  state_path: .autoagent/human_control.json

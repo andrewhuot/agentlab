@@ -124,6 +124,27 @@ class AgentGraphVersion:
         )
         return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
+    def validate(self) -> list[str]:
+        """Validate graph integrity and return a list of error messages."""
+        errors: list[str] = []
+        node_ids = [node.node_id for node in self.nodes]
+        node_id_set = set(node_ids)
+
+        if len(node_ids) != len(node_id_set):
+            errors.append("Duplicate node_id values detected in AgentGraphVersion")
+
+        for edge in self.edges:
+            if edge.source_id not in node_id_set:
+                errors.append(
+                    f"Edge source '{edge.source_id}' is missing from graph nodes"
+                )
+            if edge.target_id not in node_id_set:
+                errors.append(
+                    f"Edge target '{edge.target_id}' is missing from graph nodes"
+                )
+
+        return errors
+
     def get_nodes_by_type(self, node_type: AgentNodeType) -> list[AgentNode]:
         return [n for n in self.nodes if n.node_type == node_type]
 
@@ -240,6 +261,30 @@ class ToolContractVersion:
     freshness_window_seconds: Optional[int] = None
     description: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def is_replayable_at(
+        self,
+        *,
+        now_epoch: float,
+        recorded_at_epoch: float | None = None,
+    ) -> bool:
+        """Return whether this tool can be replayed at ``now_epoch``.
+
+        For ``recorded_stub_with_freshness``, replayability depends on
+        ``freshness_window_seconds`` and ``recorded_at_epoch``.
+        """
+        if self.replay_mode == ReplayMode.forbidden:
+            return False
+
+        if self.replay_mode == ReplayMode.recorded_stub_with_freshness:
+            if recorded_at_epoch is None:
+                return False
+            if self.freshness_window_seconds is None:
+                return True
+            age_seconds = max(0.0, now_epoch - recorded_at_epoch)
+            return age_seconds <= float(self.freshness_window_seconds)
+
+        return True
 
     @property
     def can_auto_replay(self) -> bool:
@@ -482,6 +527,7 @@ class EvalCase:
     root_cause_tag: Optional[str] = None
     is_negative_control: bool = False
     solvability: Optional[float] = None  # 0-1, None = unknown
+    model_version_hash: Optional[str] = None  # exact API model version string
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

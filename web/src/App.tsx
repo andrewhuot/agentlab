@@ -13,6 +13,7 @@ import { Settings } from './pages/Settings';
 import { Opportunities } from './pages/Opportunities';
 import { Experiments } from './pages/Experiments';
 import { Traces } from './pages/Traces';
+import { EventLogPage } from './pages/EventLog';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/opportunities" element={<Opportunities />} />
             <Route path="/experiments" element={<Experiments />} />
             <Route path="/traces" element={<Traces />} />
+            <Route path="/events" element={<EventLogPage />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Layout>

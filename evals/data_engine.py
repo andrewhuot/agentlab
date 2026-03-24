@@ -660,3 +660,155 @@ def generate_negative_controls(case: dict[str, Any]) -> list[dict[str, Any]]:
         })
 
     return controls
+
+
+# ---------------------------------------------------------------------------
+# Coherence detection (from R2 — detects multi-turn failures)
+# ---------------------------------------------------------------------------
+
+
+class CoherenceDetector:
+    """Detect conversational coherence failures from trace events.
+
+    Catches failures invisible to single-turn evals: repeated questions,
+    user re-explains context, self-contradictions, "I already told you" patterns.
+    """
+
+    PATTERNS = (
+        "i already told you",
+        "as i said",
+        "i mentioned earlier",
+        "like i said before",
+        "i just explained",
+    )
+
+    def scan_trace(self, events: list[dict[str, Any]]) -> list[str]:
+        """Return list of coherence failure tags found in a trace."""
+        failures: list[str] = []
+
+        agent_messages = []
+        user_messages = []
+        questions_asked: list[str] = []
+
+        for event in events:
+            role = event.get("role", "")
+            content = str(event.get("content") or event.get("response") or "")
+
+            if role == "agent" or event.get("event_type") == "model_response":
+                agent_messages.append(content)
+                q = self._normalize_question(content)
+                if q:
+                    questions_asked.append(q)
+            elif role == "user" or event.get("event_type") == "user_message":
+                user_messages.append(content)
+
+        # Check for "I already told you" patterns in user messages
+        for msg in user_messages:
+            msg_lower = msg.lower()
+            if any(pattern in msg_lower for pattern in self.PATTERNS):
+                if "user_reexplained_context" not in failures:
+                    failures.append("user_reexplained_context")
+
+        # Check for repeated agent questions
+        if self._has_duplicate(questions_asked):
+            failures.append("repeated_question")
+
+        # Check for self-contradiction in agent messages
+        if len(agent_messages) >= 2 and self._looks_contradictory(agent_messages):
+            failures.append("self_contradiction")
+
+        return failures
+
+    @staticmethod
+    def _normalize_question(text: str) -> str:
+        """Extract question text if the message contains '?'."""
+        if "?" not in text:
+            return ""
+        for sentence in text.split("."):
+            if "?" in sentence:
+                return sentence.strip().lower()
+        return ""
+
+    @staticmethod
+    def _has_duplicate(questions: list[str]) -> bool:
+        """Check if any question appears more than once."""
+        seen: set[str] = set()
+        for q in questions:
+            if not q:
+                continue
+            if q in seen:
+                return True
+            seen.add(q)
+        return False
+
+    @staticmethod
+    def _looks_contradictory(messages: list[str]) -> bool:
+        """Heuristic for mutually exclusive claims across messages."""
+        negation_pairs = [
+            ("is available", "is not available"),
+            ("can do", "cannot do"),
+            ("we do offer", "we don't offer"),
+            ("yes", "no"),
+        ]
+        all_text = [m.lower() for m in messages]
+        for pos, neg in negation_pairs:
+            has_pos = any(pos in t for t in all_text)
+            has_neg = any(neg in t for t in all_text)
+            if has_pos and has_neg:
+                return True
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Eval difficulty scoring (from R2 — prevents wasting cycles)
+# ---------------------------------------------------------------------------
+
+
+class EvalSetHealthMonitor:
+    """Track pass rate history per case and categorize difficulty.
+
+    - Saturated: difficulty < 0.05 (95%+ pass rate) — waste of cycles
+    - Unsolvable: difficulty >= 0.95 (5%- pass rate) — waste of cycles
+    - High-leverage: 0.30 <= difficulty <= 0.70 — best optimization targets
+    """
+
+    def __init__(self) -> None:
+        self._history: dict[str, list[bool]] = {}
+
+    def record_result(self, case_id: str, passed: bool) -> None:
+        """Record a pass/fail result for a case."""
+        self._history.setdefault(case_id, []).append(passed)
+
+    def difficulty_score(self, case_id: str) -> float:
+        """Compute difficulty from pass/fail history. Higher = harder."""
+        results = self._history.get(case_id, [])
+        return self._difficulty_from_history(results)
+
+    def categorize(self) -> dict[str, list[str]]:
+        """Categorize all tracked cases by difficulty band."""
+        saturated: list[str] = []
+        unsolvable: list[str] = []
+        high_leverage: list[str] = []
+
+        for case_id in self._history:
+            score = self.difficulty_score(case_id)
+            if score < 0.05:
+                saturated.append(case_id)
+            elif score >= 0.95:
+                unsolvable.append(case_id)
+            elif 0.30 <= score <= 0.70:
+                high_leverage.append(case_id)
+
+        return {
+            "saturated": saturated,
+            "unsolvable": unsolvable,
+            "high_leverage": high_leverage,
+        }
+
+    @staticmethod
+    def _difficulty_from_history(last_n_results: list[bool]) -> float:
+        """Compute difficulty score from pass/fail history."""
+        if not last_n_results:
+            return 0.0
+        pass_rate = sum(1 for item in last_n_results if item) / len(last_n_results)
+        return round(1.0 - pass_rate, 4)

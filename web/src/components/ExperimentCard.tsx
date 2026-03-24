@@ -87,7 +87,7 @@ interface ExperimentMetadata {
 }
 
 function getMetadata(experiment: ExperimentCardType): ExperimentMetadata {
-  const raw = experiment as Record<string, unknown>;
+  const raw = experiment as unknown as Record<string, unknown>;
   return {
     evidence_spans: Array.isArray(raw.evidence_spans) ? raw.evidence_spans as string[] : undefined,
     failure_reasons: Array.isArray(raw.failure_reasons) ? raw.failure_reasons as string[] : undefined,

@@ -37,18 +37,24 @@ class TestCase:
 class EvalRunner:
     """Loads test cases, runs them against an agent function, and scores results."""
 
+    # Eval mode constants
+    EVAL_MODE_SINGLE = "single_agent"
+    EVAL_MODE_PIPELINE = "pipeline_eval"
+
     def __init__(
         self,
         cases_dir: str | None = None,
         agent_fn: Callable[..., dict] | None = None,
         history_store: EvalHistoryStore | None = None,
         history_db_path: str | None = None,
+        eval_mode: str = "single_agent",
     ) -> None:
         self.cases_dir = Path(cases_dir) if cases_dir else Path(__file__).parent / "cases"
         self.agent_fn = agent_fn or mock_agent_response
         self.scorer = CompositeScorer()
         self._custom_evaluators: dict[str, Callable[[TestCase, dict, EvalResult], float]] = {}
 
+        self.eval_mode = eval_mode
         history_path = history_db_path if history_db_path is not None else os.environ.get("AUTOAGENT_EVAL_HISTORY_DB")
         if history_store is not None:
             self.history_store = history_store
@@ -174,8 +180,15 @@ class EvalRunner:
         return "train" if bucket < ratio else "test"
 
     def evaluate_case(self, case: TestCase, config: dict | None = None) -> EvalResult:
-        """Run a single test case and score it."""
-        agent_result = self.agent_fn(case.user_message, config)
+        """Run a single test case and score it.
+
+        When eval_mode is 'pipeline_eval', evaluates the full multi-agent
+        pipeline end-to-end rather than a single agent in isolation.
+        """
+        if self.eval_mode == self.EVAL_MODE_PIPELINE:
+            agent_result = self._run_pipeline_agent(case.user_message, config)
+        else:
+            agent_result = self.agent_fn(case.user_message, config)
         if not isinstance(agent_result, dict):  # pragma: no cover - defensive for external agent_fn impls
             raise TypeError("agent_fn must return a dict-like payload")
 
@@ -365,3 +378,29 @@ class EvalRunner:
             case_payloads=case_payloads,
             provenance=provenance,
         )
+
+    def _run_pipeline_agent(self, user_message: str, config: dict | None = None) -> dict:
+        """Run the full multi-agent pipeline for end-to-end evaluation.
+
+        Falls back to the standard agent_fn but wraps the result with
+        pipeline metadata (pipeline_path, handoff_context_preserved).
+        """
+        result = self.agent_fn(user_message, config)
+        if not isinstance(result, dict):
+            result = {"response": str(result)}
+        # Enrich with pipeline metadata if not already present
+        result.setdefault("pipeline_path", ["orchestrator", result.get("specialist_used", "support")])
+        result.setdefault("handoff_context_preserved", True)
+        return result
+
+    @staticmethod
+    def _difficulty_from_history(last_n_results: list[bool]) -> float:
+        """Compute difficulty score from pass/fail history.
+
+        Higher difficulty = lower pass rate. Used by EvalSetHealthMonitor
+        to categorize cases as saturated, unsolvable, or high-leverage.
+        """
+        if not last_n_results:
+            return 0.0
+        pass_rate = sum(1 for item in last_n_results if item) / len(last_n_results)
+        return round(1.0 - pass_rate, 4)

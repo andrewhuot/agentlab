@@ -909,3 +909,197 @@ export function useJudgeCalibration() {
     refetchInterval: 30000,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Human Control (pause/resume/pin/unpin/reject)
+// ---------------------------------------------------------------------------
+
+interface ControlState {
+  paused: boolean;
+  immutable_surfaces: string[];
+  rejected_experiments: string[];
+  last_injected_mutation: string | null;
+  updated_at: string | null;
+}
+
+export function useControlState() {
+  return useQuery<ControlState>({
+    queryKey: ['control', 'state'],
+    queryFn: () => fetchApi<ControlState>('/control/state'),
+    refetchInterval: 5000,
+  });
+}
+
+export function usePauseControl() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, void>({
+    mutationFn: () =>
+      fetchApi('/control/pause', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function useResumeControl() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, void>({
+    mutationFn: () =>
+      fetchApi('/control/resume', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function usePinSurface() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, { surface: string }>({
+    mutationFn: ({ surface }) =>
+      fetchApi(`/control/pin/${encodeURIComponent(surface)}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function useUnpinSurface() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, { surface: string }>({
+    mutationFn: ({ surface }) =>
+      fetchApi(`/control/unpin/${encodeURIComponent(surface)}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function useRejectExperimentControl() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState & { rollback: string | null }, ApiRequestError, { experiment_id: string }>({
+    mutationFn: ({ experiment_id }) =>
+      fetchApi(`/control/reject/${encodeURIComponent(experiment_id)}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+      queryClient.invalidateQueries({ queryKey: ['experiments'] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cost Health
+// ---------------------------------------------------------------------------
+
+interface CostHealthSummary {
+  total_spend: number;
+  total_improvement: number;
+  cost_per_improvement: number;
+  today_spend: number;
+}
+
+interface CostHealthResponse {
+  summary: CostHealthSummary;
+  budgets: {
+    per_cycle_dollars: number;
+    daily_dollars: number;
+    stall_threshold_cycles: number;
+  };
+  recent_cycles: Array<{
+    cycle_id: string;
+    timestamp: number;
+    spent_dollars: number;
+    improvement_delta: number;
+    cumulative_spend: number;
+    running_cost_per_improvement: number;
+  }>;
+  stall_detected: boolean;
+}
+
+export function useCostHealth(limit = 30) {
+  return useQuery<CostHealthResponse>({
+    queryKey: ['health', 'cost', limit],
+    queryFn: () => fetchApi<CostHealthResponse>(`/health/cost?limit=${limit}`),
+    refetchInterval: 10000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Eval Set Health
+// ---------------------------------------------------------------------------
+
+interface EvalSetHealthResponse {
+  analysis: Record<string, number>;
+  difficulty_distribution: Record<string, number>;
+}
+
+export function useEvalSetHealth() {
+  return useQuery<EvalSetHealthResponse>({
+    queryKey: ['health', 'eval-set'],
+    queryFn: () => fetchApi<EvalSetHealthResponse>('/health/eval-set'),
+    refetchInterval: 30000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// System Events (append-only event log)
+// ---------------------------------------------------------------------------
+
+interface SystemEvent {
+  id: number;
+  event_type: string;
+  timestamp: number;
+  cycle_id?: string;
+  experiment_id?: string;
+  payload: Record<string, unknown>;
+}
+
+export function useSystemEvents(params: { limit?: number; event_type?: string } = {}) {
+  return useQuery<SystemEvent[]>({
+    queryKey: ['events', params],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      if (params.limit !== undefined) qs.set('limit', String(params.limit));
+      if (params.event_type) qs.set('event_type', params.event_type);
+      const query = qs.toString() ? `?${qs.toString()}` : '';
+      const payload = await fetchApi<{ events: SystemEvent[] }>(`/events${query}`);
+      return payload.events ?? [];
+    },
+    refetchInterval: 5000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Scorecard (2-gate + 4-metric)
+// ---------------------------------------------------------------------------
+
+interface ScorecardResponse {
+  gates: {
+    safety: { passed: boolean; safety_violation_rate: number };
+    regression: { passed: boolean; latest_attempt_status: string };
+  };
+  metrics: {
+    task_success_rate: number;
+    response_quality: number;
+    latency_p95_ms: number;
+    cost_per_conversation: number;
+  };
+  diagnostics: {
+    tool_correctness: number;
+    routing_accuracy: number;
+    handoff_fidelity: number;
+    failure_buckets: Record<string, number>;
+  };
+}
+
+export function useScorecard(window = 100) {
+  return useQuery<ScorecardResponse>({
+    queryKey: ['health', 'scorecard', window],
+    queryFn: () => fetchApi<ScorecardResponse>(`/health/scorecard?window=${window}`),
+    refetchInterval: 10000,
+  });
+}

@@ -1173,6 +1173,108 @@ def doctor(config_path: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Human escape hatch CLI commands (from R2 simplicity thesis)
+# ---------------------------------------------------------------------------
+
+def _control_store():
+    """Return a HumanControlStore using default or env-configured path."""
+    from optimizer.human_control import HumanControlStore
+    return HumanControlStore()
+
+
+def _event_log():
+    """Return an EventLog using default or env-configured path."""
+    from data.event_log import EventLog
+    return EventLog()
+
+
+@cli.command("pause")
+def pause_optimizer() -> None:
+    """Pause the optimization loop (human escape hatch).
+
+    Examples:
+      autoagent pause
+    """
+    store = _control_store()
+    store.pause()
+    _event_log().append(event_type="human_pause", payload={"paused": True})
+    click.echo("Optimizer paused. Run 'autoagent resume' to continue.")
+
+
+@cli.command("resume")
+def resume_optimizer() -> None:
+    """Resume the optimization loop after a pause.
+
+    Examples:
+      autoagent resume
+    """
+    store = _control_store()
+    store.resume()
+    click.echo("Optimizer resumed.")
+
+
+@cli.command("reject")
+@click.argument("experiment_id", type=str)
+@click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
+@click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
+def reject_experiment(experiment_id: str, configs_dir: str, db: str) -> None:
+    """Reject a promoted experiment and rollback any active canary.
+
+    Examples:
+      autoagent reject abc12345
+    """
+    store = _control_store()
+    store.reject_experiment(experiment_id)
+
+    conv_store = ConversationStore(db_path=db)
+    deployer = Deployer(configs_dir=configs_dir, store=conv_store)
+    canary = deployer.version_manager.manifest.get("canary_version")
+    if canary is not None:
+        deployer.version_manager.rollback(canary)
+        _event_log().append(
+            event_type="rollback_triggered",
+            payload={"canary_version": canary, "reason": "human_reject"},
+            experiment_id=experiment_id,
+        )
+        click.echo(f"Rejected experiment {experiment_id} and rolled back canary v{canary:03d}.")
+    else:
+        click.echo(f"Rejected experiment {experiment_id}. No active canary to rollback.")
+
+    _event_log().append(
+        event_type="human_reject",
+        payload={"experiment_id": experiment_id},
+        experiment_id=experiment_id,
+    )
+
+
+@cli.command("pin")
+@click.argument("surface", type=str)
+def pin_surface(surface: str) -> None:
+    """Mark a config surface as immutable (e.g. prompts.root, safety_instructions).
+
+    Examples:
+      autoagent pin safety_instructions
+      autoagent pin prompts.root
+    """
+    store = _control_store()
+    store.pin_surface(surface)
+    click.echo(f"Pinned '{surface}' as immutable. Optimizer will not modify it.")
+
+
+@cli.command("unpin")
+@click.argument("surface", type=str)
+def unpin_surface(surface: str) -> None:
+    """Remove immutable marking from a config surface.
+
+    Examples:
+      autoagent unpin safety_instructions
+    """
+    store = _control_store()
+    store.unpin_surface(surface)
+    click.echo(f"Unpinned '{surface}'. Optimizer can now modify it.")
+
+
+# ---------------------------------------------------------------------------
 # autoagent server
 # ---------------------------------------------------------------------------
 

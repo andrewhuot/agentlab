@@ -80,12 +80,22 @@ class EvalRuntimeConfig(BaseModel):
     significance_iterations: int = Field(2000, ge=100, le=50000)
 
 
+class BudgetRuntimeConfig(BaseModel):
+    """Production cost controls (from R2 simplicity thesis)."""
+
+    per_cycle_dollars: float = Field(1.0, ge=0.0, le=10000.0)
+    daily_dollars: float = Field(10.0, ge=0.0, le=100000.0)
+    stall_threshold_cycles: int = Field(5, ge=1, le=1000)
+    tracker_db_path: str = ".autoagent/cost_tracker.db"
+
+
 class RuntimeConfig(BaseModel):
     """Top-level runtime settings loaded from `autoagent.yaml`."""
 
     optimizer: OptimizerRuntimeConfig = Field(default_factory=OptimizerRuntimeConfig)
     loop: LoopRuntimeConfig = Field(default_factory=LoopRuntimeConfig)
     eval: EvalRuntimeConfig = Field(default_factory=EvalRuntimeConfig)
+    budget: BudgetRuntimeConfig = Field(default_factory=BudgetRuntimeConfig)
 
 
 def load_runtime_config(path: str = "autoagent.yaml") -> RuntimeConfig:

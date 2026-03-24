@@ -12,6 +12,7 @@ import {
   Flag,
   TestTubes,
   Activity,
+  ScrollText,
 } from 'lucide-react';
 import { classNames } from '../lib/utils';
 
@@ -26,6 +27,7 @@ const navItems = [
   { to: '/opportunities', label: 'Opportunities', icon: Flag },
   { to: '/experiments', label: 'Experiments', icon: TestTubes },
   { to: '/traces', label: 'Traces', icon: Activity },
+  { to: '/events', label: 'Event Log', icon: ScrollText },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

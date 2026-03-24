@@ -84,7 +84,7 @@ function isLayeredScores(d: DimensionScores): d is LayeredDimensionScores {
 }
 
 function getMetricValue(dimensions: DimensionScores, key: string): number | undefined {
-  return (dimensions as Record<string, number>)[key];
+  return (dimensions as unknown as Record<string, number>)[key];
 }
 
 function metricPassed(value: number, metric: MetricDef): boolean {

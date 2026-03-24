@@ -201,6 +201,7 @@ React + Vite + TypeScript + Tailwind. Apple/Linear-inspired design.
 | **Opportunities** | Ranked optimization opportunity queue |
 | **Experiments** | Reviewable experiment cards with hypothesis and diff |
 | **Traces** | ADK event traces and spans for diagnosis |
+| **Event Log** | Append-only system event timeline |
 | Settings | Runtime configuration |
 
 ### REST API
@@ -231,6 +232,19 @@ GET    /api/experiments/{id}    — Single experiment card
 GET    /api/experiments/stats   — Experiment counts by status
 GET    /api/experiments/archive — Elite Pareto archive with named roles
 GET    /api/experiments/judge-calibration — Judge calibration metrics
+
+# New (Three-Way Merge — Simplicity Thesis)
+GET    /api/control/state       — Human control state
+POST   /api/control/pause       — Pause optimization
+POST   /api/control/resume      — Resume optimization
+POST   /api/control/pin/{s}     — Pin immutable surface
+POST   /api/control/unpin/{s}   — Unpin immutable surface
+POST   /api/control/reject/{id} — Reject experiment + rollback canary
+POST   /api/control/inject      — Inject manual mutation
+GET    /api/events              — Append-only system event log
+GET    /api/health/cost         — Cost tracking and budget posture
+GET    /api/health/eval-set     — Eval set health diagnostics
+GET    /api/health/scorecard    — 2-gate + 4-metric scorecard
 ```
 
 ---
@@ -272,6 +286,17 @@ memory_policy:
   preload: true
   write_back: true
   max_entries: 100
+
+# New (Three-Way Merge)
+budget:
+  per_cycle_dollars: 1.0
+  daily_dollars: 10.0
+  stall_threshold_cycles: 5
+  tracker_db_path: .autoagent/cost_tracker.db
+
+human_control:
+  immutable_surfaces: ["safety_instructions"]
+  state_path: .autoagent/human_control.json
 ```
 
 ---
@@ -280,16 +305,16 @@ memory_policy:
 
 | Metric | Value |
 |--------|-------|
-| Python backend | ~21,000 lines |
-| React frontend | ~8,000 lines |
-| Test suite | 551 tests passing |
+| Python backend | ~24,000 lines |
+| React frontend | ~9,000 lines |
+| Test suite | 729 tests passing |
 | Core domain objects | 10 (AgentGraphVersion, SkillVersion, ToolContractVersion, PolicyPackVersion, EnvironmentSnapshot, GraderBundle, EvalCase, CandidateVariant, ArchiveEntry, HandoffArtifact) |
-| Judge subsystem | 6 modules (deterministic, rule_based, llm_judge, audit_judge, calibration, grader_stack) |
-| Python packages | 7 (agent, api, core, deployer, evals, judges, optimizer) |
+| Judge subsystem | 9 modules (deterministic, rule_based, llm_judge, audit_judge, calibration, grader_stack + binary_rubric, similarity, deterministic_grader) |
+| Python packages | 10 (agent, api, core, control, data, deployer, evals, graders, judges, optimizer) |
 | Reusable React components | 28 |
-| Frontend pages | 12 |
-| API endpoints | 30 |
-| Test files | 27 |
+| Frontend pages | 13 |
+| API endpoints | 38 |
+| Test files | 34 |
 
 ---
 
@@ -461,6 +486,76 @@ When a failure family is stable and high-volume with low prompt-fix rate, recomm
 ### Release Manager (`deployer/release_manager.py`)
 
 Full promotion pipeline: hard gates → hidden holdout → slice checks → canary → rollback-ready release. Each stage produces an auditable `PromotionRecord`.
+
+---
+
+## Final Three-Way Merge (v6 — Simplicity Thesis)
+
+The v6 merge folds production-critical features from Codex R2 (simplicity thesis) and structural improvements from Codex R1 (repository pattern, governance) into the CC Opus backbone. Guiding principle: **iteration speed over sophistication** — the Karpathy loop as default, 4+2 scoring, binary rubric judges, human escape hatches, cost controls.
+
+### Production Cost Controls (`optimizer/cost_tracker.py`)
+
+- SQLite-backed per-cycle and daily budget tracking
+- Diminishing returns (stall) detection — pauses loop when N consecutive cycles show no improvement
+- Cost-per-improvement ROI metrics
+- API endpoint: `GET /api/health/cost`
+
+### Human Escape Hatches (`optimizer/human_control.py`, `api/routes/control.py`)
+
+| Action | CLI | API | Dashboard |
+|--------|-----|-----|-----------|
+| Pause/resume optimization | `autoagent pause/resume` | `POST /api/control/pause` | Button |
+| Pin immutable surface | `autoagent pin <surface>` | `POST /api/control/pin/{surface}` | Input + tags |
+| Reject experiment + rollback | `autoagent reject <id>` | `POST /api/control/reject/{id}` | Input + button |
+| Inject manual mutation | — | `POST /api/control/inject` | — |
+
+### Append-Only Event Log (`data/event_log.py`, `api/routes/events.py`)
+
+14 event types: `eval_started`, `eval_completed`, `candidate_proposed`, `candidate_promoted`, `candidate_rejected`, `rollback_triggered`, `budget_exceeded`, `stall_detected`, `human_pause`, `human_resume`, `human_reject`, `human_inject`, `loop_started`, `loop_stopped`.
+
+- SQLite append-only storage
+- API: `GET /api/events` with type filtering
+- Dashboard: Event Timeline + dedicated Event Log page
+
+### Binary Rubric Judges (`graders/llm_judge.py`)
+
+4 yes/no rubric questions for routine evaluation (fast, cheap). Full evidence-span judges reserved for promotion only.
+- Heuristic fallback mode for no-LLM operation
+- Model-family conflict detection (judge must differ from proposer)
+- Optional 3x majority voting
+
+### Tiered Grading Pipeline (`graders/`)
+
+1. `DeterministicGrader` — strict assertion checks (contains, tool_called, status_code)
+2. `SimilarityGrader` — token-overlap Jaccard similarity
+3. `BinaryRubricJudge` — LLM yes/no rubric (see above)
+
+### Protocol-Based Repositories (`data/repositories.py`)
+
+- `TraceRepository` and `ArtifactRepository` — Python Protocol interfaces
+- `SQLiteTraceRepository` and `SQLiteArtifactRepository` — concrete implementations
+- Postgres-ready: swap implementation without changing consumers
+
+### Governance Wrapper (`control/governance.py`)
+
+Thin delegation to `ReleaseManager.run_full_pipeline()` for promotion decisions.
+
+### Eval Enhancements
+
+- **Coherence Detection** (`evals/data_engine.py`): scans trace events for repeated questions, self-contradictions, "I already told you" patterns
+- **Difficulty Scoring**: categorizes eval cases as saturated (<5% fail), unsolvable (>95% fail), or high-leverage (30-70% fail)
+- **Pipeline Eval Mode**: end-to-end multi-agent evaluation via `eval_mode="pipeline"`
+- **Graph Validation**: duplicate node detection, dangling edge detection
+
+### Simplicity-First Dashboard (`web/src/pages/Dashboard.tsx`)
+
+Replaced the 9-dimension dashboard with R2's simplicity-first design:
+- 2 hard gates (safety + regression) + 4 primary metrics (task success, quality, latency p95, cost/conversation)
+- Collapsible "Why? Diagnostic Signals" section
+- Score trajectory chart
+- Cost controls panel with spend tracking
+- Human escape hatches panel (pause/resume, pin surface, reject experiment)
+- Event Timeline with link to full Event Log page
 
 ### Statistical Refinements
 

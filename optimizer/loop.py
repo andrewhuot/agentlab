@@ -17,7 +17,10 @@ from evals.statistics import paired_significance
 from observer.metrics import HealthReport
 from observer.opportunities import FailureClusterer, OptimizationOpportunity
 
+from data.event_log import EventLog
+from .cost_tracker import CostTracker
 from .gates import Gates
+from .human_control import HumanControlStore
 from .memory import OptimizationAttempt, OptimizationMemory
 from .mutations import create_default_registry
 from .pareto import ConstrainedParetoArchive, ObjectiveDirection
@@ -61,6 +64,11 @@ class Optimizer:
         bandit_policy: str = BanditPolicy.THOMPSON.value,
         search_budget: SearchBudget | None = None,
         anti_goodhart_config: AntiGoodhartConfig | None = None,
+        # Production controls (from R2 simplicity thesis)
+        cost_tracker: CostTracker | None = None,
+        human_control_store: HumanControlStore | None = None,
+        event_log: EventLog | None = None,
+        immutable_surfaces: list[str] | None = None,
     ) -> None:
         self.eval_runner = eval_runner
         self.memory = memory or OptimizationMemory()
@@ -70,6 +78,12 @@ class Optimizer:
         self.significance_min_effect_size = significance_min_effect_size
         self.significance_iterations = significance_iterations
         self.require_statistical_significance = require_statistical_significance
+
+        # Production controls
+        self.cost_tracker = cost_tracker
+        self.human_control_store = human_control_store
+        self.event_log = event_log
+        self.immutable_surfaces: set[str] = set(immutable_surfaces or [])
 
         try:
             self.search_strategy = SearchStrategy(search_strategy)
@@ -115,8 +129,41 @@ class Optimizer:
         health_report: HealthReport,
         current_config: dict,
         failure_samples: list[dict] | None = None,
+        *,
+        cycle_id: str | None = None,
+        estimated_cycle_cost: float = 0.0,
     ) -> tuple[dict | None, str]:
-        """Run one optimization cycle with configured strategy."""
+        """Run one optimization cycle with configured strategy.
+
+        Production gates (checked before any work):
+        1. Human pause — if paused, return immediately
+        2. Budget gate — if over budget, return immediately
+        3. Immutable surfaces — refreshed from human_control_store
+        4. Event logging — every significant action gets logged
+        """
+        # Gate 1: Human pause check
+        if self.human_control_store is not None:
+            state = self.human_control_store.get_state()
+            if state.paused:
+                self._log_event("human_pause", {"reason": "optimizer_paused_by_human"}, cycle_id=cycle_id)
+                return None, "PAUSED: Human pause override is active"
+            # Refresh immutable surfaces from persistent state
+            self.immutable_surfaces = set(state.immutable_surfaces)
+
+        # Gate 2: Budget check
+        if self.cost_tracker is not None and estimated_cycle_cost > 0:
+            can_spend, reason = self.cost_tracker.can_start_cycle(estimated_cycle_cost)
+            if not can_spend:
+                self._log_event("budget_exceeded", {"reason": reason}, cycle_id=cycle_id)
+                return None, f"BUDGET_EXCEEDED: {reason}"
+
+        # Gate 3: Stall detection
+        if self.cost_tracker is not None and self.cost_tracker.should_pause_for_stall():
+            self._log_event("stall_detected", {"reason": "diminishing_returns"}, cycle_id=cycle_id)
+            return None, "STALL_DETECTED: No improvement over recent cycles"
+
+        self._log_event("mutation_proposed", {"strategy": self.search_strategy.value}, cycle_id=cycle_id)
+
         if self.search_strategy == SearchStrategy.SIMPLE:
             return self._optimize_simple(health_report, current_config, failure_samples)
         return self._optimize_hybrid(health_report, current_config, failure_samples)
@@ -271,6 +318,19 @@ class Optimizer:
         config_section: str,
     ) -> tuple[dict | None, str]:
         """Validate, evaluate, gate, significance-check, and log candidate config."""
+        # Check immutable surface violations
+        if self.immutable_surfaces and candidate_config_raw:
+            for surface in self.immutable_surfaces:
+                if surface in str(candidate_config_raw):
+                    self._log_rejected_attempt(
+                        health_report=health_report,
+                        change_description=change_description,
+                        config_section=config_section,
+                        rejection_status="rejected_immutable",
+                        rejection_reason=f"Mutation touches immutable surface: {surface}",
+                    )
+                    return None, f"REJECTED (rejected_immutable): Mutation touches immutable surface: {surface}"
+
         try:
             validated_new = validate_config(candidate_config_raw)
         except Exception as exc:
@@ -479,6 +539,30 @@ class Optimizer:
             health_context=json.dumps(health_report.metrics.to_dict()),
         )
         self.memory.log(attempt)
+
+    def set_immutable_surfaces(self, surfaces: list[str]) -> None:
+        """Update immutable surfaces from human control state."""
+        self.immutable_surfaces = set(surfaces)
+
+    def _log_event(
+        self,
+        event_type: str,
+        payload: dict[str, Any] | None = None,
+        *,
+        cycle_id: str | None = None,
+        experiment_id: str | None = None,
+    ) -> None:
+        """Log event to the append-only event log if available."""
+        if self.event_log is not None:
+            try:
+                self.event_log.append(
+                    event_type=event_type,
+                    payload=payload,
+                    cycle_id=cycle_id,
+                    experiment_id=experiment_id,
+                )
+            except (ValueError, Exception):
+                pass  # Don't let event logging failures block optimization
 
     @staticmethod
     def _case_composite(result) -> float:
