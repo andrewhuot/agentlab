@@ -1,7 +1,7 @@
 # AutoAgent VNextCC
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB)
-![862 tests](https://img.shields.io/badge/tests-862_passing-22C55E)
+![1131 tests](https://img.shields.io/badge/tests-1131_passing-22C55E)
 ![License](https://img.shields.io/badge/license-Apache%202.0-111827)
 
 **Continuous evaluation and optimization for AI agents.** Point it at an agent, and it runs an autonomous loop — trace, diagnose, search for improvements, gate on statistical significance, deploy via canary, repeat.
@@ -276,7 +276,7 @@ See [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) for the full breakdown.
 
 | | |
 |---|---|
-| Test suite | **862 tests** |
+| Test suite | **1,131 tests** |
 | Python backend | ~24,000 lines |
 | React frontend | ~9,000 lines |
 | API endpoints | 38 |
@@ -292,9 +292,67 @@ This is a **research-grade platform** for continuous agent optimization. It's bu
 
 It is not a hosted product. There's no auth layer, no multi-tenancy, no billing. It's a tool for teams who want to point an optimization loop at their agents and let it run.
 
+## Deployment
+
+### Local Development
+
+```bash
+# One-command setup
+make setup
+source .venv/bin/activate
+cp .env.example .env  # Add your API keys
+
+# Start dev server
+make dev
+# → http://localhost:8000
+
+# Run tests
+make test
+```
+
+### Docker
+
+```bash
+# Build and run
+make docker-build
+make docker-run
+
+# Or with docker-compose (recommended)
+make compose-up
+```
+
+### Google Cloud Run (recommended for production)
+
+```bash
+# One-command deploy (requires gcloud CLI)
+./deploy/deploy.sh PROJECT_ID us-central1
+```
+
+This builds the container, pushes to Artifact Registry, and deploys to Cloud Run with:
+- Scale to zero (no cost when idle)
+- 2 vCPU / 2 GiB memory
+- Health checks on `/api/health/ready`
+
+See `deploy/cloudbuild.yaml` for CI/CD pipeline integration.
+
+### fly.io
+
+```bash
+fly launch --config deploy/fly.toml --dockerfile Dockerfile
+fly secrets set GOOGLE_API_KEY=your-key
+fly deploy --config deploy/fly.toml --dockerfile Dockerfile
+```
+
+### Railway
+
+Connect your repo. Railway auto-detects the Dockerfile. Set API keys as environment variables in the Railway dashboard.
+
+See `deploy/` directory for all deployment configs and [ENGINEERING_REVIEW.md](ENGINEERING_REVIEW.md) for the full deployment architecture analysis.
+
 ## Documentation
 
 - [Architecture Overview](ARCHITECTURE_OVERVIEW.md)
+- [Engineering Review](ENGINEERING_REVIEW.md)
 - [Getting Started](docs/getting-started.md)
 - [Concepts](docs/concepts.md)
 - [CLI Reference](docs/cli-reference.md)
@@ -308,7 +366,7 @@ It is not a hosted product. There's no auth layer, no multi-tenancy, no billing.
 - **Backend**: Python 3.11+, FastAPI, Uvicorn, SQLite
 - **CLI**: Click
 - **Frontend**: React, Vite, TypeScript, Tailwind
-- **Tests**: pytest (862 passing)
+- **Tests**: pytest (1,131 passing)
 
 ## License
 

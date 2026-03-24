@@ -12,6 +12,12 @@ from api.models import HealthMetricsData, HealthResponse, SystemHealthResponse
 router = APIRouter(prefix="/api/health", tags=["health"])
 
 
+@router.get("/ready")
+async def readiness_check() -> dict:
+    """Lightweight readiness probe — no database queries."""
+    return {"status": "ready"}
+
+
 @router.get("", response_model=HealthResponse)
 async def get_health(
     request: Request,

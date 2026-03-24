@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   autoagent:
     build:
@@ -9,13 +7,15 @@ services:
       - "8000:8000"
     volumes:
       - autoagent-data:/app/data
+    env_file:
+      - .env
     environment:
       - AUTOAGENT_DB=/app/data/conversations.db
       - AUTOAGENT_CONFIGS=/app/data/configs
       - AUTOAGENT_MEMORY_DB=/app/data/optimizer_memory.db
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
