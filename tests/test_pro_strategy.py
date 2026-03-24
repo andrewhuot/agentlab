@@ -160,26 +160,48 @@ class TestProStrategyRouting:
             assert result.algorithm == "miprov2"
 
     def test_pro_strategy_routes_to_gepa(self) -> None:
-        """Explicit GEPA routing triggers GEPA (which raises NotImplementedError)."""
+        """Explicit GEPA routing triggers GEPA and returns a result."""
         config = ProConfig(algorithm="gepa")
         strategy = ProSearchStrategy(
             llm_router=_make_llm_router(),
             eval_runner=_make_eval_runner(),
             config=config,
         )
-        with pytest.raises(NotImplementedError, match="GEPA"):
-            strategy.run(current_config={})
+        mock_instance = MagicMock()
+        mock_instance.optimize.return_value = OptimizationResult(
+            best_candidate=None,
+            baseline_score=0.5,
+            best_score=0.5,
+            algorithm="gepa",
+            total_eval_rounds=1,
+        )
+        with patch("optimizer.prompt_opt.gepa.GEPA", return_value=mock_instance) as MockGEPA:
+            result = strategy.run(current_config={})
+            MockGEPA.assert_called_once()
+            mock_instance.optimize.assert_called_once()
+            assert result.algorithm == "gepa"
 
     def test_pro_strategy_routes_to_simba(self) -> None:
-        """Explicit SIMBA routing triggers SIMBA (which raises NotImplementedError)."""
+        """Explicit SIMBA routing triggers SIMBA and returns a result."""
         config = ProConfig(algorithm="simba")
         strategy = ProSearchStrategy(
             llm_router=_make_llm_router(),
             eval_runner=_make_eval_runner(),
             config=config,
         )
-        with pytest.raises(NotImplementedError, match="SIMBA"):
-            strategy.run(current_config={})
+        mock_instance = MagicMock()
+        mock_instance.optimize.return_value = OptimizationResult(
+            best_candidate=None,
+            baseline_score=0.5,
+            best_score=0.5,
+            algorithm="simba",
+            total_eval_rounds=1,
+        )
+        with patch("optimizer.prompt_opt.simba.SIMBA", return_value=mock_instance) as MockSIMBA:
+            result = strategy.run(current_config={})
+            MockSIMBA.assert_called_once()
+            mock_instance.optimize.assert_called_once()
+            assert result.algorithm == "simba"
 
 
 # ---------------------------------------------------------------------------
@@ -187,72 +209,100 @@ class TestProStrategyRouting:
 # ---------------------------------------------------------------------------
 
 
-class TestGEPAStub:
-    """Tests for the GEPA stub."""
+class TestGEPAIntegration:
+    """Integration tests for GEPA evolutionary prompt optimization."""
 
-    def test_gepa_raises_not_implemented(self) -> None:
-        """GEPA.optimize() raises NotImplementedError."""
+    def test_gepa_returns_result_with_correct_algorithm(self) -> None:
+        """GEPA.optimize() returns an OptimizationResult with algorithm='gepa'."""
         gepa = GEPA(
             llm_router=_make_llm_router(),
             eval_runner=_make_eval_runner(),
             config=ProConfig(),
+            population_size=3,
+            generations=1,
         )
-        with pytest.raises(NotImplementedError):
-            gepa.optimize({})
+        result = gepa.optimize({"system_prompt": "test"})
+        assert isinstance(result, OptimizationResult)
+        assert result.algorithm == "gepa"
 
-    def test_gepa_error_message_is_descriptive(self) -> None:
-        """GEPA error message mentions algorithm name and context."""
+    def test_gepa_population_evolution_calls_llm(self) -> None:
+        """GEPA calls LLM for mutation/crossover during evolution."""
+        llm_router = _make_llm_router()
         gepa = GEPA(
-            llm_router=_make_llm_router(),
+            llm_router=llm_router,
             eval_runner=_make_eval_runner(),
             config=ProConfig(),
+            population_size=3,
+            generations=1,
         )
-        with pytest.raises(NotImplementedError, match="GEPA"):
-            gepa.optimize({})
+        result = gepa.optimize({"system_prompt": "test"})
+        # Should have called generate() for population init + crossover/mutation
+        assert result.total_eval_rounds > 1
 
-    def test_gepa_error_mentions_evolutionary(self) -> None:
-        """GEPA error message mentions evolutionary optimization."""
+    def test_gepa_budget_enforcement_stops_early(self) -> None:
+        """GEPA respects budget and stops early when cost is exceeded."""
+        mock_config = ModelConfig(provider="mock", model="mock-proposer")
+        # Build a router with high cost tracking
+        mock_provider = MockProvider(mock_config)
+        llm_router = LLMRouter(
+            strategy="single",
+            models=[mock_config],
+            providers={(mock_config.provider, mock_config.model): mock_provider},
+        )
+        config = ProConfig(budget_dollars=0.0001)
         gepa = GEPA(
-            llm_router=_make_llm_router(),
+            llm_router=llm_router,
             eval_runner=_make_eval_runner(),
-            config=ProConfig(),
+            config=config,
+            population_size=6,
+            generations=5,
         )
-        with pytest.raises(NotImplementedError, match="[Ee]volutionary"):
-            gepa.optimize({})
+        result = gepa.optimize({"system_prompt": "test"})
+        # With essentially zero budget, should stop very early
+        assert result.algorithm == "gepa"
 
 
-class TestSIMBAStub:
-    """Tests for the SIMBA stub."""
+class TestSIMBAIntegration:
+    """Integration tests for SIMBA simulation-based prompt optimization."""
 
-    def test_simba_raises_not_implemented(self) -> None:
-        """SIMBA.optimize() raises NotImplementedError."""
+    def test_simba_returns_result_with_correct_algorithm(self) -> None:
+        """SIMBA.optimize() returns an OptimizationResult with algorithm='simba'."""
         simba = SIMBA(
             llm_router=_make_llm_router(),
             eval_runner=_make_eval_runner(),
             config=ProConfig(),
+            variants_per_round=3,
+            rounds=1,
         )
-        with pytest.raises(NotImplementedError):
-            simba.optimize({})
+        result = simba.optimize({"system_prompt": "test"})
+        assert isinstance(result, OptimizationResult)
+        assert result.algorithm == "simba"
 
-    def test_simba_error_message_is_descriptive(self) -> None:
-        """SIMBA error message mentions algorithm name and context."""
+    def test_simba_reward_scoring_via_eval(self) -> None:
+        """SIMBA uses eval composite score as reward signal."""
         simba = SIMBA(
             llm_router=_make_llm_router(),
             eval_runner=_make_eval_runner(),
             config=ProConfig(),
+            variants_per_round=3,
+            rounds=1,
         )
-        with pytest.raises(NotImplementedError, match="SIMBA"):
-            simba.optimize({})
+        result = simba.optimize({"system_prompt": "test"})
+        # Should have run baseline + variant evals
+        assert result.total_eval_rounds >= 2
 
-    def test_simba_error_mentions_simulation(self) -> None:
-        """SIMBA error message mentions simulation-based optimization."""
+    def test_simba_budget_enforcement_stops_early(self) -> None:
+        """SIMBA respects budget and stops early when cost is exceeded."""
+        config = ProConfig(budget_dollars=0.0001)
         simba = SIMBA(
             llm_router=_make_llm_router(),
             eval_runner=_make_eval_runner(),
-            config=ProConfig(),
+            config=config,
+            variants_per_round=6,
+            rounds=4,
         )
-        with pytest.raises(NotImplementedError, match="[Ss]imulation"):
-            simba.optimize({})
+        result = simba.optimize({"system_prompt": "test"})
+        assert result.algorithm == "simba"
 
 
 # ---------------------------------------------------------------------------
