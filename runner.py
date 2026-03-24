@@ -1275,6 +1275,299 @@ def unpin_surface(surface: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# autoagent autofix (subgroup)
+# ---------------------------------------------------------------------------
+
+@cli.group("autofix")
+def autofix_group() -> None:
+    """AutoFix Copilot — reviewable improvement proposals."""
+
+
+@autofix_group.command("suggest")
+def autofix_suggest() -> None:
+    """Generate AutoFix proposals without applying them.
+
+    Examples:
+      autoagent autofix suggest
+    """
+    from optimizer.autofix import AutoFixEngine, AutoFixStore
+    from optimizer.autofix_proposers import (
+        CostOptimizationProposer,
+        FailurePatternProposer,
+        RegressionProposer,
+    )
+    from optimizer.mutations import create_default_registry
+
+    store = AutoFixStore()
+    registry = create_default_registry()
+    proposers = [FailurePatternProposer(), RegressionProposer(), CostOptimizationProposer()]
+    engine = AutoFixEngine(proposers=proposers, mutation_registry=registry, store=store)
+
+    deployer = Deployer(configs_dir=CONFIGS_DIR, store=ConversationStore(db_path=DB_PATH))
+    current_config = _ensure_active_config(deployer)
+    failures = _build_failure_samples(ConversationStore(db_path=DB_PATH))
+
+    proposals = engine.suggest(failures, current_config)
+    if not proposals:
+        click.echo("No proposals generated.")
+        return
+
+    click.echo(f"\n{len(proposals)} proposal(s) generated:\n")
+    for p in proposals:
+        risk_color = {"low": "green", "medium": "yellow", "high": "red"}.get(p.risk_class, "white")
+        click.echo(f"  [{p.proposal_id}] {p.mutation_name}")
+        click.echo(f"    Surface: {p.surface}  Risk: {click.style(p.risk_class, fg=risk_color)}")
+        click.echo(f"    Expected lift: {p.expected_lift:.1%}  Cost impact: ${p.cost_impact_estimate:.4f}")
+        if p.diff_preview:
+            click.echo(f"    Preview: {p.diff_preview[:80]}")
+        click.echo()
+
+
+@autofix_group.command("apply")
+@click.argument("proposal_id", type=str)
+def autofix_apply(proposal_id: str) -> None:
+    """Apply a specific AutoFix proposal.
+
+    Examples:
+      autoagent autofix apply abc123
+    """
+    from optimizer.autofix import AutoFixEngine, AutoFixStore
+    from optimizer.mutations import create_default_registry
+
+    store = AutoFixStore()
+    registry = create_default_registry()
+    engine = AutoFixEngine(proposers=[], mutation_registry=registry, store=store)
+
+    deployer = Deployer(configs_dir=CONFIGS_DIR, store=ConversationStore(db_path=DB_PATH))
+    current_config = _ensure_active_config(deployer)
+
+    try:
+        new_config, status_msg = engine.apply(proposal_id, current_config)
+        click.echo(f"Applied: {status_msg}")
+        if new_config:
+            click.echo("New config generated. Run 'autoagent eval run' to validate.")
+    except ValueError as exc:
+        click.echo(click.style(f"Error: {exc}", fg="red"))
+
+
+@autofix_group.command("history")
+@click.option("--limit", default=20, show_default=True, type=int, help="Number of proposals to show.")
+def autofix_history(limit: int) -> None:
+    """Show past AutoFix proposals and outcomes.
+
+    Examples:
+      autoagent autofix history
+    """
+    from optimizer.autofix import AutoFixEngine, AutoFixStore
+
+    store = AutoFixStore()
+    engine = AutoFixEngine(proposers=[], mutation_registry=None, store=store)
+    proposals = engine.history(limit=limit)
+
+    if not proposals:
+        click.echo("No AutoFix history found.")
+        return
+
+    click.echo(f"\nAutoFix history ({len(proposals)} proposals):\n")
+    click.echo(f"{'ID':<14}  {'Mutation':<24}  {'Status':<12}  {'Lift':>8}  {'Risk':<8}")
+    click.echo(f"{'─' * 14}  {'─' * 24}  {'─' * 12}  {'─' * 8}  {'─' * 8}")
+    for p in proposals:
+        click.echo(
+            f"{p.proposal_id:<14}  {p.mutation_name:<24}  {p.status:<12}  "
+            f"{p.expected_lift:>7.1%}  {p.risk_class:<8}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# autoagent judges (subgroup)
+# ---------------------------------------------------------------------------
+
+@cli.group("judges")
+def judges_group() -> None:
+    """Judge Ops — monitoring, calibration, and human feedback."""
+
+
+@judges_group.command("list")
+def judges_list() -> None:
+    """Show active judges with version and agreement stats.
+
+    Examples:
+      autoagent judges list
+    """
+    from judges.versioning import GraderVersionStore
+    from judges.human_feedback import HumanFeedbackStore
+
+    version_store = GraderVersionStore()
+    feedback_store = HumanFeedbackStore()
+
+    grader_ids = version_store.list_all_graders()
+    if not grader_ids:
+        click.echo("No judges registered yet.")
+        return
+
+    click.echo(f"\nActive judges ({len(grader_ids)}):\n")
+    click.echo(f"{'Judge ID':<24}  {'Version':>8}  {'Agreement':>10}")
+    click.echo(f"{'─' * 24}  {'─' * 8}  {'─' * 10}")
+    for gid in grader_ids:
+        latest = version_store.get_latest(gid)
+        agreement = feedback_store.agreement_rate(judge_id=gid)
+        ver = latest.version if latest else 0
+        click.echo(f"{gid:<24}  v{ver:>6}  {agreement:>9.1%}")
+
+
+@judges_group.command("calibrate")
+@click.option("--sample", default=50, show_default=True, type=int, help="Number of cases to sample.")
+@click.option("--judge-id", default=None, help="Filter to a specific judge.")
+def judges_calibrate(sample: int, judge_id: str | None) -> None:
+    """Sample cases for human calibration review.
+
+    Examples:
+      autoagent judges calibrate --sample 50
+      autoagent judges calibrate --judge-id llm_judge
+    """
+    from judges.human_feedback import HumanFeedbackStore
+
+    store = HumanFeedbackStore()
+    cases = store.sample_for_review(judge_id=judge_id, n=sample)
+
+    if not cases:
+        click.echo("No feedback data available for sampling.")
+        return
+
+    agreement = store.agreement_rate(judge_id=judge_id)
+    click.echo(f"\nCalibration sample ({len(cases)} cases):")
+    click.echo(f"Overall agreement rate: {agreement:.1%}\n")
+
+    click.echo(f"{'Case ID':<20}  {'Judge':>8}  {'Human':>8}  {'Gap':>8}")
+    click.echo(f"{'─' * 20}  {'─' * 8}  {'─' * 8}  {'─' * 8}")
+    for fb in cases:
+        gap = abs(fb.judge_score - fb.human_score)
+        click.echo(
+            f"{fb.case_id:<20}  {fb.judge_score:>8.2f}  {fb.human_score:>8.2f}  {gap:>8.2f}"
+        )
+
+
+@judges_group.command("drift")
+def judges_drift() -> None:
+    """Show drift report for all judges.
+
+    Examples:
+      autoagent judges drift
+    """
+    from judges.drift_monitor import DriftMonitor
+
+    monitor = DriftMonitor()
+    alerts = monitor.run_all_checks(verdicts=[])
+
+    if not alerts:
+        click.echo("No drift detected. All judges are stable.")
+        return
+
+    click.echo(f"\nDrift alerts ({len(alerts)}):\n")
+    for alert in alerts:
+        severity_color = "red" if alert.severity > 0.5 else "yellow"
+        click.echo(
+            f"  [{alert.alert_type}] {alert.grader_id}  "
+            f"severity={click.style(f'{alert.severity:.1%}', fg=severity_color)}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# autoagent context (subgroup)
+# ---------------------------------------------------------------------------
+
+@cli.group("context")
+def context_group() -> None:
+    """Context Engineering Workbench — diagnose and tune agent context."""
+
+
+@context_group.command("analyze")
+@click.option("--trace", "trace_id", required=True, help="Trace ID to analyze.")
+def context_analyze(trace_id: str) -> None:
+    """Analyze context utilization for a trace.
+
+    Examples:
+      autoagent context analyze --trace abc123
+    """
+    from context.analyzer import ContextAnalyzer
+    from observer.traces import TraceStore
+
+    trace_store = TraceStore(db_path=".autoagent/traces.db")
+    analyzer = ContextAnalyzer(trace_store=trace_store)
+
+    events = trace_store.get_events(trace_id=trace_id)
+    if not events:
+        click.echo(f"No events found for trace: {trace_id}")
+        return
+
+    event_dicts = [
+        {
+            "event_type": e.event_type.value if hasattr(e.event_type, "value") else str(e.event_type),
+            "tokens_in": e.tokens_in,
+            "tokens_out": e.tokens_out,
+            "error_message": e.error_message,
+            "metadata": e.metadata if isinstance(e.metadata, dict) else {},
+        }
+        for e in events
+    ]
+
+    analysis = analyzer.analyze_trace(event_dicts)
+    click.echo(f"\nContext Analysis for trace {trace_id}:")
+    click.echo(f"  Growth pattern: {analysis.growth_pattern.pattern_type}")
+    click.echo(f"  Peak utilization: {analysis.peak_utilization:.1%}")
+    click.echo(f"  Avg utilization: {analysis.avg_utilization:.1%}")
+    click.echo(f"  Compaction events: {analysis.growth_pattern.compaction_events}")
+
+    if analysis.recommendations:
+        click.echo("\n  Recommendations:")
+        for r in analysis.recommendations:
+            click.echo(f"    - {r}")
+
+
+@context_group.command("simulate")
+@click.option("--strategy", default="balanced", show_default=True,
+              type=click.Choice(["aggressive", "balanced", "conservative"]),
+              help="Compaction strategy to simulate.")
+def context_simulate(strategy: str) -> None:
+    """Simulate a compaction strategy.
+
+    Examples:
+      autoagent context simulate --strategy aggressive
+    """
+    from context.simulator import CompactionSimulator
+
+    simulator = CompactionSimulator()
+    strategies = {s.name: s for s in simulator.default_strategies()}
+
+    selected = strategies.get(strategy)
+    if not selected:
+        click.echo(f"Unknown strategy: {strategy}")
+        return
+
+    click.echo(f"\nCompaction Strategy: {selected.name}")
+    click.echo(f"  Max tokens: {selected.max_tokens}")
+    click.echo(f"  Trigger: {selected.compaction_trigger:.0%} utilization")
+    click.echo(f"  Retention: {selected.retention_ratio:.0%}")
+    click.echo(f"\n  (Provide trace data via API for full simulation)")
+
+
+@context_group.command("report")
+def context_report() -> None:
+    """Show aggregate context health report.
+
+    Examples:
+      autoagent context report
+    """
+    click.echo("\nContext Health Report")
+    click.echo("=" * 40)
+    click.echo("  Utilization ratio:   — (no trace data)")
+    click.echo("  Compaction loss:     — (no trace data)")
+    click.echo("  Handoff fidelity:    — (no trace data)")
+    click.echo("  Memory staleness:    — (no trace data)")
+    click.echo("\n  Run 'autoagent context analyze --trace <id>' for per-trace analysis.")
+
+
+# ---------------------------------------------------------------------------
 # autoagent server
 # ---------------------------------------------------------------------------
 

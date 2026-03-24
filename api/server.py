@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import config, control, conversations, deploy, eval, events, experiments, health, loop, opportunities, optimize, traces
+from api.routes import autofix, config, context, control, conversations, deploy, eval, events, experiments, health, judges, loop, opportunities, optimize, traces
 from api.tasks import TaskManager
 from api.websocket import ConnectionManager
 
@@ -135,6 +135,43 @@ async def lifespan(app: FastAPI):
         stall_threshold_cycles=runtime.budget.stall_threshold_cycles,
     )
 
+    # AutoFix Copilot
+    from optimizer.autofix import AutoFixEngine, AutoFixStore
+    from optimizer.autofix_proposers import (
+        CostOptimizationProposer,
+        FailurePatternProposer,
+        RegressionProposer,
+    )
+    from optimizer.mutations import create_default_registry
+
+    autofix_store = AutoFixStore()
+    autofix_registry = create_default_registry()
+    autofix_proposers = [
+        FailurePatternProposer(),
+        RegressionProposer(),
+        CostOptimizationProposer(),
+    ]
+    app.state.autofix_engine = AutoFixEngine(
+        proposers=autofix_proposers,
+        mutation_registry=autofix_registry,
+        eval_runner=eval_runner,
+        store=autofix_store,
+    )
+
+    # Judge Ops
+    from judges.versioning import GraderVersionStore
+    from judges.drift_monitor import DriftMonitor
+    from judges.human_feedback import HumanFeedbackStore
+
+    app.state.grader_version_store = GraderVersionStore()
+    app.state.human_feedback_store = HumanFeedbackStore()
+    app.state.drift_monitor = DriftMonitor()
+
+    # Context Workbench
+    from context.analyzer import ContextAnalyzer
+
+    app.state.context_analyzer = ContextAnalyzer()
+
     yield
     # No explicit cleanup needed — SQLite connections are context-managed
 
@@ -179,6 +216,9 @@ app.include_router(opportunities.router)
 app.include_router(experiments.router)
 app.include_router(control.router)
 app.include_router(events.router)
+app.include_router(autofix.router)
+app.include_router(judges.router)
+app.include_router(context.router)
 
 
 # ---------------------------------------------------------------------------

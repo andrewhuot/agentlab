@@ -14,6 +14,9 @@ import { Opportunities } from './pages/Opportunities';
 import { Experiments } from './pages/Experiments';
 import { Traces } from './pages/Traces';
 import { EventLogPage } from './pages/EventLog';
+import { AutoFix } from './pages/AutoFix';
+import { JudgeOps } from './pages/JudgeOps';
+import { ContextWorkbench } from './pages/ContextWorkbench';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +45,9 @@ export default function App() {
             <Route path="/experiments" element={<Experiments />} />
             <Route path="/traces" element={<Traces />} />
             <Route path="/events" element={<EventLogPage />} />
+            <Route path="/autofix" element={<AutoFix />} />
+            <Route path="/judge-ops" element={<JudgeOps />} />
+            <Route path="/context" element={<ContextWorkbench />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Layout>

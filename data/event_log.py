@@ -24,6 +24,17 @@ VALID_EVENT_TYPES = {
     "human_pause",
     "human_reject",
     "human_inject",
+    # AutoFix events
+    "autofix_suggested",
+    "autofix_applied",
+    "autofix_rejected",
+    # Judge Ops events
+    "judge_feedback_recorded",
+    "judge_drift_detected",
+    "judge_version_created",
+    # Context Workbench events
+    "context_analyzed",
+    "context_simulation_run",
 }
 
 

@@ -13,6 +13,9 @@ import {
   TestTubes,
   Activity,
   ScrollText,
+  Wrench,
+  Scale,
+  Layers,
 } from 'lucide-react';
 import { classNames } from '../lib/utils';
 
@@ -28,6 +31,9 @@ const navItems = [
   { to: '/experiments', label: 'Experiments', icon: TestTubes },
   { to: '/traces', label: 'Traces', icon: Activity },
   { to: '/events', label: 'Event Log', icon: ScrollText },
+  { to: '/autofix', label: 'AutoFix', icon: Wrench },
+  { to: '/judge-ops', label: 'Judge Ops', icon: Scale },
+  { to: '/context', label: 'Context Workbench', icon: Layers },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
