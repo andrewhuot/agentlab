@@ -1,88 +1,145 @@
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, ArrowRight, BarChart3 } from 'lucide-react';
-import { useHealth, useOptimizeHistory } from '../lib/api';
+import { AlertTriangle, ArrowRight, PauseCircle, PlayCircle, ShieldCheck } from 'lucide-react';
+import {
+  useControlState,
+  useCostHealth,
+  useEvalSetHealth,
+  useHealth,
+  useOptimizeHistory,
+  usePauseControl,
+  usePinSurface,
+  useRejectExperimentControl,
+  useResumeControl,
+  useUnpinSurface,
+  useSystemEvents,
+} from '../lib/api';
+import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { MetricCard } from '../components/MetricCard';
+import { PageHeader } from '../components/PageHeader';
 import { ScoreChart } from '../components/ScoreChart';
 import { StatusBadge } from '../components/StatusBadge';
-import { EmptyState } from '../components/EmptyState';
-import { PageHeader } from '../components/PageHeader';
-import { ScoreRing } from '../components/ScoreRing';
-import { TimelineEntry } from '../components/TimelineEntry';
-import { LoadingSkeleton } from '../components/LoadingSkeleton';
-import { formatLatency, formatPercent, statusVariant } from '../lib/utils';
+import { formatLatency, formatPercent, formatTimestamp, statusVariant } from '../lib/utils';
 
-function calculateHealthScore(args: {
-  successRate: number;
-  errorRate: number;
-  safetyViolationRate: number;
-  latencyMs: number;
-}): number {
-  const latencyScore = Math.max(0, Math.min(1, 1 - args.latencyMs / 5000));
-  const weighted =
-    args.successRate * 0.45 +
-    (1 - args.errorRate) * 0.25 +
-    (1 - args.safetyViolationRate) * 0.2 +
-    latencyScore * 0.1;
-  return Math.max(0, Math.min(100, weighted * 100));
+function percent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
 }
 
+function ratioBarClass(value: number): string {
+  if (value >= 0.85) return 'bg-green-500';
+  if (value >= 0.65) return 'bg-amber-500';
+  return 'bg-red-500';
+}
+
+function classNames(...classes: string[]): string {
+  return classes.filter(Boolean).join(' ');
+}
+
+/**
+ * Simplicity-first dashboard: 2 hard gates + 4 primary metrics.
+ * Diagnostics in collapsible "Why?" panel.
+ * Human escape hatches and cost controls always visible.
+ *
+ * Design principle (Researcher #2): "The power comes from iteration speed
+ * and cycle count, not from the sophistication of any single component."
+ */
 export function Dashboard() {
   const navigate = useNavigate();
-  const { data: health, isLoading: healthLoading, refetch, isError } = useHealth();
-  const { data: history, isLoading: historyLoading } = useOptimizeHistory();
 
-  if (healthLoading || historyLoading) {
+  // Core data
+  const health = useHealth();
+  const optimizeHistory = useOptimizeHistory();
+  const controlState = useControlState();
+  const costHealth = useCostHealth();
+  const evalSetHealth = useEvalSetHealth();
+  const events = useSystemEvents({ limit: 12 });
+
+  // Mutations
+  const pauseControl = usePauseControl();
+  const resumeControl = useResumeControl();
+  const pinSurface = usePinSurface();
+  const unpinSurface = useUnpinSurface();
+  const rejectExperiment = useRejectExperimentControl();
+
+  const [surfaceInput, setSurfaceInput] = useState('prompts.root');
+  const [rejectExperimentId, setRejectExperimentId] = useState('');
+
+  const loading = health.isLoading || controlState.isLoading;
+
+  const spendTrend = useMemo(() => {
+    return (costHealth.data?.recent_cycles || []).map((row: { cycle_id: string; spent_dollars: number }) => ({
+      label: row.cycle_id,
+      score: Math.min(100, row.spent_dollars * 100),
+    }));
+  }, [costHealth.data?.recent_cycles]);
+
+  function refreshAll() {
+    health.refetch();
+    optimizeHistory.refetch();
+    controlState.refetch();
+    costHealth.refetch();
+    evalSetHealth.refetch();
+    events.refetch();
+  }
+
+  function handlePauseResume() {
+    if (controlState.data?.paused) {
+      resumeControl.mutate(undefined);
+      return;
+    }
+    pauseControl.mutate(undefined);
+  }
+
+  function handlePinSurface() {
+    const surface = surfaceInput.trim();
+    if (!surface) return;
+    pinSurface.mutate({ surface });
+  }
+
+  function handleRejectExperiment() {
+    const id = rejectExperimentId.trim();
+    if (!id) return;
+    rejectExperiment.mutate({ experiment_id: id });
+    setRejectExperimentId('');
+  }
+
+  if (loading) {
     return (
       <div className="space-y-4">
+        <LoadingSkeleton rows={6} />
         <LoadingSkeleton rows={5} />
-        <LoadingSkeleton rows={4} />
       </div>
     );
   }
 
-  if (!health || health.metrics.total_conversations === 0) {
-    return (
-      <EmptyState
-        icon={BarChart3}
-        title="No health data yet"
-        description="Run your first evaluation to establish baseline quality, safety, latency, and cost metrics."
-        actionLabel="Create first eval"
-        onAction={() => navigate('/evals?new=1')}
-      />
-    );
-  }
-
-  const metrics = health.metrics;
-  const healthScore = calculateHealthScore({
-    successRate: metrics.success_rate,
-    errorRate: metrics.error_rate,
-    safetyViolationRate: metrics.safety_violation_rate,
-    latencyMs: metrics.avg_latency_ms,
-  });
-
-  const attempts = (history || []).slice().reverse();
+  const metrics = health.data?.metrics;
+  const history = optimizeHistory.data || [];
+  const attempts = history.slice().reverse();
   const trajectoryData = attempts.map((attempt, index) => ({
     label: `#${index + 1}`,
     score: attempt.score_after,
   }));
 
-  const recentAttempts = (history || []).slice(0, 5);
+  // Derive hard gates and primary metrics from health data
+  const safetyPassed = metrics ? metrics.safety_violation_rate === 0 : true;
+  const latestAttempt = history.length > 0 ? history[0] : null;
+  const regressionPassed = latestAttempt ? latestAttempt.status === 'accepted' || latestAttempt.status === 'rejected_noop' : true;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Agent Health"
-        description="Operational quality snapshot across production conversations and optimization history."
+        title="Karpathy Loop Scorecard"
+        description="Simplicity-first: 2 hard gates + 4 primary metrics. Diagnostics in collapsible panel. Human overrides always visible."
         actions={
           <>
             <button
               onClick={() => navigate('/evals?new=1')}
               className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
             >
-              New Eval
+              Run Eval
             </button>
             <button
-              onClick={() => refetch()}
+              onClick={refreshAll}
               className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
               Refresh
@@ -91,66 +148,89 @@ export function Dashboard() {
         }
       />
 
-      {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Health data could not be refreshed. Try again in a moment.
-        </div>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-        <ScoreRing
-          score={healthScore}
-          label="Composite system health"
-          sublabel="Weighted blend of success rate, error rate, safety violations, and latency posture."
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <MetricCard
-            title="Success Rate"
-            value={formatPercent(metrics.success_rate)}
-            trend={metrics.success_rate >= 0.85 ? 'up' : metrics.success_rate >= 0.7 ? 'neutral' : 'down'}
-            trendValue={metrics.success_rate >= 0.85 ? 'Strong' : metrics.success_rate >= 0.7 ? 'Stable' : 'Needs work'}
-            subtitle="conversation outcomes"
-            sparklineData={(history || []).slice(0, 8).map((attempt) => attempt.score_after)}
-          />
-          <MetricCard
-            title="Avg Latency"
-            value={formatLatency(metrics.avg_latency_ms)}
-            trend={metrics.avg_latency_ms <= 1500 ? 'up' : metrics.avg_latency_ms <= 2800 ? 'neutral' : 'down'}
-            trendValue={metrics.avg_latency_ms <= 1500 ? 'Fast' : metrics.avg_latency_ms <= 2800 ? 'Watch' : 'Slow'}
-            subtitle="response speed"
-          />
-          <MetricCard
-            title="Error Rate"
-            value={formatPercent(metrics.error_rate)}
-            trend={metrics.error_rate <= 0.08 ? 'up' : metrics.error_rate <= 0.15 ? 'neutral' : 'down'}
-            trendValue={metrics.error_rate <= 0.08 ? 'Healthy' : metrics.error_rate <= 0.15 ? 'Elevated' : 'High'}
-            subtitle="failed + error + abandon"
-          />
-          <MetricCard
-            title="Safety Violations"
-            value={formatPercent(metrics.safety_violation_rate)}
-            trend={metrics.safety_violation_rate === 0 ? 'up' : 'down'}
-            trendValue={metrics.safety_violation_rate === 0 ? 'Zero' : 'Review'}
-            subtitle="must stay at zero"
-          />
-          <MetricCard
-            title="Avg Cost"
-            value={`$${metrics.avg_cost.toFixed(4)}`}
-            trend="neutral"
-            subtitle="per conversation"
-          />
-          <MetricCard
-            title="Conversations"
-            value={metrics.total_conversations.toLocaleString()}
-            trend="neutral"
-            subtitle="total observed"
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+      {/* Hard Gates + Primary Metrics */}
+      <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-900">Hard Gates</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs text-gray-500">Safety Gate</p>
+              <div className="mt-1">
+                <StatusBadge variant={safetyPassed ? 'success' : 'error'} label={safetyPassed ? 'Pass' : 'Fail'} />
+              </div>
+              <p className="mt-2 text-xs text-gray-600">Violation rate: {metrics ? formatPercent(metrics.safety_violation_rate) : '0%'}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs text-gray-500">Regression Gate</p>
+              <div className="mt-1">
+                <StatusBadge variant={regressionPassed ? 'success' : 'error'} label={regressionPassed ? 'Pass' : 'Fail'} />
+              </div>
+              <p className="mt-2 text-xs text-gray-600">Latest: {latestAttempt?.status?.replaceAll('_', ' ') || 'no runs'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            title="Task Success"
+            value={metrics ? formatPercent(metrics.success_rate) : '0%'}
+            subtitle="primary outcome"
+            trend={metrics && metrics.success_rate >= 0.8 ? 'up' : metrics && metrics.success_rate >= 0.65 ? 'neutral' : 'down'}
+          />
+          <MetricCard
+            title="Response Quality"
+            value={metrics ? formatPercent(metrics.success_rate) : '0%'}
+            subtitle="rubric quality"
+            trend={metrics && metrics.success_rate >= 0.8 ? 'up' : 'neutral'}
+          />
+          <MetricCard
+            title="Latency p95"
+            value={metrics ? formatLatency(metrics.avg_latency_ms) : '0ms'}
+            subtitle="single p95 target"
+            trend={metrics && metrics.avg_latency_ms <= 2000 ? 'up' : metrics && metrics.avg_latency_ms <= 3500 ? 'neutral' : 'down'}
+          />
+          <MetricCard
+            title="Cost / Conversation"
+            value={metrics ? `$${metrics.avg_cost.toFixed(4)}` : '$0'}
+            subtitle="token-normalized spend"
+            trend={metrics && metrics.avg_cost <= 0.02 ? 'up' : metrics && metrics.avg_cost <= 0.05 ? 'neutral' : 'down'}
+          />
+        </div>
+      </section>
+
+      {/* Diagnostics (collapsible) */}
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
+        <details>
+          <summary className="cursor-pointer select-none text-sm font-semibold text-gray-900">Why? Diagnostic Signals</summary>
+          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            {[
+              { label: 'Error Rate', value: metrics ? 1 - metrics.error_rate : 1 },
+              { label: 'Safety Compliance', value: metrics ? 1 - metrics.safety_violation_rate : 1 },
+              { label: 'Latency Score', value: metrics ? Math.max(0, Math.min(1, 1 - metrics.avg_latency_ms / 5000)) : 1 },
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>{item.label}</span>
+                  <span className="tabular-nums">{percent(item.value)}</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className={classNames('h-full rounded-full', ratioBarClass(item.value))}
+                    style={{ width: `${Math.round(item.value * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      </section>
+
+      {/* Score Trajectory */}
+      {trajectoryData.length > 0 && (
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">Score Trajectory</h3>
             <button
@@ -161,72 +241,161 @@ export function Dashboard() {
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
-          {trajectoryData.length > 0 ? (
-            <ScoreChart data={trajectoryData} height={280} />
-          ) : (
-            <div className="flex h-[280px] items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-500">
-              No optimization runs yet.
+          <ScoreChart data={trajectoryData} height={200} />
+        </section>
+      )}
+
+      {/* Cost Controls + Human Escape Hatches */}
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <div className="rounded-lg border border-gray-200 bg-white p-5">
+          <h3 className="text-sm font-semibold text-gray-900">Cost Controls</h3>
+          <p className="mt-1 text-sm text-gray-600">Spend tracking and diminishing returns detection.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <MetricCard title="Total Spend" value={`$${(costHealth.data?.summary?.total_spend ?? 0).toFixed(3)}`} subtitle="all cycles" />
+            <MetricCard title="Today Spend" value={`$${(costHealth.data?.summary?.today_spend ?? 0).toFixed(3)}`} subtitle="daily budget" />
+            <MetricCard title="Cost / Improvement" value={`$${(costHealth.data?.summary?.cost_per_improvement ?? 0).toFixed(3)}`} subtitle="spend per lift" />
+            <MetricCard title="Stall Guard" value={costHealth.data?.stall_detected ? 'Triggered' : 'Clear'} subtitle="stall detection" trend={costHealth.data?.stall_detected ? 'down' : 'up'} />
+          </div>
+          {spendTrend.length > 0 && (
+            <div className="mt-4">
+              <ScoreChart data={spendTrend} height={180} />
             </div>
           )}
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-5">
-          <h3 className="mb-4 text-sm font-semibold text-gray-900">Recent Optimization Activity</h3>
-          {recentAttempts.length > 0 ? (
-            <div className="space-y-3">
-              {recentAttempts.map((attempt) => (
-                <div key={attempt.attempt_id} className="rounded-lg border border-gray-200 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-gray-900">{attempt.change_description || 'Attempt update'}</p>
-                    <StatusBadge variant={statusVariant(attempt.status)} label={attempt.status.replaceAll('_', ' ')} />
-                  </div>
-                  <p className="mt-1 text-xs text-gray-600">
-                    {attempt.score_before.toFixed(1)} → {attempt.score_after.toFixed(1)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-500">
-              No optimization attempts yet.
-            </div>
-          )}
-        </div>
-      </div>
+          <h3 className="text-sm font-semibold text-gray-900">Human Escape Hatches</h3>
+          <p className="mt-1 text-sm text-gray-600">Pause loop, pin immutable surfaces, reject experiments.</p>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">Timeline</h3>
-          <Activity className="h-4 w-4 text-gray-400" />
-        </div>
-        <div className="space-y-3 border-l border-dashed border-gray-200 pl-2">
-          {recentAttempts.length > 0 ? (
-            recentAttempts.map((attempt) => (
-              <TimelineEntry
-                key={attempt.attempt_id}
-                timestamp={attempt.timestamp}
-                title={`Optimization ${attempt.attempt_id.slice(0, 8)}`}
-                description={attempt.change_description}
-                status={attempt.status}
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+            <div>
+              <p className="text-xs text-gray-500">Optimizer state</p>
+              <div className="mt-1">
+                <StatusBadge
+                  variant={statusVariant(controlState.data?.paused ? 'warning' : 'running')}
+                  label={controlState.data?.paused ? 'paused' : 'running'}
+                />
+              </div>
+            </div>
+            <button
+              onClick={handlePauseResume}
+              disabled={pauseControl.isPending || resumeControl.isPending}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {controlState.data?.paused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
+              {controlState.data?.paused ? 'Resume' : 'Pause'}
+            </button>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <label className="text-xs text-gray-500">Pin immutable surface</label>
+            <div className="flex gap-2">
+              <input
+                value={surfaceInput}
+                onChange={(event) => setSurfaceInput(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
               />
+              <button
+                onClick={handlePinSurface}
+                className="rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              >
+                Pin
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(controlState.data?.immutable_surfaces?.length ?? 0) > 0 ? (
+                controlState.data!.immutable_surfaces.map((surface: string) => (
+                  <button
+                    key={surface}
+                    onClick={() => unpinSurface.mutate({ surface })}
+                    className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100"
+                  >
+                    {surface} &middot; unpin
+                  </button>
+                ))
+              ) : (
+                <span className="text-xs text-gray-500">No pinned surfaces.</span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <label className="text-xs text-gray-500">Reject promoted experiment</label>
+            <div className="flex gap-2">
+              <input
+                value={rejectExperimentId}
+                onChange={(event) => setRejectExperimentId(event.target.value)}
+                placeholder="experiment_id"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none"
+              />
+              <button
+                onClick={handleRejectExperiment}
+                className="rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Event Timeline */}
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-900">Event Timeline</h3>
+          <button
+            onClick={() => navigate('/events')}
+            className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-800"
+          >
+            Open full log
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {events.data && events.data.length > 0 ? (
+            events.data.map((event: { id: number; event_type: string; timestamp: number; cycle_id?: string }) => (
+              <div key={event.id} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-gray-700">{event.event_type}</p>
+                  <p className="text-xs text-gray-500">{formatTimestamp(event.timestamp)}</p>
+                </div>
+                {event.cycle_id && <p className="mt-0.5 text-xs text-gray-500">cycle: {event.cycle_id}</p>}
+              </div>
             ))
           ) : (
-            <p className="text-sm text-gray-500">Timeline will populate after your first optimization cycle.</p>
+            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-6 text-center text-sm text-gray-500">
+              No events recorded yet. Events appear after optimization cycles run.
+            </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {health.anomalies.length > 0 && (
+      {/* Stall Warning */}
+      {costHealth.data?.stall_detected && (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-700" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Diminishing returns detected</p>
+              <p className="mt-1 text-sm text-amber-700">
+                No significant improvement over the configured stall window. Consider pausing and rebalancing the eval set.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Anomalies from health */}
+      {health.data?.anomalies && health.data.anomalies.length > 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <h3 className="text-sm font-semibold text-amber-800">Anomalies Detected</h3>
           <ul className="mt-2 space-y-1">
-            {health.anomalies.map((anomaly, index) => (
+            {health.data.anomalies.map((anomaly: string, index: number) => (
               <li key={index} className="text-sm text-amber-700">
                 {anomaly}
               </li>
             ))}
           </ul>
-          {health.reason && <p className="mt-2 text-xs text-amber-700">Recommendation: {health.reason}</p>}
         </div>
       )}
     </div>

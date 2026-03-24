@@ -14,6 +14,7 @@ const pageTitles: Record<string, string> = {
   '/conversations': 'Conversations',
   '/deploy': 'Deploy',
   '/loop': 'Loop Monitor',
+  '/events': 'Event Log',
   '/settings': 'Settings',
 };
 

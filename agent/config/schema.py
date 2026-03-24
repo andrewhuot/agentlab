@@ -51,6 +51,50 @@ class ThresholdsConfig(BaseModel):
     max_latency_ms: int = 10000
 
 
+class ContextCachingConfig(BaseModel):
+    """Context caching configuration for reducing redundant token usage."""
+
+    enabled: bool = False
+    threshold_tokens: int = 1000
+    ttl_seconds: int = 300
+    max_use_count: int = 10
+
+
+class CompactionConfig(BaseModel):
+    """Conversation compaction configuration for long-running sessions."""
+
+    enabled: bool = False
+    interval_turns: int = 10
+    overlap_turns: int = 2
+    summarizer_model: str = "gemini-2.0-flash"
+
+
+class MemoryPolicyConfig(BaseModel):
+    """Memory preload/writeback policy configuration."""
+
+    preload: bool = True
+    on_demand: bool = False
+    write_back: bool = True
+    max_entries: int = 100
+
+
+class OptimizerConfig(BaseModel):
+    """Optimizer configuration for v4 research features."""
+
+    search_strategy: str = "simple"  # "simple" | "adaptive" | "full"
+    bandit_policy: str = "ucb1"  # "ucb1" | "thompson"
+    holdout_rotation: bool = False
+    holdout_tuning_fraction: float = 0.6
+    holdout_validation_fraction: float = 0.2
+    holdout_holdout_fraction: float = 0.2
+    holdout_rotation_interval: int = 10
+    drift_detection_window: int = 5
+    drift_threshold: float = 0.03
+    curriculum_enabled: bool = False
+    curriculum_min_experiments_per_tier: int = 3
+    curriculum_stall_threshold: float = 0.01
+
+
 class AgentConfig(BaseModel):
     """Top-level agent configuration."""
 
@@ -58,6 +102,14 @@ class AgentConfig(BaseModel):
     prompts: PromptsConfig = Field(default_factory=PromptsConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     thresholds: ThresholdsConfig = Field(default_factory=ThresholdsConfig)
+    context_caching: ContextCachingConfig = Field(
+        default_factory=ContextCachingConfig
+    )
+    compaction: CompactionConfig = Field(default_factory=CompactionConfig)
+    memory_policy: MemoryPolicyConfig = Field(
+        default_factory=MemoryPolicyConfig
+    )
+    optimizer: OptimizerConfig = Field(default_factory=OptimizerConfig)
     model: str = "gemini-2.0-flash"
     quality_boost: bool = False
 

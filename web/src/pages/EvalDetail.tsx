@@ -6,6 +6,7 @@ import { ScoreBar } from '../components/ScoreBar';
 import { StatusBadge } from '../components/StatusBadge';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { ScoreDisplay } from '../components/ScoreDisplay';
+import { DimensionBreakdown } from '../components/DimensionBreakdown';
 import { formatLatency, formatTimestamp, statusVariant } from '../lib/utils';
 import type { EvalCase } from '../lib/types';
 
@@ -112,6 +113,19 @@ export function EvalDetail() {
           <ScoreBar label="Cost" score={score.cost} />
         </div>
       </section>
+
+      {score.dimensions && (
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
+          <details>
+            <summary className="cursor-pointer text-sm font-semibold text-gray-900">
+              9-Dimension Breakdown
+            </summary>
+            <div className="mt-4">
+              <DimensionBreakdown dimensions={score.dimensions} />
+            </div>
+          </details>
+        </section>
+      )}
 
       <section className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3">

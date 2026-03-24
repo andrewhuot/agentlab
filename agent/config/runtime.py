@@ -37,6 +37,16 @@ class OptimizerRuntimeConfig(BaseModel):
 
     use_mock: bool = True
     strategy: Literal["single", "round_robin", "ensemble", "mixture"] = "single"
+    search_strategy: Literal["simple", "adaptive", "full"] = "simple"
+    bandit_policy: Literal["ucb", "thompson"] = "thompson"
+    search_max_candidates: int = Field(10, ge=1, le=200)
+    search_max_eval_budget: int = Field(5, ge=1, le=200)
+    search_max_cost_dollars: float = Field(1.0, ge=0.0, le=1000.0)
+    search_time_budget_seconds: float = Field(300.0, ge=1.0, le=36000.0)
+    holdout_tolerance: float = Field(0.0, ge=0.0, le=1.0)
+    holdout_rotation_interval: int = Field(5, ge=1, le=1000)
+    drift_threshold: float = Field(0.12, ge=0.0, le=1.0)
+    max_judge_variance: float = Field(0.03, ge=0.0, le=1.0)
     models: list[RuntimeModelConfig] = Field(
         default_factory=lambda: [RuntimeModelConfig(provider="mock", model="mock-proposer")]
     )
@@ -70,12 +80,22 @@ class EvalRuntimeConfig(BaseModel):
     significance_iterations: int = Field(2000, ge=100, le=50000)
 
 
+class BudgetRuntimeConfig(BaseModel):
+    """Production cost controls (from R2 simplicity thesis)."""
+
+    per_cycle_dollars: float = Field(1.0, ge=0.0, le=10000.0)
+    daily_dollars: float = Field(10.0, ge=0.0, le=100000.0)
+    stall_threshold_cycles: int = Field(5, ge=1, le=1000)
+    tracker_db_path: str = ".autoagent/cost_tracker.db"
+
+
 class RuntimeConfig(BaseModel):
     """Top-level runtime settings loaded from `autoagent.yaml`."""
 
     optimizer: OptimizerRuntimeConfig = Field(default_factory=OptimizerRuntimeConfig)
     loop: LoopRuntimeConfig = Field(default_factory=LoopRuntimeConfig)
     eval: EvalRuntimeConfig = Field(default_factory=EvalRuntimeConfig)
+    budget: BudgetRuntimeConfig = Field(default_factory=BudgetRuntimeConfig)
 
 
 def load_runtime_config(path: str = "autoagent.yaml") -> RuntimeConfig:

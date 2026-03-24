@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  ArchiveEntry,
   CanaryStatus,
   ConfigDiff,
   ConfigShow,
@@ -12,11 +13,17 @@ import type {
   DiffLine,
   EvalResult,
   EvalRun,
+  ExperimentCard,
+  JudgeCalibration,
+  ParetoFrontier,
   HealthReport,
   LoopStatus,
   OptimizationAttempt,
+  OptimizationOpportunity,
   OptimizeResult,
   TaskStatus,
+  Trace,
+  TraceEvent,
 } from './types';
 
 const API_BASE = '/api';
@@ -689,4 +696,410 @@ export function useTaskStatus(taskId: string | null) {
 export async function getTaskStatus(taskId: string): Promise<TaskStatus> {
   const payload = await fetchApi<TaskStatusRaw>(`/tasks/${taskId}`);
   return mapTask(payload);
+}
+
+// Traces
+
+interface TraceEventsResponse {
+  events: TraceEvent[];
+  message?: string;
+}
+
+interface TraceDetailResponse {
+  trace_id: string;
+  events: TraceEvent[];
+  spans: unknown[];
+  message?: string;
+}
+
+export function useRecentTraces() {
+  return useQuery<TraceEvent[]>({
+    queryKey: ['traces', 'recent'],
+    queryFn: async () => {
+      const payload = await fetchApi<TraceEventsResponse>('/traces/recent');
+      return payload.events ?? [];
+    },
+    refetchInterval: 5000,
+  });
+}
+
+export function useTraceDetail(traceId: string | undefined) {
+  return useQuery<Trace>({
+    queryKey: ['traces', 'detail', traceId],
+    enabled: Boolean(traceId),
+    queryFn: async () => {
+      if (!traceId) throw new ApiRequestError('Missing trace ID', 400);
+      const payload = await fetchApi<TraceDetailResponse>(`/traces/${traceId}`);
+      return {
+        trace_id: payload.trace_id,
+        events: payload.events ?? [],
+      };
+    },
+  });
+}
+
+export function useTraceSearch(params: {
+  event_type?: string;
+  agent_path?: string;
+  since?: number;
+  limit?: number;
+}) {
+  return useQuery<TraceEvent[]>({
+    queryKey: ['traces', 'search', params],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      if (params.event_type) qs.set('event_type', params.event_type);
+      if (params.agent_path) qs.set('agent_path', params.agent_path);
+      if (params.since !== undefined) qs.set('since', String(params.since));
+      if (params.limit !== undefined) qs.set('limit', String(params.limit));
+      const payload = await fetchApi<TraceEventsResponse>(`/traces/search?${qs.toString()}`);
+      return payload.events ?? [];
+    },
+  });
+}
+
+export function useTraceErrors() {
+  return useQuery<TraceEvent[]>({
+    queryKey: ['traces', 'errors'],
+    queryFn: async () => {
+      const payload = await fetchApi<TraceEventsResponse>('/traces/errors');
+      return payload.events ?? [];
+    },
+    refetchInterval: 10000,
+  });
+}
+
+// Opportunities
+
+interface OpportunitiesResponse {
+  opportunities: OptimizationOpportunity[];
+}
+
+interface OpportunityCountResponse {
+  open: number;
+}
+
+interface UpdateOpportunityStatusParams {
+  opportunity_id: string;
+  status: string;
+  resolution_experiment_id?: string;
+}
+
+interface UpdateOpportunityStatusResponse {
+  opportunity_id: string;
+  status: string;
+}
+
+export function useOpportunities(statusFilter = 'open') {
+  return useQuery<OptimizationOpportunity[]>({
+    queryKey: ['opportunities', statusFilter],
+    queryFn: async () => {
+      const qs = new URLSearchParams({ status: statusFilter });
+      const payload = await fetchApi<OpportunitiesResponse>(`/opportunities?${qs.toString()}`);
+      return payload.opportunities ?? [];
+    },
+    refetchInterval: 10000,
+  });
+}
+
+export function useOpportunityCount() {
+  return useQuery<OpportunityCountResponse>({
+    queryKey: ['opportunities', 'count'],
+    queryFn: () => fetchApi<OpportunityCountResponse>('/opportunities/count'),
+    refetchInterval: 10000,
+  });
+}
+
+export function useOpportunityDetail(id: string | undefined) {
+  return useQuery<OptimizationOpportunity>({
+    queryKey: ['opportunities', 'detail', id],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      if (!id) throw new ApiRequestError('Missing opportunity ID', 400);
+      return fetchApi<OptimizationOpportunity>(`/opportunities/${id}`);
+    },
+  });
+}
+
+export function useUpdateOpportunityStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation<UpdateOpportunityStatusResponse, ApiRequestError, UpdateOpportunityStatusParams>({
+    mutationFn: ({ opportunity_id, status, resolution_experiment_id }) =>
+      fetchApi(`/opportunities/${opportunity_id}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status, resolution_experiment_id }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+    },
+  });
+}
+
+// Experiments
+
+interface ExperimentsResponse {
+  experiments: ExperimentCard[];
+}
+
+interface ExperimentStatsResponse {
+  counts: Record<string, number>;
+}
+
+export function useExperiments(statusFilter?: string) {
+  return useQuery<ExperimentCard[]>({
+    queryKey: ['experiments', statusFilter ?? 'all'],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      if (statusFilter) qs.set('status', statusFilter);
+      const query = qs.toString() ? `?${qs.toString()}` : '';
+      const payload = await fetchApi<ExperimentsResponse>(`/experiments${query}`);
+      return payload.experiments ?? [];
+    },
+    refetchInterval: 10000,
+  });
+}
+
+export function useExperimentDetail(id: string | undefined) {
+  return useQuery<ExperimentCard>({
+    queryKey: ['experiments', 'detail', id],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      if (!id) throw new ApiRequestError('Missing experiment ID', 400);
+      return fetchApi<ExperimentCard>(`/experiments/${id}`);
+    },
+  });
+}
+
+export function useExperimentStats() {
+  return useQuery<ExperimentStatsResponse>({
+    queryKey: ['experiments', 'stats'],
+    queryFn: () => fetchApi<ExperimentStatsResponse>('/experiments/stats'),
+    refetchInterval: 10000,
+  });
+}
+
+export function useParetoFrontier() {
+  return useQuery<ParetoFrontier>({
+    queryKey: ['pareto', 'frontier'],
+    queryFn: () => fetchApi<ParetoFrontier>('/experiments/pareto'),
+    refetchInterval: 15000,
+  });
+}
+
+// Archive
+
+export function useArchiveEntries() {
+  return useQuery<ArchiveEntry[]>({
+    queryKey: ['experiments', 'archive'],
+    queryFn: async () => {
+      const payload = await fetchApi<{ entries: ArchiveEntry[] }>('/experiments/archive');
+      return payload.entries ?? [];
+    },
+    refetchInterval: 15000,
+  });
+}
+
+// Judge Calibration
+
+export function useJudgeCalibration() {
+  return useQuery<JudgeCalibration>({
+    queryKey: ['experiments', 'judge-calibration'],
+    queryFn: () => fetchApi<JudgeCalibration>('/experiments/judge-calibration'),
+    refetchInterval: 30000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Human Control (pause/resume/pin/unpin/reject)
+// ---------------------------------------------------------------------------
+
+interface ControlState {
+  paused: boolean;
+  immutable_surfaces: string[];
+  rejected_experiments: string[];
+  last_injected_mutation: string | null;
+  updated_at: string | null;
+}
+
+export function useControlState() {
+  return useQuery<ControlState>({
+    queryKey: ['control', 'state'],
+    queryFn: () => fetchApi<ControlState>('/control/state'),
+    refetchInterval: 5000,
+  });
+}
+
+export function usePauseControl() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, void>({
+    mutationFn: () =>
+      fetchApi('/control/pause', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function useResumeControl() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, void>({
+    mutationFn: () =>
+      fetchApi('/control/resume', { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function usePinSurface() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, { surface: string }>({
+    mutationFn: ({ surface }) =>
+      fetchApi(`/control/pin/${encodeURIComponent(surface)}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function useUnpinSurface() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState, ApiRequestError, { surface: string }>({
+    mutationFn: ({ surface }) =>
+      fetchApi(`/control/unpin/${encodeURIComponent(surface)}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+    },
+  });
+}
+
+export function useRejectExperimentControl() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ControlState & { rollback: string | null }, ApiRequestError, { experiment_id: string }>({
+    mutationFn: ({ experiment_id }) =>
+      fetchApi(`/control/reject/${encodeURIComponent(experiment_id)}`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['control'] });
+      queryClient.invalidateQueries({ queryKey: ['experiments'] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cost Health
+// ---------------------------------------------------------------------------
+
+interface CostHealthSummary {
+  total_spend: number;
+  total_improvement: number;
+  cost_per_improvement: number;
+  today_spend: number;
+}
+
+interface CostHealthResponse {
+  summary: CostHealthSummary;
+  budgets: {
+    per_cycle_dollars: number;
+    daily_dollars: number;
+    stall_threshold_cycles: number;
+  };
+  recent_cycles: Array<{
+    cycle_id: string;
+    timestamp: number;
+    spent_dollars: number;
+    improvement_delta: number;
+    cumulative_spend: number;
+    running_cost_per_improvement: number;
+  }>;
+  stall_detected: boolean;
+}
+
+export function useCostHealth(limit = 30) {
+  return useQuery<CostHealthResponse>({
+    queryKey: ['health', 'cost', limit],
+    queryFn: () => fetchApi<CostHealthResponse>(`/health/cost?limit=${limit}`),
+    refetchInterval: 10000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Eval Set Health
+// ---------------------------------------------------------------------------
+
+interface EvalSetHealthResponse {
+  analysis: Record<string, number>;
+  difficulty_distribution: Record<string, number>;
+}
+
+export function useEvalSetHealth() {
+  return useQuery<EvalSetHealthResponse>({
+    queryKey: ['health', 'eval-set'],
+    queryFn: () => fetchApi<EvalSetHealthResponse>('/health/eval-set'),
+    refetchInterval: 30000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// System Events (append-only event log)
+// ---------------------------------------------------------------------------
+
+interface SystemEvent {
+  id: number;
+  event_type: string;
+  timestamp: number;
+  cycle_id?: string;
+  experiment_id?: string;
+  payload: Record<string, unknown>;
+}
+
+export function useSystemEvents(params: { limit?: number; event_type?: string } = {}) {
+  return useQuery<SystemEvent[]>({
+    queryKey: ['events', params],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      if (params.limit !== undefined) qs.set('limit', String(params.limit));
+      if (params.event_type) qs.set('event_type', params.event_type);
+      const query = qs.toString() ? `?${qs.toString()}` : '';
+      const payload = await fetchApi<{ events: SystemEvent[] }>(`/events${query}`);
+      return payload.events ?? [];
+    },
+    refetchInterval: 5000,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Scorecard (2-gate + 4-metric)
+// ---------------------------------------------------------------------------
+
+interface ScorecardResponse {
+  gates: {
+    safety: { passed: boolean; safety_violation_rate: number };
+    regression: { passed: boolean; latest_attempt_status: string };
+  };
+  metrics: {
+    task_success_rate: number;
+    response_quality: number;
+    latency_p95_ms: number;
+    cost_per_conversation: number;
+  };
+  diagnostics: {
+    tool_correctness: number;
+    routing_accuracy: number;
+    handoff_fidelity: number;
+    failure_buckets: Record<string, number>;
+  };
+}
+
+export function useScorecard(window = 100) {
+  return useQuery<ScorecardResponse>({
+    queryKey: ['health', 'scorecard', window],
+    queryFn: () => fetchApi<ScorecardResponse>(`/health/scorecard?window=${window}`),
+    refetchInterval: 10000,
+  });
 }

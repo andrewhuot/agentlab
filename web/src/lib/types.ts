@@ -28,12 +28,96 @@ export interface HealthReport {
   reason: string;
 }
 
+// 9-Dimension Scores (v4 enhanced scoring)
+export interface DimensionScores {
+  task_success_rate: number;       // G1
+  response_quality: number;        // G2
+  safety_compliance: number;       // G3
+  latency_p50: number;            // G4a
+  latency_p95: number;            // G4b
+  latency_p99: number;            // G4c
+  token_cost: number;             // G5
+  tool_correctness: number;       // G6
+  routing_accuracy: number;       // G7
+  handoff_fidelity: number;       // G8
+  user_satisfaction_proxy: number; // G9
+}
+
+// Per-Agent Scores
+export interface PerAgentScores {
+  agent_path: string;
+  unit_success: number;
+  tool_precision: number;
+  tool_recall: number;
+  policy_adherence: number;
+  avg_latency_ms: number;
+  escalation_appropriateness: number;
+}
+
+// Pareto Archive
+export interface ParetoCandidate {
+  candidate_id: string;
+  objective_vector: number[];
+  constraints_passed: boolean;
+  constraint_violations: string[];
+  config_hash: string;
+  experiment_id: string | null;
+  created_at: number;
+  dominated: boolean;
+  is_recommended: boolean;
+}
+
+export interface ParetoFrontier {
+  candidates: ParetoCandidate[];
+  recommended: ParetoCandidate | null;
+  frontier_size: number;
+  infeasible_count: number;
+}
+
+// Bandit Stats
+export interface BanditArmStats {
+  arm_id: string;
+  operator_name: string;
+  failure_family: string;
+  attempts: number;
+  successes: number;
+  mean_reward: number;
+  success_rate: number;
+}
+
+// Curriculum Status
+export interface CurriculumStatus {
+  current_tier: 'easy' | 'medium' | 'hard';
+  experiments_per_tier: Record<string, number>;
+  should_advance: boolean;
+}
+
+// Holdout Status
+export interface HoldoutStatus {
+  experiment_count: number;
+  current_split_id: string | null;
+  rotation_epoch: number;
+  should_rotate: boolean;
+  is_drifting: boolean;
+  drift_amount: number;
+}
+
+// Search Strategy Config
+export interface OptimizerConfig {
+  search_strategy: 'simple' | 'adaptive' | 'full';
+  bandit_policy: 'ucb1' | 'thompson';
+  holdout_rotation: boolean;
+  curriculum_enabled: boolean;
+}
+
 export interface CompositeScore {
   overall: number;
   quality: number;
   safety: number;
   latency: number;
   cost: number;
+  dimensions?: DimensionScores;        // v4: full 9-dimension breakdown
+  per_agent_scores?: PerAgentScores[]; // v4: per-agent metrics
 }
 
 export interface EvalCase {
@@ -206,4 +290,153 @@ export interface LoopStatus {
   total_cycles: number;
   completed_cycles: number;
   cycle_history: LoopCycle[];
+}
+
+export interface TraceEvent {
+  event_id: string;
+  event_type: 'model_call' | 'model_response' | 'tool_call' | 'tool_response' | 'error' | 'agent_transfer';
+  timestamp: number;
+  agent_path: string;
+  latency_ms: number;
+  tokens_in?: number;
+  tokens_out?: number;
+  tool_name?: string;
+  error_message?: string;
+}
+
+export interface Trace {
+  trace_id: string;
+  events: TraceEvent[];
+}
+
+export interface OptimizationOpportunity {
+  opportunity_id: string;
+  failure_family: string;
+  affected_agent_path: string;
+  severity: number;
+  prevalence: number;
+  recency: number;
+  business_impact: number;
+  priority_score: number;
+  status: 'open' | 'in_progress' | 'resolved';
+  recommended_operator_families: string[];
+  sample_trace_ids: string[];
+}
+
+export interface ExperimentScores {
+  quality?: number;
+  safety?: number;
+  composite: number;
+}
+
+export interface ExperimentCard {
+  experiment_id: string;
+  hypothesis: string;
+  operator_name: string;
+  touched_surfaces: string[];
+  risk_class: 'low' | 'medium' | 'high';
+  status: 'pending' | 'accepted' | 'rejected';
+  baseline_scores: ExperimentScores;
+  candidate_scores: ExperimentScores;
+  significance_p_value: number;
+  significance_delta: number;
+  deployment_policy: string;
+  created_at: number;
+  pareto_position?: 'frontier' | 'dominated' | 'infeasible';
+}
+
+// ---------------------------------------------------------------------------
+// 4-Layer Metric Hierarchy
+// ---------------------------------------------------------------------------
+
+export type MetricLayer = 'hard_gate' | 'outcome' | 'slo' | 'diagnostic';
+
+export interface LayeredMetric {
+  name: string;
+  layer: MetricLayer;
+  direction: 'maximize' | 'minimize';
+  threshold?: number;
+  weight?: number;
+}
+
+export interface LayeredDimensionScores extends DimensionScores {
+  state_integrity: number;
+  groundedness: number;
+  escalation_rate: number;
+  recovery_rate: number;
+  clarification_quality: number;
+  judge_disagreement_rate: number;
+  authorization_privacy: number;
+  p0_regressions: number;
+}
+
+// ---------------------------------------------------------------------------
+// Judge Subsystem
+// ---------------------------------------------------------------------------
+
+export interface JudgeVerdict {
+  score: number;
+  passed: boolean;
+  judge_id: string;
+  evidence_spans: string[];
+  failure_reasons: string[];
+  confidence: number;
+}
+
+export interface JudgeCalibration {
+  agreement_rate: number;
+  drift: number;
+  position_bias: number;
+  verbosity_bias: number;
+  disagreement_rate: number;
+}
+
+// ---------------------------------------------------------------------------
+// Archive Roles
+// ---------------------------------------------------------------------------
+
+export type ArchiveRole = 'quality_leader' | 'cost_leader' | 'latency_leader' | 'safety_leader' | 'cluster_specialist' | 'incumbent';
+
+export interface ArchiveEntry {
+  entry_id: string;
+  role: ArchiveRole;
+  candidate_id: string;
+  experiment_id: string;
+  objective_vector: number[];
+  config_hash: string;
+  scores: Record<string, number>;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Training Escalation
+// ---------------------------------------------------------------------------
+
+export interface TrainingRecommendation {
+  failure_family: string;
+  recommended_method: 'SFT' | 'DPO' | 'RFT';
+  confidence: number;
+  estimated_improvement: number;
+  dataset_size: number;
+  reasoning: string;
+}
+
+// ---------------------------------------------------------------------------
+// Release Manager
+// ---------------------------------------------------------------------------
+
+export type PromotionStage = 'gate_check' | 'holdout_eval' | 'slice_check' | 'canary' | 'released' | 'rolled_back';
+
+export interface PromotionRecord {
+  record_id: string;
+  candidate_version: string;
+  current_stage: PromotionStage;
+  stages_completed: PromotionStage[];
+  gate_results: Record<string, boolean>;
+  holdout_score?: number;
+  slice_results: Record<string, number>;
+  canary_verdict?: string;
+  status: string;
+  started_at: string;
+  completed_at?: string;
 }
