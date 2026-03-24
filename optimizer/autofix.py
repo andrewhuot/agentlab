@@ -73,6 +73,38 @@ class AutoFixProposal:
         )
 
 
+@dataclass
+class AutoFixHistoryEntry:
+    """Outcome record for applied proposals."""
+
+    history_id: str
+    proposal_id: str
+    applied_at: float
+    status: str
+    message: str
+    baseline_composite: float = 0.0
+    candidate_composite: float = 0.0
+    significance_p_value: float = 1.0
+    significance_delta: float = 0.0
+    canary_verdict: str = ""
+    deploy_message: str = ""
+
+
+@dataclass
+class AutoFixApplyOutcome:
+    """Structured response from apply execution."""
+
+    proposal_id: str
+    status: str
+    message: str
+    baseline_composite: float = 0.0
+    candidate_composite: float = 0.0
+    significance_p_value: float = 1.0
+    significance_delta: float = 0.0
+    canary_verdict: str = ""
+    deploy_message: str = ""
+
+
 _VALID_STATUSES = {"pending", "evaluating", "evaluated", "applied", "rejected", "expired"}
 
 

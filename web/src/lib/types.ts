@@ -392,6 +392,157 @@ export interface JudgeCalibration {
 }
 
 // ---------------------------------------------------------------------------
+// AutoFix
+// ---------------------------------------------------------------------------
+
+export interface AutoFixProposal {
+  proposal_id: string;
+  created_at: number | string;
+  proposer_name: string;
+  opportunity_id: string;
+  operator_name: string;
+  operator_params: Record<string, unknown>;
+  expected_lift: number;
+  affected_eval_slices: string[];
+  risk_class: string;
+  cost_impact_estimate: number;
+  diff_preview: string;
+  status: string;
+  rationale: string;
+}
+
+export interface AutoFixApplyOutcome {
+  proposal_id: string;
+  status: string;
+  message: string;
+  baseline_composite: number;
+  candidate_composite: number;
+  significance_p_value: number;
+  significance_delta: number;
+  canary_verdict: string;
+  deploy_message: string;
+}
+
+export interface AutoFixHistoryEntry {
+  history_id: string;
+  proposal_id: string;
+  applied_at: number | string;
+  status: string;
+  message: string;
+  baseline_composite: number;
+  candidate_composite: number;
+  significance_p_value: number;
+  significance_delta: number;
+  canary_verdict: string;
+  deploy_message: string;
+}
+
+// ---------------------------------------------------------------------------
+// Judge Ops
+// ---------------------------------------------------------------------------
+
+export interface JudgeOpsJudgeSummary {
+  judge_id: string;
+  version: number;
+  model: string;
+  temperature: number;
+  rubric_text: string;
+  agreement_rate: number;
+  feedback_count: number;
+}
+
+export interface JudgeFeedbackRecord {
+  feedback_id: string;
+  case_id: string;
+  judge_id: string;
+  judge_score: number;
+  human_score: number;
+  comment: string;
+  rubric_dimension: string;
+  promote_to_regression: boolean;
+  created_at: number;
+}
+
+export interface JudgeDriftReport {
+  judge_id: string;
+  baseline_agreement: number;
+  recent_agreement: number;
+  drift_delta: number;
+  alert: boolean;
+  sample_size: number;
+}
+
+// ---------------------------------------------------------------------------
+// Context Workbench
+// ---------------------------------------------------------------------------
+
+export interface ContextTurnUtilization {
+  turn_index: number;
+  event_id: string;
+  timestamp: number;
+  tokens_used: number;
+  token_budget: number;
+  utilization_ratio: number;
+  is_failure: boolean;
+}
+
+export interface ContextHandoffScore {
+  from_agent: string;
+  to_agent: string;
+  score: number;
+  missing_fields: string[];
+}
+
+export interface ContextTraceAnalysis {
+  trace_id: string;
+  token_budget: number;
+  total_events: number;
+  total_failures: number;
+  average_utilization: number;
+  max_utilization: number;
+  growth_pattern: string;
+  turns: ContextTurnUtilization[];
+  handoff_scores: ContextHandoffScore[];
+  high_context_threshold: number;
+  high_context_failure_rate: number;
+  low_context_failure_rate: number;
+  context_correlated_failures: boolean;
+  insufficient_data: boolean;
+  metadata: Record<string, unknown>;
+}
+
+export interface ContextBudgetRow {
+  budget: number;
+  average_utilization: number;
+  estimated_failure_rate: number;
+}
+
+export interface ContextSimulationResult {
+  trace_id: string;
+  strategy: string;
+  token_budget: number;
+  baseline_average_utilization: number;
+  simulated_average_utilization: number;
+  estimated_failure_delta: number;
+  estimated_compaction_loss: number;
+  memory_staleness: number;
+  ttl_seconds: number;
+  pinned_memory_hits: number;
+  budget_comparison: ContextBudgetRow[];
+  notes: string[];
+}
+
+export interface ContextHealthReport {
+  traces_analyzed: number;
+  total_events: number;
+  average_utilization: number;
+  growth_pattern_counts: Record<string, number>;
+  context_correlated_failure_traces: string[];
+  average_handoff_fidelity: number;
+  average_memory_staleness: number;
+}
+
+// ---------------------------------------------------------------------------
 // Archive Roles
 // ---------------------------------------------------------------------------
 

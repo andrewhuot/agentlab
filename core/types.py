@@ -752,6 +752,150 @@ METRIC_REGISTRY: list[LayeredMetric] = [
 ]
 
 
+@dataclass
+class ContextTurnUtilization:
+    """Per-turn context usage for one trace event.
+
+    Why: context failures are often turn-local, so we keep this shape explicit
+    for analysis, simulation, and UI rendering.
+    """
+
+    turn_index: int
+    event_id: str
+    timestamp: float
+    tokens_used: int
+    token_budget: int
+    utilization_ratio: float
+    is_failure: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "turn_index": self.turn_index,
+            "event_id": self.event_id,
+            "timestamp": self.timestamp,
+            "tokens_used": self.tokens_used,
+            "token_budget": self.token_budget,
+            "utilization_ratio": self.utilization_ratio,
+            "is_failure": self.is_failure,
+        }
+
+
+@dataclass
+class ContextHandoffScore:
+    """Handoff quality score between agents for one transfer event."""
+
+    from_agent: str
+    to_agent: str
+    score: float
+    missing_fields: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "from_agent": self.from_agent,
+            "to_agent": self.to_agent,
+            "score": self.score,
+            "missing_fields": self.missing_fields,
+        }
+
+
+@dataclass
+class ContextTraceAnalysis:
+    """Trace-level context diagnostics used by CLI/API/web."""
+
+    trace_id: str
+    token_budget: int
+    total_events: int
+    total_failures: int
+    average_utilization: float
+    max_utilization: float
+    growth_pattern: str
+    turns: list[ContextTurnUtilization] = field(default_factory=list)
+    handoff_scores: list[ContextHandoffScore] = field(default_factory=list)
+    high_context_threshold: float = 0.75
+    high_context_failure_rate: float = 0.0
+    low_context_failure_rate: float = 0.0
+    context_correlated_failures: bool = False
+    insufficient_data: bool = False
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "trace_id": self.trace_id,
+            "token_budget": self.token_budget,
+            "total_events": self.total_events,
+            "total_failures": self.total_failures,
+            "average_utilization": self.average_utilization,
+            "max_utilization": self.max_utilization,
+            "growth_pattern": self.growth_pattern,
+            "turns": [item.to_dict() for item in self.turns],
+            "handoff_scores": [item.to_dict() for item in self.handoff_scores],
+            "high_context_threshold": self.high_context_threshold,
+            "high_context_failure_rate": self.high_context_failure_rate,
+            "low_context_failure_rate": self.low_context_failure_rate,
+            "context_correlated_failures": self.context_correlated_failures,
+            "insufficient_data": self.insufficient_data,
+            "metadata": self.metadata,
+        }
+
+
+@dataclass
+class ContextSimulationResult:
+    """Deterministic context strategy simulation output."""
+
+    trace_id: str
+    strategy: str
+    token_budget: int
+    baseline_average_utilization: float
+    simulated_average_utilization: float
+    estimated_failure_delta: float
+    estimated_compaction_loss: float
+    memory_staleness: float
+    ttl_seconds: int
+    pinned_memory_hits: int = 0
+    budget_comparison: list[dict[str, Any]] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "trace_id": self.trace_id,
+            "strategy": self.strategy,
+            "token_budget": self.token_budget,
+            "baseline_average_utilization": self.baseline_average_utilization,
+            "simulated_average_utilization": self.simulated_average_utilization,
+            "estimated_failure_delta": self.estimated_failure_delta,
+            "estimated_compaction_loss": self.estimated_compaction_loss,
+            "memory_staleness": self.memory_staleness,
+            "ttl_seconds": self.ttl_seconds,
+            "pinned_memory_hits": self.pinned_memory_hits,
+            "budget_comparison": self.budget_comparison,
+            "notes": self.notes,
+        }
+
+
+@dataclass
+class ContextHealthReport:
+    """Aggregate context health summary across many traces."""
+
+    traces_analyzed: int
+    total_events: int
+    average_utilization: float
+    growth_pattern_counts: dict[str, int] = field(default_factory=dict)
+    context_correlated_failure_traces: list[str] = field(default_factory=list)
+    average_handoff_fidelity: float = 0.0
+    average_memory_staleness: float = 0.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "traces_analyzed": self.traces_analyzed,
+            "total_events": self.total_events,
+            "average_utilization": self.average_utilization,
+            "growth_pattern_counts": self.growth_pattern_counts,
+            "context_correlated_failure_traces": self.context_correlated_failure_traces,
+            "average_handoff_fidelity": self.average_handoff_fidelity,
+            "average_memory_staleness": self.average_memory_staleness,
+        }
+
+
 def get_metrics_by_layer(layer: MetricLayer) -> list[LayeredMetric]:
     """Return all metrics in a given layer."""
     return [m for m in METRIC_REGISTRY if m.layer == layer]

@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ArchiveEntry,
+  AutoFixApplyOutcome,
+  AutoFixHistoryEntry,
+  AutoFixProposal,
   CanaryStatus,
+  ContextHealthReport,
+  ContextSimulationResult,
+  ContextTraceAnalysis,
   ConfigDiff,
   ConfigShow,
   ConfigVersion,
@@ -15,6 +21,9 @@ import type {
   EvalRun,
   ExperimentCard,
   JudgeCalibration,
+  JudgeDriftReport,
+  JudgeFeedbackRecord,
+  JudgeOpsJudgeSummary,
   ParetoFrontier,
   HealthReport,
   LoopStatus,
@@ -900,6 +909,61 @@ export function useArchiveEntries() {
   });
 }
 
+// AutoFix
+
+export function useAutoFixProposals(limit = 100) {
+  return useQuery<AutoFixProposal[]>({
+    queryKey: ['autofix', 'proposals', limit],
+    queryFn: async () => {
+      const payload = await fetchApi<{ proposals: AutoFixProposal[] }>(`/autofix/proposals?limit=${limit}`);
+      return payload.proposals ?? [];
+    },
+    refetchInterval: 5000,
+  });
+}
+
+export function useAutoFixHistory(limit = 100) {
+  return useQuery<AutoFixHistoryEntry[]>({
+    queryKey: ['autofix', 'history', limit],
+    queryFn: async () => {
+      const payload = await fetchApi<{ history: AutoFixHistoryEntry[] }>(`/autofix/history?limit=${limit}`);
+      return payload.history ?? [];
+    },
+    refetchInterval: 5000,
+  });
+}
+
+export function useSuggestAutoFix() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ proposals: AutoFixProposal[] }, ApiRequestError, { opportunities?: Record<string, unknown>[] } | void>({
+    mutationFn: (params) =>
+      fetchApi('/autofix/suggest', {
+        method: 'POST',
+        body: JSON.stringify(params || {}),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['autofix', 'proposals'] });
+    },
+  });
+}
+
+export function useApplyAutoFix() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AutoFixApplyOutcome, ApiRequestError, { proposal_id: string; current_config?: Record<string, unknown> }>({
+    mutationFn: ({ proposal_id, current_config }) =>
+      fetchApi(`/autofix/apply/${proposal_id}`, {
+        method: 'POST',
+        body: JSON.stringify({ current_config: current_config || {} }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['autofix', 'proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['autofix', 'history'] });
+    },
+  });
+}
+
 // Judge Calibration
 
 export function useJudgeCalibration() {
@@ -907,6 +971,131 @@ export function useJudgeCalibration() {
     queryKey: ['experiments', 'judge-calibration'],
     queryFn: () => fetchApi<JudgeCalibration>('/experiments/judge-calibration'),
     refetchInterval: 30000,
+  });
+}
+
+// Judge Ops
+
+export function useJudgeOpsJudges() {
+  return useQuery<JudgeOpsJudgeSummary[]>({
+    queryKey: ['judges', 'list'],
+    queryFn: async () => {
+      const payload = await fetchApi<{ judges: JudgeOpsJudgeSummary[] }>('/judges');
+      return payload.judges ?? [];
+    },
+    refetchInterval: 10000,
+  });
+}
+
+export function useJudgeOpsCalibration(sample = 50, judgeId?: string) {
+  return useQuery<{ agreement_rate: number; disagreement_queue: JudgeFeedbackRecord[]; total_feedback: number }>({
+    queryKey: ['judges', 'calibration', sample, judgeId ?? 'all'],
+    queryFn: async () => {
+      const qs = new URLSearchParams({ sample: String(sample) });
+      if (judgeId) qs.set('judge_id', judgeId);
+      const payload = await fetchApi<{
+        agreement_rate: number;
+        disagreement_queue: JudgeFeedbackRecord[];
+        total_feedback: number;
+      }>(`/judges/calibration?${qs.toString()}`);
+      return {
+        agreement_rate: payload.agreement_rate ?? 0,
+        disagreement_queue: payload.disagreement_queue ?? [],
+        total_feedback: payload.total_feedback ?? 0,
+      };
+    },
+    refetchInterval: 10000,
+  });
+}
+
+export function useJudgeOpsDrift() {
+  return useQuery<JudgeDriftReport[]>({
+    queryKey: ['judges', 'drift'],
+    queryFn: async () => {
+      const payload = await fetchApi<{ reports: JudgeDriftReport[] }>('/judges/drift');
+      return payload.reports ?? [];
+    },
+    refetchInterval: 10000,
+  });
+}
+
+export function useSubmitJudgeFeedback() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { stored: boolean; feedback: JudgeFeedbackRecord },
+    ApiRequestError,
+    {
+      case_id: string;
+      judge_id: string;
+      judge_score: number;
+      human_score: number;
+      comment?: string;
+      rubric_dimension?: string;
+      promote_to_regression?: boolean;
+    }
+  >({
+    mutationFn: (payload) =>
+      fetchApi('/judges/feedback', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['judges'] });
+    },
+  });
+}
+
+// Context Workbench
+
+export function useContextAnalysis(traceId: string | undefined, tokenBudget = 8000) {
+  return useQuery<ContextTraceAnalysis>({
+    queryKey: ['context', 'analysis', traceId, tokenBudget],
+    enabled: Boolean(traceId),
+    queryFn: async () => {
+      if (!traceId) throw new ApiRequestError('Missing trace ID', 400);
+      const qs = new URLSearchParams({ token_budget: String(tokenBudget) });
+      return fetchApi<ContextTraceAnalysis>(`/context/analysis/${encodeURIComponent(traceId)}?${qs.toString()}`);
+    },
+  });
+}
+
+export function useContextReport(limit = 1000, tokenBudget = 8000) {
+  return useQuery<ContextHealthReport>({
+    queryKey: ['context', 'report', limit, tokenBudget],
+    queryFn: async () => {
+      const qs = new URLSearchParams({
+        limit: String(limit),
+        token_budget: String(tokenBudget),
+      });
+      return fetchApi<ContextHealthReport>(`/context/report?${qs.toString()}`);
+    },
+    refetchInterval: 15000,
+  });
+}
+
+export function useRunContextSimulation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ContextSimulationResult,
+    ApiRequestError,
+    {
+      trace_id: string;
+      strategy: 'truncate_tail' | 'sliding_window' | 'summarize';
+      token_budget: number;
+      ttl_seconds: number;
+      pin_keywords: string[];
+    }
+  >({
+    mutationFn: (payload) =>
+      fetchApi('/context/simulate', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['context', 'report'] });
+    },
   });
 }
 

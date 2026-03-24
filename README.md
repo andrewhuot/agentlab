@@ -1,7 +1,7 @@
 # AutoAgent VNextCC
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB)
-![735 tests](https://img.shields.io/badge/tests-735_passing-22C55E)
+![862 tests](https://img.shields.io/badge/tests-862_passing-22C55E)
 ![License](https://img.shields.io/badge/license-Apache%202.0-111827)
 
 **Continuous evaluation and optimization for AI agents.** Point it at an agent, and it runs an autonomous loop — trace, diagnose, search for improvements, gate on statistical significance, deploy via canary, repeat.
@@ -156,6 +156,21 @@ autoagent status
 autoagent logs --limit 25 --outcome fail
 autoagent server
 autoagent pause / resume / pin / reject
+
+# AutoFix Copilot
+autoagent autofix suggest           # Generate improvement proposals
+autoagent autofix apply <id>        # Apply proposal with eval + canary
+autoagent autofix history           # View apply history
+
+# Judge Ops
+autoagent judges list               # List versioned judges
+autoagent judges calibrate          # Run calibration analysis
+autoagent judges drift              # Check for judge drift
+
+# Context Workbench
+autoagent context analyze <trace>   # Analyze context growth for a trace
+autoagent context simulate          # Simulate compaction strategies
+autoagent context report            # Aggregate context health report
 ```
 
 ## Web Console
@@ -261,7 +276,7 @@ See [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) for the full breakdown.
 
 | | |
 |---|---|
-| Test suite | **735 tests** |
+| Test suite | **862 tests** |
 | Python backend | ~24,000 lines |
 | React frontend | ~9,000 lines |
 | API endpoints | 38 |
@@ -293,7 +308,7 @@ It is not a hosted product. There's no auth layer, no multi-tenancy, no billing.
 - **Backend**: Python 3.11+, FastAPI, Uvicorn, SQLite
 - **CLI**: Click
 - **Frontend**: React, Vite, TypeScript, Tailwind
-- **Tests**: pytest (735 passing)
+- **Tests**: pytest (862 passing)
 
 ## License
 
