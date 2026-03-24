@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import { ExperimentCardComponent } from '../components/ExperimentCard';
-import { useExperiments } from '../lib/api';
+import { ParetoFrontierView } from '../components/ParetoFrontierView';
+import { useExperiments, useParetoFrontier } from '../lib/api';
 import { classNames } from '../lib/utils';
 
 type FilterTab = 'all' | 'pending' | 'accepted' | 'rejected';
@@ -18,6 +19,7 @@ export function Experiments() {
 
   const statusParam = activeTab === 'all' ? undefined : activeTab;
   const { data: experiments = [], isLoading, isError } = useExperiments(statusParam);
+  const { data: frontier } = useParetoFrontier();
 
   return (
     <div className="space-y-6">
@@ -25,6 +27,19 @@ export function Experiments() {
         title="Experiments"
         description="Reviewable experiment cards with hypothesis, diff, and results"
       />
+
+      {frontier && frontier.candidates.length > 0 && (
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
+          <details>
+            <summary className="cursor-pointer text-sm font-semibold text-gray-900">
+              Pareto Frontier ({frontier.frontier_size} candidates)
+            </summary>
+            <div className="mt-4">
+              <ParetoFrontierView frontier={frontier} />
+            </div>
+          </details>
+        </section>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">

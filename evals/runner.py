@@ -298,6 +298,18 @@ class EvalRunner:
         self._persist_history(score, dataset_path=dataset_path, split=split, category=category)
         return score
 
+    def run_cases(
+        self,
+        cases: list[TestCase],
+        config: dict | None = None,
+        *,
+        category: str | None = None,
+        split: str | None = None,
+    ) -> CompositeScore:
+        """Run an explicit list of test cases and return composite score."""
+        results = [self.evaluate_case(case, config) for case in cases]
+        return self.scorer.score(results)
+
     def _persist_history(
         self,
         score: CompositeScore,

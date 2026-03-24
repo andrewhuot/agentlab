@@ -101,6 +101,27 @@ class OptimizeCycleResult(BaseModel):
     score_before: Optional[float] = Field(None, description="Composite score before change")
     score_after: Optional[float] = Field(None, description="Composite score after change")
     deploy_message: Optional[str] = Field(None, description="Deployment result message")
+    search_strategy: str = Field("simple", description="Search strategy used for the cycle")
+    selected_operator_family: Optional[str] = Field(
+        None,
+        description="HSO-selected operator family for adaptive/full modes",
+    )
+    pareto_front: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Pareto-front detail records (full mode detail view)",
+    )
+    pareto_recommendation_id: Optional[str] = Field(
+        None,
+        description="Knee-point recommendation candidate ID",
+    )
+    governance_notes: list[str] = Field(
+        default_factory=list,
+        description="Anti-Goodhart governance notes from this cycle",
+    )
+    global_dimensions: dict[str, Any] = Field(
+        default_factory=dict,
+        description="9-dimension global scores for the candidate evaluated in this cycle",
+    )
 
 
 class OptimizeResponse(BaseModel):

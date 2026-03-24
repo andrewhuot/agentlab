@@ -78,6 +78,23 @@ class MemoryPolicyConfig(BaseModel):
     max_entries: int = 100
 
 
+class OptimizerConfig(BaseModel):
+    """Optimizer configuration for v4 research features."""
+
+    search_strategy: str = "simple"  # "simple" | "adaptive" | "full"
+    bandit_policy: str = "ucb1"  # "ucb1" | "thompson"
+    holdout_rotation: bool = False
+    holdout_tuning_fraction: float = 0.6
+    holdout_validation_fraction: float = 0.2
+    holdout_holdout_fraction: float = 0.2
+    holdout_rotation_interval: int = 10
+    drift_detection_window: int = 5
+    drift_threshold: float = 0.03
+    curriculum_enabled: bool = False
+    curriculum_min_experiments_per_tier: int = 3
+    curriculum_stall_threshold: float = 0.01
+
+
 class AgentConfig(BaseModel):
     """Top-level agent configuration."""
 
@@ -92,6 +109,7 @@ class AgentConfig(BaseModel):
     memory_policy: MemoryPolicyConfig = Field(
         default_factory=MemoryPolicyConfig
     )
+    optimizer: OptimizerConfig = Field(default_factory=OptimizerConfig)
     model: str = "gemini-2.0-flash"
     quality_boost: bool = False
 

@@ -28,12 +28,96 @@ export interface HealthReport {
   reason: string;
 }
 
+// 9-Dimension Scores (v4 enhanced scoring)
+export interface DimensionScores {
+  task_success_rate: number;       // G1
+  response_quality: number;        // G2
+  safety_compliance: number;       // G3
+  latency_p50: number;            // G4a
+  latency_p95: number;            // G4b
+  latency_p99: number;            // G4c
+  token_cost: number;             // G5
+  tool_correctness: number;       // G6
+  routing_accuracy: number;       // G7
+  handoff_fidelity: number;       // G8
+  user_satisfaction_proxy: number; // G9
+}
+
+// Per-Agent Scores
+export interface PerAgentScores {
+  agent_path: string;
+  unit_success: number;
+  tool_precision: number;
+  tool_recall: number;
+  policy_adherence: number;
+  avg_latency_ms: number;
+  escalation_appropriateness: number;
+}
+
+// Pareto Archive
+export interface ParetoCandidate {
+  candidate_id: string;
+  objective_vector: number[];
+  constraints_passed: boolean;
+  constraint_violations: string[];
+  config_hash: string;
+  experiment_id: string | null;
+  created_at: number;
+  dominated: boolean;
+  is_recommended: boolean;
+}
+
+export interface ParetoFrontier {
+  candidates: ParetoCandidate[];
+  recommended: ParetoCandidate | null;
+  frontier_size: number;
+  infeasible_count: number;
+}
+
+// Bandit Stats
+export interface BanditArmStats {
+  arm_id: string;
+  operator_name: string;
+  failure_family: string;
+  attempts: number;
+  successes: number;
+  mean_reward: number;
+  success_rate: number;
+}
+
+// Curriculum Status
+export interface CurriculumStatus {
+  current_tier: 'easy' | 'medium' | 'hard';
+  experiments_per_tier: Record<string, number>;
+  should_advance: boolean;
+}
+
+// Holdout Status
+export interface HoldoutStatus {
+  experiment_count: number;
+  current_split_id: string | null;
+  rotation_epoch: number;
+  should_rotate: boolean;
+  is_drifting: boolean;
+  drift_amount: number;
+}
+
+// Search Strategy Config
+export interface OptimizerConfig {
+  search_strategy: 'simple' | 'adaptive' | 'full';
+  bandit_policy: 'ucb1' | 'thompson';
+  holdout_rotation: boolean;
+  curriculum_enabled: boolean;
+}
+
 export interface CompositeScore {
   overall: number;
   quality: number;
   safety: number;
   latency: number;
   cost: number;
+  dimensions?: DimensionScores;        // v4: full 9-dimension breakdown
+  per_agent_scores?: PerAgentScores[]; // v4: per-agent metrics
 }
 
 export interface EvalCase {
@@ -258,4 +342,5 @@ export interface ExperimentCard {
   significance_delta: number;
   deployment_policy: string;
   created_at: number;
+  pareto_position?: 'frontier' | 'dominated' | 'infeasible';
 }

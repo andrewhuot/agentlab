@@ -10,12 +10,16 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import math
+import random
 import sqlite3
+import tempfile
 import time
 import uuid
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from observer.opportunities import OptimizationOpportunity
@@ -35,6 +39,48 @@ _RISK_SCORES: dict[RiskClass, float] = {
     RiskClass.medium: 0.35,
     RiskClass.high: 0.65,
     RiskClass.critical: 0.95,
+}
+
+
+# ---------------------------------------------------------------------------
+# Strategy / family enums
+# ---------------------------------------------------------------------------
+
+
+class SearchStrategy(str, Enum):
+    """Top-level search strategy selection."""
+
+    SIMPLE = "simple"      # preserve existing deterministic proposer path
+    ADAPTIVE = "adaptive"  # HSO + bandit family selection
+    FULL = "full"          # HSO + curriculum + Pareto archive
+
+
+class OperatorFamily(str, Enum):
+    """High-level operator families used by HSO."""
+
+    MCTS_EXPLORATION = "mcts_exploration"
+    LOCAL_TUNING = "local_tuning"
+    DIVERSITY_INJECTION = "diversity_injection"
+
+
+class BanditPolicy(str, Enum):
+    """Bandit policy used for family and arm selection."""
+
+    UCB = "ucb"
+    THOMPSON = "thompson"
+
+
+# Operator-family mapping.  Keep this explicit for predictable behavior.
+_OPERATOR_TO_FAMILY: dict[str, OperatorFamily] = {
+    "routing_edit": OperatorFamily.MCTS_EXPLORATION,
+    "model_swap": OperatorFamily.MCTS_EXPLORATION,
+    "callback_patch": OperatorFamily.MCTS_EXPLORATION,
+    "generation_settings": OperatorFamily.LOCAL_TUNING,
+    "tool_description_edit": OperatorFamily.LOCAL_TUNING,
+    "context_caching": OperatorFamily.LOCAL_TUNING,
+    "memory_policy": OperatorFamily.LOCAL_TUNING,
+    "instruction_rewrite": OperatorFamily.DIVERSITY_INJECTION,
+    "few_shot_edit": OperatorFamily.DIVERSITY_INJECTION,
 }
 
 
@@ -78,6 +124,12 @@ class SearchResult:
     rejected: list[ExperimentCard]
     budget_exhausted: bool
     total_cost: float
+    strategy: str = SearchStrategy.SIMPLE.value
+    operator_family: str | None = None
+    pareto_front: list[dict[str, Any]] = field(default_factory=list)
+    pareto_recommendation_id: str | None = None
+    accepted_configs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    governance_notes: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -214,12 +266,16 @@ class SearchEngine:
         proposer: Proposer,
         performance_tracker: OperatorPerformanceTracker | None = None,
         budget: SearchBudget | None = None,
+        bandit_selector: HybridBanditSelector | None = None,
+        pareto_archive: object | None = None,
     ) -> None:
         self.registry = registry
         self.memory = memory
         self.proposer = proposer
         self.tracker = performance_tracker or OperatorPerformanceTracker()
         self.budget = budget or SearchBudget()
+        self.bandit_selector = bandit_selector or HybridBanditSelector()
+        self.pareto_archive = pareto_archive
 
     # ------------------------------------------------------------------
     # Public API
@@ -511,10 +567,14 @@ class SearchEngine:
 
     @staticmethod
     def _composite(scores: dict[str, float]) -> float:
-        """Compute a simple mean composite from a scores dict."""
+        """Compute composite from score dict, preferring explicit ``composite`` key."""
         if not scores:
             return 0.0
-        return sum(scores.values()) / len(scores)
+        if "composite" in scores:
+            return float(scores["composite"])
+        preferred = [k for k in ("quality", "safety", "latency", "cost") if k in scores]
+        keys = preferred if preferred else list(scores.keys())
+        return sum(float(scores[k]) for k in keys) / len(keys)
 
     @staticmethod
     def _config_sha(config: dict[str, Any]) -> str:
@@ -621,3 +681,558 @@ class SearchEngine:
             if opp.opportunity_id == opportunity_id:
                 return opp.failure_family
         return None
+
+    # ------------------------------------------------------------------
+    # HSO-aware cycle methods (used by HybridSearchOrchestrator)
+    # ------------------------------------------------------------------
+
+    def hybrid_search_cycle(
+        self,
+        opportunities: list[OptimizationOpportunity],
+        current_config: dict[str, Any],
+        eval_fn: Callable[[dict[str, Any]], dict[str, float]],
+        health_metrics: dict[str, Any],
+        failure_buckets: dict[str, int],
+        strategy: SearchStrategy = SearchStrategy.ADAPTIVE,
+    ) -> SearchResult:
+        """Run adaptive/full HSO cycle with family bandit selection."""
+        if strategy == SearchStrategy.SIMPLE:
+            return self.search_cycle(
+                opportunities=opportunities,
+                current_config=current_config,
+                eval_fn=eval_fn,
+                health_metrics=health_metrics,
+                failure_buckets=failure_buckets,
+            )
+
+        available_families = self._available_families(opportunities)
+        forced_family = (
+            self.bandit_selector.select([f.value for f in available_families])
+            if available_families
+            else None
+        )
+
+        filtered_opportunities = opportunities
+        if forced_family:
+            filtered_opportunities = self._filter_opportunities_by_family(
+                opportunities,
+                OperatorFamily(forced_family),
+            )
+            if not filtered_opportunities:
+                filtered_opportunities = opportunities
+
+        result = self._run_cycle_core(
+            opportunities=filtered_opportunities,
+            current_config=current_config,
+            eval_fn=eval_fn,
+            health_metrics=health_metrics,
+            failure_buckets=failure_buckets,
+            strategy=strategy,
+            forced_family=forced_family,
+        )
+        result.strategy = strategy.value
+        result.operator_family = forced_family
+
+        if strategy == SearchStrategy.FULL and self.pareto_archive is not None:
+            snapshot = self.pareto_archive.as_dict()
+            result.pareto_front = snapshot.get("frontier", [])
+            result.pareto_recommendation_id = snapshot.get("recommended_candidate_id")
+
+        return result
+
+    def _run_cycle_core(
+        self,
+        *,
+        opportunities: list[OptimizationOpportunity],
+        current_config: dict[str, Any],
+        eval_fn: Callable[[dict[str, Any]], dict[str, float]],
+        health_metrics: dict[str, Any],
+        failure_buckets: dict[str, int],
+        strategy: SearchStrategy,
+        forced_family: str | None,
+    ) -> SearchResult:
+        """Core evaluation loop shared by simple/adaptive/full paths."""
+        start = time.monotonic()
+        total_cost = 0.0
+
+        candidates = self.generate_candidates(
+            opportunities, current_config, health_metrics, failure_buckets
+        )
+        if forced_family is not None:
+            candidates = [
+                c for c in candidates
+                if self._family_for_operator(c.operator_name).value == forced_family
+            ]
+        candidates_generated = len(candidates)
+        top_candidates = self.rank_candidates(candidates)
+
+        accepted: list[ExperimentCard] = []
+        rejected: list[ExperimentCard] = []
+        accepted_configs: dict[str, dict[str, Any]] = {}
+        evaluated = 0
+        budget_exhausted = False
+
+        for candidate in top_candidates:
+            elapsed = time.monotonic() - start
+            if elapsed >= self.budget.time_budget_seconds:
+                budget_exhausted = True
+                break
+
+            operator = self.registry.get(candidate.operator_name)
+            est_cost = operator.estimated_eval_cost if operator else 0.0
+            if total_cost + est_cost > self.budget.max_cost_dollars:
+                budget_exhausted = True
+                break
+
+            if operator is None:
+                continue
+
+            candidate_config = operator.apply(current_config, candidate.config_params)
+            card = self.evaluate_candidate(candidate, current_config, eval_fn)
+
+            evaluated += 1
+            total_cost += card.total_experiment_cost
+
+            family = self._family_for_operator(candidate.operator_name).value
+            reward = max(0.0, card.significance_delta)
+            self.bandit_selector.record(family, reward=reward)
+
+            is_accepted = card.status == "accepted"
+            failure_family = self._opportunity_failure_family(
+                candidate.target_opportunity_id, opportunities
+            )
+            if failure_family:
+                self.tracker.record_outcome(
+                    candidate.operator_name, failure_family, is_accepted
+                )
+
+            if strategy == SearchStrategy.FULL and self.pareto_archive is not None:
+                objectives = self._objectives_for_pareto(card.candidate_scores)
+                self.pareto_archive.add_candidate(
+                    candidate_id=card.experiment_id,
+                    objectives=objectives,
+                    constraints_passed=is_accepted,
+                    constraint_violations=[] if is_accepted else ["did not improve"],
+                    metadata={"operator_name": card.operator_name},
+                )
+
+            if is_accepted:
+                accepted.append(card)
+                accepted_configs[card.experiment_id] = candidate_config
+            else:
+                rejected.append(card)
+
+        return SearchResult(
+            candidates_generated=candidates_generated,
+            candidates_evaluated=evaluated,
+            accepted=accepted,
+            rejected=rejected,
+            budget_exhausted=budget_exhausted,
+            total_cost=round(total_cost, 6),
+            accepted_configs=accepted_configs,
+        )
+
+    @staticmethod
+    def _family_for_operator(operator_name: str) -> OperatorFamily:
+        """Map operator name to family (defaults to diversity injection)."""
+        return _OPERATOR_TO_FAMILY.get(operator_name, OperatorFamily.DIVERSITY_INJECTION)
+
+    def _available_families(
+        self, opportunities: list[OptimizationOpportunity]
+    ) -> list[OperatorFamily]:
+        """Compute unique families present in current opportunity set."""
+        seen: list[OperatorFamily] = []
+        for opp in opportunities:
+            for op_name in opp.recommended_operator_families:
+                family = self._family_for_operator(op_name)
+                if family not in seen:
+                    seen.append(family)
+        return seen
+
+    def _filter_opportunities_by_family(
+        self,
+        opportunities: list[OptimizationOpportunity],
+        family: OperatorFamily,
+    ) -> list[OptimizationOpportunity]:
+        """Keep only opportunities that contain operators in a target family."""
+        filtered: list[OptimizationOpportunity] = []
+        for opp in opportunities:
+            names = [
+                name for name in opp.recommended_operator_families
+                if self._family_for_operator(name) == family
+            ]
+            if not names:
+                continue
+            filtered.append(
+                OptimizationOpportunity(
+                    opportunity_id=opp.opportunity_id,
+                    created_at=opp.created_at,
+                    cluster_id=opp.cluster_id,
+                    failure_family=opp.failure_family,
+                    affected_agent_path=opp.affected_agent_path,
+                    affected_surface_candidates=list(opp.affected_surface_candidates),
+                    severity=opp.severity,
+                    prevalence=opp.prevalence,
+                    recency=opp.recency,
+                    business_impact=opp.business_impact,
+                    sample_trace_ids=list(opp.sample_trace_ids),
+                    recommended_operator_families=names,
+                    priority_score=opp.priority_score,
+                    status=opp.status,
+                    resolution_experiment_id=opp.resolution_experiment_id,
+                )
+            )
+        return filtered
+
+    @staticmethod
+    def _objectives_for_pareto(scores: dict[str, float]) -> dict[str, float]:
+        """Extract core objective vector from candidate score payload."""
+        return {
+            "quality": float(scores.get("quality", 0.0)),
+            "safety": float(scores.get("safety", 0.0)),
+            "latency": float(scores.get("latency", 0.0)),
+            "cost": float(scores.get("cost", 0.0)),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Hybrid bandit selector + curriculum + orchestrator
+# ---------------------------------------------------------------------------
+
+
+class HybridBanditSelector:
+    """Bandit selector for adaptive operator-family and arm allocation."""
+
+    def __init__(
+        self,
+        policy: BanditPolicy = BanditPolicy.THOMPSON,
+        exploration_weight: float = 1.2,
+        seed: int = 7,
+    ) -> None:
+        self.policy = policy
+        self.exploration_weight = exploration_weight
+        self._rng = random.Random(seed)
+        self._attempts: dict[str, int] = defaultdict(int)
+        self._reward_sum: dict[str, float] = defaultdict(float)
+        self._successes: dict[str, int] = defaultdict(int)
+
+    def record(self, arm: str, reward: float) -> None:
+        """Record reward for one arm."""
+        self._attempts[arm] += 1
+        reward_value = max(0.0, float(reward))
+        self._reward_sum[arm] += reward_value
+        if reward_value > 0:
+            self._successes[arm] += 1
+
+    def select(self, arms: list[str]) -> str:
+        """Select arm using configured bandit policy."""
+        if not arms:
+            raise ValueError("arms must be non-empty")
+        unique = list(dict.fromkeys(arms))
+
+        if self.policy == BanditPolicy.UCB:
+            return self._select_ucb(unique)
+        return self._select_thompson(unique)
+
+    def _select_ucb(self, arms: list[str]) -> str:
+        total_attempts = sum(self._attempts.values()) + 1
+        best_arm = arms[0]
+        best_score = float("-inf")
+        for arm in arms:
+            attempts = self._attempts[arm]
+            mean_reward = self._reward_sum[arm] / attempts if attempts > 0 else 0.0
+            if attempts == 0:
+                score = float("inf")
+            else:
+                score = mean_reward + self.exploration_weight * math.sqrt(
+                    math.log(total_attempts) / attempts
+                )
+            if score > best_score:
+                best_score = score
+                best_arm = arm
+        return best_arm
+
+    def _select_thompson(self, arms: list[str]) -> str:
+        best_arm = arms[0]
+        best_sample = float("-inf")
+        for arm in arms:
+            successes = self._successes[arm]
+            attempts = self._attempts[arm]
+            failures = max(0, attempts - successes)
+            sample = self._rng.betavariate(1 + successes, 1 + failures)
+            if sample > best_sample:
+                best_sample = sample
+                best_arm = arm
+        return best_arm
+
+
+class CurriculumStage(str, Enum):
+    """Difficulty stage for full strategy curricula."""
+
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
+
+
+class HybridSearchOrchestrator:
+    """Strategy layer that composes bandit selection + curriculum + Pareto archive."""
+
+    def __init__(
+        self,
+        *,
+        bandit_selector: HybridBanditSelector | None = None,
+        pareto_archive: object | None = None,
+    ) -> None:
+        self.bandit_selector = bandit_selector or HybridBanditSelector()
+        self.curriculum_stage = CurriculumStage.EASY
+        self._consecutive_successes = 0
+        self.pareto_archive = pareto_archive
+
+    def select_opportunities_with_curriculum(
+        self,
+        opportunities: list[OptimizationOpportunity],
+        max_items: int,
+    ) -> list[OptimizationOpportunity]:
+        """Pick opportunities according to current curriculum stage."""
+        if not opportunities or max_items <= 0:
+            return []
+        scored = sorted(opportunities, key=self._difficulty_score)
+        stage_filtered: list[OptimizationOpportunity] = []
+        remainder: list[OptimizationOpportunity] = []
+
+        if self.curriculum_stage == CurriculumStage.EASY:
+            stage_filtered = [i for i in scored if self._difficulty_score(i) <= 0.45]
+            remainder = [i for i in scored if i not in stage_filtered]
+        elif self.curriculum_stage == CurriculumStage.MEDIUM:
+            stage_filtered = [i for i in scored if self._difficulty_score(i) <= 0.75]
+            remainder = [i for i in scored if i not in stage_filtered]
+        else:
+            stage_filtered = scored
+
+        if not stage_filtered:
+            stage_filtered = scored
+        selected = stage_filtered[:max_items]
+        if len(selected) < max_items:
+            for item in remainder:
+                if item in selected:
+                    continue
+                selected.append(item)
+                if len(selected) >= max_items:
+                    break
+        return selected
+
+    def record_curriculum_outcome(self, success: bool) -> None:
+        """Advance stage after repeated wins on current level."""
+        if success:
+            self._consecutive_successes += 1
+        else:
+            self._consecutive_successes = 0
+        if self._consecutive_successes < 3:
+            return
+        self._consecutive_successes = 0
+        if self.curriculum_stage == CurriculumStage.EASY:
+            self.curriculum_stage = CurriculumStage.MEDIUM
+        elif self.curriculum_stage == CurriculumStage.MEDIUM:
+            self.curriculum_stage = CurriculumStage.HARD
+
+    def run_cycle(
+        self,
+        *,
+        strategy: SearchStrategy,
+        registry: MutationRegistry,
+        memory: OptimizationMemory,
+        proposer: Proposer,
+        opportunities: list[OptimizationOpportunity],
+        current_config: dict[str, Any],
+        budget: SearchBudget,
+        eval_fn: Callable[[dict[str, Any]], dict[str, float]],
+    ) -> SearchResult:
+        """Run one HSO cycle using an ephemeral SearchEngine."""
+        tracker_path = tempfile.NamedTemporaryFile(suffix=".db", delete=False).name
+        engine = SearchEngine(
+            registry=registry,
+            memory=memory,
+            proposer=proposer,
+            performance_tracker=OperatorPerformanceTracker(db_path=tracker_path),
+            budget=budget,
+            bandit_selector=self.bandit_selector,
+            pareto_archive=self.pareto_archive,
+        )
+
+        selected_opportunities = opportunities
+        if strategy == SearchStrategy.FULL:
+            selected_opportunities = self.select_opportunities_with_curriculum(
+                opportunities,
+                max_items=max(1, budget.max_candidates),
+            )
+
+        result = engine.hybrid_search_cycle(
+            opportunities=selected_opportunities,
+            current_config=current_config,
+            eval_fn=eval_fn,
+            health_metrics={},
+            failure_buckets={},
+            strategy=strategy,
+        )
+        return result
+
+    @staticmethod
+    def _difficulty_score(opportunity: OptimizationOpportunity) -> float:
+        """Estimate opportunity difficulty from severity and prevalence."""
+        return min(1.0, opportunity.severity * 0.6 + opportunity.prevalence * 0.4)
+
+
+# ---------------------------------------------------------------------------
+# Adaptive search engine (bandit + curriculum)
+# ---------------------------------------------------------------------------
+
+
+class AdaptiveSearchEngine(SearchEngine):
+    """Enhanced search engine with bandit selection and curriculum learning.
+
+    search_strategy: "simple" | "adaptive" | "full"
+    - simple: original failure-bucket proposer (fast, predictable)
+    - adaptive: HSO with bandit selection (smarter, more eval cost)
+    - full: HSO + curriculum + Pareto archive (maximum optimization, maximum cost)
+    """
+
+    _VALID_STRATEGIES = {"simple", "adaptive", "full"}
+
+    def __init__(
+        self,
+        registry: MutationRegistry,
+        memory: OptimizationMemory,
+        proposer: Proposer,
+        performance_tracker: OperatorPerformanceTracker | None = None,
+        budget: SearchBudget | None = None,
+        search_strategy: str = "simple",
+        bandit_policy: str = "ucb1",
+    ) -> None:
+        super().__init__(registry, memory, proposer, performance_tracker, budget)
+        if search_strategy not in self._VALID_STRATEGIES:
+            raise ValueError(
+                f"Invalid search_strategy '{search_strategy}'. "
+                f"Must be one of: {self._VALID_STRATEGIES}"
+            )
+        self.search_strategy = search_strategy
+
+        if search_strategy in ("adaptive", "full"):
+            from .bandit import BanditPolicy, BanditSelector
+
+            policy = BanditPolicy(bandit_policy)
+            self.bandit: BanditSelector | None = BanditSelector(policy=policy)
+        else:
+            self.bandit = None
+
+        if search_strategy == "full":
+            from .curriculum import CurriculumScheduler
+
+            self.curriculum: CurriculumScheduler | None = CurriculumScheduler()
+        else:
+            self.curriculum = None
+
+    # ------------------------------------------------------------------
+    # Overridden public API
+    # ------------------------------------------------------------------
+
+    def generate_candidates(
+        self,
+        opportunities: list[OptimizationOpportunity],
+        current_config: dict[str, Any],
+        health_metrics: dict[str, Any],
+        failure_buckets: dict[str, int],
+    ) -> list[CandidateMutation]:
+        """Generate candidates with bandit-guided selection."""
+        if self.search_strategy == "simple":
+            return super().generate_candidates(
+                opportunities, current_config, health_metrics, failure_buckets
+            )
+
+        # For adaptive/full: optionally filter via curriculum, then use bandit to rank
+        filtered_opps = list(opportunities)
+        if self.curriculum is not None:
+            pass_rates = self._estimate_pass_rates(failure_buckets)
+            filtered_opps = self.curriculum.filter_opportunities(
+                opportunities, pass_rates
+            )
+
+        # Build candidate arms for bandit
+        candidate_arms: list[tuple[str, str, OptimizationOpportunity]] = []
+        for opp in filtered_opps:
+            for op_name in opp.recommended_operator_families:
+                operator = self.registry.get(op_name)
+                if operator is not None and operator.ready:
+                    candidate_arms.append((op_name, opp.failure_family, opp))
+
+        if not candidate_arms:
+            # Fall back to parent implementation
+            return super().generate_candidates(
+                opportunities, current_config, health_metrics, failure_buckets
+            )
+
+        # Use bandit to rank arms
+        arm_tuples = [(op, ff) for op, ff, _ in candidate_arms]
+        assert self.bandit is not None
+        ranked = self.bandit.rank_candidates(arm_tuples, n=self.budget.max_candidates)
+
+        # Build a lookup from (op, ff) -> opportunity for the ranked arms
+        arm_to_opp: dict[tuple[str, str], OptimizationOpportunity] = {}
+        for op, ff, opp in candidate_arms:
+            key = (op, ff)
+            if key not in arm_to_opp:
+                arm_to_opp[key] = opp
+
+        # Generate CandidateMutation objects using parent class helpers
+        past_descriptions = self._past_change_descriptions()
+        candidates: list[CandidateMutation] = []
+
+        for op_name, ff, _bandit_score in ranked:
+            opp = arm_to_opp.get((op_name, ff))
+            if opp is None:
+                continue
+
+            operator = self.registry.get(op_name)
+            if operator is None:
+                continue
+
+            description_key = self._description_key(op_name, opp.opportunity_id)
+            if self._already_attempted(description_key, past_descriptions):
+                continue
+
+            config_params = self._build_config_params(operator, opp, current_config)
+            hypothesis = (
+                f"Applying '{op_name}' to address {opp.failure_family} "
+                f"(severity={opp.severity:.2f}, prevalence={opp.prevalence:.2f})"
+            )
+
+            predicted_lift = self._predict_lift(op_name, opp)
+            risk_score = _RISK_SCORES.get(operator.risk_class, 0.5)
+            novelty_score = self._compute_novelty(description_key, past_descriptions)
+            combined = self._combined_score(predicted_lift, novelty_score, risk_score)
+
+            candidate = CandidateMutation(
+                mutation_id=uuid.uuid4().hex[:12],
+                operator_name=op_name,
+                target_opportunity_id=opp.opportunity_id,
+                predicted_lift=round(predicted_lift, 4),
+                risk_score=round(risk_score, 4),
+                novelty_score=round(novelty_score, 4),
+                combined_score=round(combined, 4),
+                config_params=config_params,
+                hypothesis=hypothesis,
+            )
+            candidates.append(candidate)
+
+        # Sort and cap
+        candidates.sort(key=lambda c: c.combined_score, reverse=True)
+        return candidates[: self.budget.max_candidates]
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _estimate_pass_rates(failure_buckets: dict[str, int]) -> dict[str, float]:
+        """Estimate pass rates from failure bucket counts."""
+        total = sum(failure_buckets.values()) or 1
+        return {ff: 1.0 - (count / total) for ff, count in failure_buckets.items()}

@@ -1,5 +1,56 @@
 # Changelog
 
+## [2.1.0] — 2026-03-24 — v4 Research Port (CC + Codex Merge)
+
+### Added
+
+**9-Dimension Evaluation Detail Engine** (`evals/scorer.py`, `evals/runner.py`)
+- Added v4 global dimensions:
+  task success, response quality, safety compliance, latency p50/p95/p99,
+  token cost average, tool correctness, routing accuracy, handoff fidelity,
+  user satisfaction proxy
+- Added per-agent dimension rollups:
+  specialist, orchestrator, and shared-agent metric blocks
+- Preserved legacy simple composite view for default UX
+
+**Constrained Pareto Archive** (`optimizer/pareto.py`)
+- Explicit feasible vs infeasible candidate pools
+- Pareto dominance filtering over feasible candidates
+- Knee-point recommendation for default deployment suggestion
+
+**Hybrid Search Orchestrator Primitives** (`optimizer/search.py`)
+- Search strategies: `simple`, `adaptive`, `full`
+- Operator families: MCTS exploration, local tuning, diversity injection
+- Bandit selector with `ucb` and `thompson` policies
+- Curriculum stage manager for full-mode opportunity progression
+- Full-mode Pareto-front metadata in search results
+
+**Anti-Goodhart Guardrails** (`evals/anti_goodhart.py`, `optimizer/loop.py`)
+- Dual holdout checks (fixed + rolling holdout)
+- Holdout rotation cadence tracking
+- Drift-aware baseline re-anchoring
+- Judge variance estimation and rejection thresholds
+
+**API + UI Detail Views**
+- Eval API now returns `global_dimensions` + `per_agent_dimensions`
+- Optimize API now returns strategy diagnostics (family selection, governance notes)
+- New endpoint: `GET /api/optimize/pareto`
+- UI detail surfaces:
+  `EvalDetail` advanced 9-dimension/per-agent panel,
+  `Optimize` Pareto front + strategy diagnostics panel
+
+### Changed
+
+**Strategy-Aware Optimizer Loop** (`optimizer/loop.py`)
+- Default remains `simple` proposer path (failure-bucket mapping preserved)
+- `adaptive` and `full` now route through hybrid search orchestration
+- Added runtime-configurable search and guardrail settings via `autoagent.yaml`
+
+**Runtime Config Schema** (`agent/config/runtime.py`, `autoagent.yaml`)
+- Added optimizer strategy fields:
+  `search_strategy`, `bandit_policy`,
+  search budget limits, anti-Goodhart thresholds
+
 ## [2.0.0] — 2026-03-23 — P0 Architectural Overhaul
 
 ### Added

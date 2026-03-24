@@ -290,6 +290,91 @@ memory_policy:
 
 ---
 
+## v4 Research Port
+
+The v4 port brings research-grade optimization techniques into the production loop. All features are additive and backward-compatible -- existing configs and workflows continue to work unchanged.
+
+### 9-Dimension Evaluation (G1-G9)
+
+Replaces the 4-metric composite score with a 9-dimension scoring vector:
+
+| Dimension | ID | Description |
+|-----------|----|-------------|
+| Task Success Rate | G1 | End-to-end task completion |
+| Response Quality | G2 | LLM-judged response quality |
+| Safety Compliance | G3 | Policy and safety adherence |
+| Latency (p50/p95/p99) | G4a-c | Latency percentiles |
+| Token Cost | G5 | Normalized token expenditure |
+| Tool Correctness | G6 | Correct tool selection and usage |
+| Routing Accuracy | G7 | Correct specialist routing |
+| Handoff Fidelity | G8 | Context preservation across handoffs |
+| User Satisfaction Proxy | G9 | Composite user satisfaction estimate |
+
+Per-agent scores decompose the system-level metrics to individual agent paths for targeted diagnosis.
+
+### Constrained Pareto Archive
+
+Instead of collapsing all objectives into a single weighted score, the Pareto archive maintains a set of non-dominated configurations across the full objective vector. A candidate is on the frontier if no other candidate is better on every objective simultaneously.
+
+- **Feasibility gating**: hard constraints (safety, P0 regression) must pass before a candidate enters the archive
+- **Recommended selection**: the archive recommends the candidate closest to a reference point (balanced across all objectives)
+- **Experiment linkage**: each candidate tracks its source experiment for full provenance
+
+### Hybrid Search Orchestrator
+
+Three search strategies, selectable via `optimizer.search_strategy`:
+
+| Strategy | Behavior | When to use |
+|----------|----------|-------------|
+| `simple` (default) | Single best mutation per cycle, greedy selection | Early optimization, small eval budgets |
+| `adaptive` | Bandit-guided operator selection, automatic exploration/exploitation balance | Steady-state optimization |
+| `full` | Multi-hypothesis search + curriculum learning + holdout rotation | Research-grade optimization with large eval budgets |
+
+### Bandit Selection (UCB1 / Thompson Sampling)
+
+Mutation operators are modeled as bandit arms, with reward defined as the improvement delta when applied to a failure family. The bandit policy (`optimizer.bandit_policy`) selects which operator to try next:
+
+- **UCB1**: Upper Confidence Bound -- balances mean reward with exploration bonus
+- **Thompson Sampling**: Bayesian posterior sampling -- naturally adapts exploration to uncertainty
+
+### Curriculum Learning
+
+When `optimizer.curriculum_enabled` is true, eval cases are tiered into easy/medium/hard. The optimizer starts with easy cases and advances only after demonstrating competence at each tier. This prevents wasting eval budget on hard cases before basic issues are resolved.
+
+### Anti-Goodhart Mechanisms
+
+Three mechanisms prevent the optimizer from overfitting to the eval set:
+
+1. **Holdout Rotation** (`optimizer.holdout_rotation`): The eval set is split into tuning/validation/holdout partitions. The holdout set is never used for optimization decisions -- only for final validation. Partitions rotate periodically to prevent memorization.
+
+2. **Drift Detection** (`optimizer.drift_detection_window`, `optimizer.drift_threshold`): Monitors the gap between tuning and validation scores. If the gap exceeds the threshold over a sliding window, the system flags potential overfitting and can trigger holdout rotation.
+
+3. **Judge Variance Estimation**: LLM judges are noisy. The statistical layer estimates judge variance and accounts for it in significance testing, preventing acceptance of changes that only appear better due to judge noise.
+
+### Configuration
+
+All v4 features are controlled by the `optimizer` section of `AgentConfig`:
+
+```yaml
+optimizer:
+  search_strategy: simple       # simple | adaptive | full
+  bandit_policy: ucb1           # ucb1 | thompson
+  holdout_rotation: false
+  holdout_tuning_fraction: 0.6
+  holdout_validation_fraction: 0.2
+  holdout_holdout_fraction: 0.2
+  holdout_rotation_interval: 10
+  drift_detection_window: 5
+  drift_threshold: 0.03
+  curriculum_enabled: false
+  curriculum_min_experiments_per_tier: 3
+  curriculum_stall_threshold: 0.01
+```
+
+All fields have sensible defaults. The `simple` strategy with defaults is equivalent to v3 behavior.
+
+---
+
 ## What Makes This Different
 
 1. **It actually works.** Not a prototype — the trace→diagnose→search→eval→deploy loop runs end-to-end with real scoring, real gating, real deployment.

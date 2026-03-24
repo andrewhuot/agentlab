@@ -13,6 +13,7 @@ import type {
   EvalResult,
   EvalRun,
   ExperimentCard,
+  ParetoFrontier,
   HealthReport,
   LoopStatus,
   OptimizationAttempt,
@@ -873,5 +874,13 @@ export function useExperimentStats() {
     queryKey: ['experiments', 'stats'],
     queryFn: () => fetchApi<ExperimentStatsResponse>('/experiments/stats'),
     refetchInterval: 10000,
+  });
+}
+
+export function useParetoFrontier() {
+  return useQuery<ParetoFrontier>({
+    queryKey: ['pareto', 'frontier'],
+    queryFn: () => fetchApi<ParetoFrontier>('/experiments/pareto'),
+    refetchInterval: 15000,
   });
 }

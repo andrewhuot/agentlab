@@ -75,9 +75,16 @@ async def start_optimization(body: OptimizeRequest, request: Request) -> Optimiz
         task.progress = 20
 
         if not report.needs_optimization and not force:
+            diagnostics = optimizer.get_strategy_diagnostics()
             result = OptimizeCycleResult(
                 accepted=False,
                 status_message="System healthy; no optimization needed",
+                search_strategy=diagnostics.strategy,
+                selected_operator_family=diagnostics.selected_operator_family,
+                pareto_front=diagnostics.pareto_front,
+                pareto_recommendation_id=diagnostics.pareto_recommendation_id,
+                governance_notes=diagnostics.governance_notes,
+                global_dimensions=diagnostics.global_dimensions,
             ).model_dump()
             task.result = result
             return result
@@ -111,6 +118,8 @@ async def start_optimization(body: OptimizeRequest, request: Request) -> Optimiz
                 "latency": score.latency,
                 "cost": score.cost,
                 "composite": score.composite,
+                "global_dimensions": score.global_dimensions,
+                "per_agent_dimensions": score.per_agent_dimensions,
             }
             deploy_msg = deployer.deploy(new_config, scores_dict)
             task.progress = 90
@@ -123,6 +132,7 @@ async def start_optimization(body: OptimizeRequest, request: Request) -> Optimiz
             change_desc = recent[0].change_description
             config_diff = recent[0].config_diff
 
+        diagnostics = optimizer.get_strategy_diagnostics()
         result = OptimizeCycleResult(
             accepted=new_config is not None,
             status_message=status_msg,
@@ -131,6 +141,12 @@ async def start_optimization(body: OptimizeRequest, request: Request) -> Optimiz
             score_before=score_before,
             score_after=score_after,
             deploy_message=deploy_msg,
+            search_strategy=diagnostics.strategy,
+            selected_operator_family=diagnostics.selected_operator_family,
+            pareto_front=diagnostics.pareto_front,
+            pareto_recommendation_id=diagnostics.pareto_recommendation_id,
+            governance_notes=diagnostics.governance_notes,
+            global_dimensions=diagnostics.global_dimensions,
         ).model_dump()
         task.result = result
 
@@ -204,3 +220,10 @@ async def get_optimization_attempt(attempt_id: str, request: Request) -> dict[st
                 "health_context": a.health_context,
             }
     raise HTTPException(status_code=404, detail=f"Attempt not found: {attempt_id}")
+
+
+@router.get("/pareto")
+async def get_pareto_snapshot(request: Request) -> dict[str, Any]:
+    """Return constrained Pareto archive snapshot for full-mode detail views."""
+    optimizer = request.app.state.optimizer
+    return optimizer.get_pareto_snapshot()
