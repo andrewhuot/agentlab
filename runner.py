@@ -35,6 +35,7 @@ Full command set:
   autoagent scorer show <name>
   autoagent scorer refine <name> "additional criteria"
   autoagent scorer test <name> --trace <trace-id>
+  autoagent full-auto --yes [--cycles N] [--max-loop-cycles N]
 """
 
 from __future__ import annotations
@@ -226,6 +227,48 @@ def _bar_chart(value: float, width: int = 10) -> str:
     return "█" * filled + "░" * (width - filled)
 
 
+SOUL_LINES: dict[str, str] = {
+    "status": "Pulse check complete. Your agent is alive and learning.",
+    "optimize": "Tuning in progress — we're chasing signal, not noise.",
+    "quickstart": "Bootstrapping momentum. Let's make this thing sing.",
+    "eval": "Running the gauntlet. Truth comes from test cases.",
+}
+
+
+def _soul_line(context: str) -> str:
+    """Return a short personality line for a CLI context."""
+    return SOUL_LINES.get(context, "AutoAgent is online.")
+
+
+def _score_mood(score: float | None) -> str:
+    """Map composite score to a human-friendly mood label."""
+    if score is None:
+        return "Warming up"
+    if score >= 0.9:
+        return "Flying"
+    if score >= 0.75:
+        return "Steady climb"
+    if score >= 0.6:
+        return "Promising"
+    return "Needs love"
+
+
+def _print_cli_plan(title: str, steps: list[str]) -> None:
+    """Print a compact plan block similar to coding-agent style preambles."""
+    click.echo(click.style(f"\n{title}", fg="cyan", bold=True))
+    for idx, step in enumerate(steps, start=1):
+        click.echo(f"  {idx}. {step}")
+
+
+def _print_next_actions(actions: list[str]) -> None:
+    """Print runnable next actions with command-style formatting."""
+    if not actions:
+        return
+    click.echo(click.style("\n  Next actions:", fg="cyan", bold=True))
+    for action in actions:
+        click.echo(f"    → {action}")
+
+
 def _generate_recommendations(report, score) -> list[str]:  # noqa: ANN001
     """Return up to 3 actionable recommendation strings based on failure buckets."""
     buckets = report.failure_buckets
@@ -326,6 +369,16 @@ def _sleep_interruptibly(seconds: float, shutdown: GracefulShutdown) -> None:
         step = min(0.5, remaining)
         shutdown.event.wait(timeout=step)
         remaining -= step
+
+
+def _promote_latest_version(deployer: Deployer) -> int | None:
+    """Promote the latest version to active and return the version number."""
+    history = deployer.version_manager.get_version_history()
+    if not history:
+        return None
+    latest_version = history[-1]["version"]
+    deployer.version_manager.promote(latest_version)
+    return latest_version
 
 
 # ---------------------------------------------------------------------------
@@ -485,6 +538,16 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
       autoagent eval run --output results.json
     """
     runtime = load_runtime_config()
+    if not json_output:
+        click.echo(click.style(f"✦ {_soul_line('eval')}", fg="cyan"))
+        _print_cli_plan(
+            "Eval plan",
+            [
+                "Load active runtime + config",
+                "Run eval suite against selected scope",
+                "Summarize scores and suggested follow-up",
+            ],
+        )
     if runtime.optimizer.use_mock and not json_output:
         click.echo(click.style(
             "\u26a0 Running with mock provider. Results are simulated. "
@@ -518,6 +581,15 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
             click.echo(json.dumps(_score_to_dict(score), indent=2))
             return
         _print_score(score, "Full eval suite")
+
+    if not json_output:
+        click.echo(click.style(f"\n  Mood: {_score_mood(score.composite)}", fg="magenta"))
+        _print_next_actions(
+            [
+                "autoagent optimize --cycles 3",
+                "autoagent status",
+            ],
+        )
 
     if output:
         result = {
@@ -620,8 +692,11 @@ def eval_list() -> None:
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
+@click.option("--full-auto", is_flag=True, default=False,
+              help="Danger mode: auto-promote accepted configs without manual review.")
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
-def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
+def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, configs_dir: str,
+             memory_db: str, full_auto: bool, json_output: bool = False) -> None:
     """Run optimization cycles to improve agent config.
 
     Examples:
@@ -630,6 +705,18 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
       autoagent optimize --mode advanced --cycles 3
     """
     from optimizer.mode_router import ModeConfig, ModeRouter, OptimizationMode
+    if not json_output:
+        click.echo(click.style(f"\n✦ {_soul_line('optimize')}", fg="cyan"))
+        if full_auto:
+            click.echo(click.style("⚠ FULL AUTO ENABLED: skipping manual promotion gates.", fg="yellow"))
+        _print_cli_plan(
+            "Optimization plan",
+            [
+                "Observe failures and select dominant issue",
+                "Propose and evaluate candidate config changes",
+                "Accept/deploy only when quality improves",
+            ],
+        )
 
     if strategy is not None:
         click.echo(click.style(
@@ -733,6 +820,10 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
             deploy_result = deployer.deploy(new_config, _score_to_dict(score))
             if not json_output:
                 click.echo(f"  Deploy: {deploy_result}")
+            if full_auto:
+                promoted = _promote_latest_version(deployer)
+                if not json_output and promoted is not None:
+                    click.echo(click.style(f"  FULL AUTO: promoted v{promoted:03d} to active", fg="yellow"))
 
     if json_output:
         click.echo(json.dumps(json_cycle_results, indent=2))
@@ -740,6 +831,16 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
 
     if cycles > 1:
         click.echo(f"\nOptimization complete. {cycles} cycles executed.")
+    latest_attempts = memory.recent(limit=1)
+    latest_score = latest_attempts[0].score_after if latest_attempts else None
+    click.echo(click.style(f"  Mood: {_score_mood(latest_score)}", fg="magenta"))
+    _print_next_actions(
+        [
+            "autoagent status",
+            "autoagent runbook list",
+            "autoagent loop --max-cycles 10",
+        ],
+    )
 
     # Feature 4: recommendations
     final_report = observer.observe()
@@ -992,12 +1093,14 @@ def deploy(config_version: int | None, strategy: str, configs_dir: str, db: str)
               help="Checkpoint file path. Defaults to autoagent.yaml loop.checkpoint_path.")
 @click.option("--resume/--no-resume", default=True, show_default=True,
               help="Resume from checkpoint when available.")
+@click.option("--full-auto", is_flag=True, default=False,
+              help="Danger mode: auto-promote accepted configs and skip manual gates.")
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
 def loop(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode: str | None,
          interval_minutes: float | None, cron_expression: str | None, checkpoint_file: str | None,
-         resume: bool, db: str, configs_dir: str, memory_db: str) -> None:
+         resume: bool, full_auto: bool, db: str, configs_dir: str, memory_db: str) -> None:
     """Run the continuous autoresearch loop.
 
     Observes agent health, proposes improvements, evaluates them, and deploys
@@ -1062,6 +1165,8 @@ def loop(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode: st
     if effective_schedule == "cron":
         click.echo(f"  Cron (UTC): {effective_cron}")
     click.echo(f"  Checkpoint: {effective_checkpoint}")
+    if full_auto:
+        click.echo(click.style("  ⚠ FULL AUTO ENABLED (danger mode)", fg="yellow"))
     if start_cycle > 1:
         click.echo(f"  Resuming from cycle {start_cycle}")
     if stop_on_plateau:
@@ -1107,6 +1212,13 @@ def loop(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode: st
                         score = eval_runner.run(config=new_config)
                         deploy_result = deployer.deploy(new_config, _score_to_dict(score))
                         click.echo(f"  Deploy: {deploy_result}")
+                        if full_auto:
+                            promoted = _promote_latest_version(deployer)
+                            if promoted is not None:
+                                click.echo(click.style(
+                                    f"  FULL AUTO: promoted v{promoted:03d} to active",
+                                    fg="yellow",
+                                ))
                         click.echo(f"  Score: {score.composite:.4f}")
                 else:
                     click.echo("  Healthy; skipping optimization.")
@@ -1274,6 +1386,7 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
     # Feature 5: Rich status display
     click.echo(click.style("\nAutoAgent Status", bold=True))
     click.echo("━" * 17)
+    click.echo(click.style(f"  {_soul_line('status')}", fg="cyan"))
 
     config_str = f"v{active:03d}" if active else "none"
     click.echo(f"  Config:     {config_str}")
@@ -1283,10 +1396,13 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
         click.echo(f"  Eval score: {latest.score_after:.4f}")
     else:
         click.echo("  Eval score: n/a")
+    click.echo(f"  Mood:       {_score_mood(latest.score_after if latest else None)}")
 
     safety_str = f"{metrics.safety_violation_rate:.3f}"
     safety_ok = "✓" if metrics.safety_violation_rate == 0.0 else "✗"
     click.echo(f"  Safety:     {safety_str} {safety_ok}")
+    click.echo(f"  Success:    {_bar_chart(metrics.success_rate)}  {metrics.success_rate:.0%}")
+    click.echo(f"  Errors:     {_bar_chart(metrics.error_rate)}  {metrics.error_rate:.0%}")
     click.echo(f"  Cycles run: {len(all_attempts)}")
 
     if buckets:
@@ -1308,6 +1424,11 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
 
     # Loop status
     click.echo("\n  Loop: idle")
+    suggested_actions = ["autoagent optimize --cycles 2", "autoagent logs --limit 10"]
+    if recs:
+        first_runbook = recs[0].split("autoagent runbook apply ")[-1].strip()
+        suggested_actions.insert(0, f"autoagent runbook apply {first_runbook}")
+    _print_next_actions(suggested_actions)
 
 
 # ---------------------------------------------------------------------------
@@ -3165,6 +3286,57 @@ def scorer_test(name: str, trace_id: str, db: str) -> None:
 # autoagent quickstart
 # ---------------------------------------------------------------------------
 
+@cli.command("full-auto")
+@click.option("--cycles", default=5, show_default=True, type=int, help="Optimization cycles to run.")
+@click.option("--max-loop-cycles", default=20, show_default=True, type=int,
+              help="Continuous loop cycles after optimize.")
+@click.option("--yes", "acknowledge", is_flag=True, default=False,
+              help="Acknowledge dangerous mode and skip permission-style gates.")
+@click.pass_context
+def full_auto(ctx: click.Context, cycles: int, max_loop_cycles: int, acknowledge: bool) -> None:
+    """Run optimization + loop in dangerous full-auto mode.
+
+    Similar intent to 'dangerously skip permissions': auto-promotes accepted
+    configs and skips manual promotion/review gates.
+    """
+    if not acknowledge:
+        click.echo(click.style(
+            "Refusing to run full-auto without explicit acknowledgement.\n"
+            "Re-run with: autoagent full-auto --yes",
+            fg="red",
+        ))
+        raise SystemExit(1)
+
+    click.echo(click.style("\n⚠ FULL AUTO MODE ENABLED", fg="yellow", bold=True))
+    click.echo("This mode auto-promotes accepted configs with minimal friction.")
+    _print_cli_plan(
+        "Full-auto plan",
+        [
+            f"Run optimize for {cycles} cycles with --full-auto",
+            f"Run loop for {max_loop_cycles} cycles with --full-auto",
+            "Keep shipping winning configs unless plateau/limits stop it",
+        ],
+    )
+
+    ctx.invoke(optimize, cycles=cycles, mode=None, strategy=None, db=DB_PATH,
+               configs_dir=CONFIGS_DIR, memory_db=MEMORY_DB, full_auto=True, json_output=False)
+    ctx.invoke(
+        loop,
+        max_cycles=max_loop_cycles,
+        stop_on_plateau=True,
+        delay=1.0,
+        schedule_mode=None,
+        interval_minutes=None,
+        cron_expression=None,
+        checkpoint_file=None,
+        resume=True,
+        full_auto=True,
+        db=DB_PATH,
+        configs_dir=CONFIGS_DIR,
+        memory_db=MEMORY_DB,
+    )
+
+
 @cli.command("quickstart")
 @click.option("--agent-name", default="My Agent", show_default=True,
               help="Agent name for AUTOAGENT.md.")
@@ -3183,7 +3355,17 @@ def quickstart(ctx: click.Context, agent_name: str, verbose: bool, target_dir: s
       autoagent quickstart --agent-name "Support Bot" --verbose
     """
     click.echo(click.style("\n✦ AutoAgent Quickstart", fg="cyan", bold=True))
+    click.echo(click.style(f"  {_soul_line('quickstart')}", fg="cyan"))
     click.echo(click.style("  Running the full golden path...\n", fg="white"))
+    _print_cli_plan(
+        "Quickstart plan",
+        [
+            "Initialize project scaffold",
+            "Run baseline evaluation",
+            "Perform optimization cycles",
+            "Summarize wins + recommended next steps",
+        ],
+    )
 
     # Step 1: Init
     click.echo(click.style("━━━ Step 1/4: Initialize project", fg="cyan", bold=True))

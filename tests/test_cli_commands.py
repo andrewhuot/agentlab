@@ -54,7 +54,7 @@ class TestCLIStructure:
     def test_top_level_commands(self, runner):
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
-        for cmd in ["init", "eval", "optimize", "config", "deploy", "loop", "status", "logs", "server"]:
+        for cmd in ["init", "eval", "optimize", "config", "deploy", "loop", "status", "logs", "server", "full-auto"]:
             assert cmd in result.output, f"Missing command: {cmd}"
 
     def test_legacy_run_group_hidden(self, runner):
@@ -222,3 +222,10 @@ class TestDoctorCommand:
         assert result.exit_code == 0
         # autoagent.yaml has use_mock: true, so the warning should appear
         assert "mock provider" in result.output.lower() or "simulated" in result.output.lower()
+
+
+class TestFullAutoCommand:
+    def test_full_auto_requires_ack(self, runner):
+        result = runner.invoke(cli, ["full-auto"])
+        assert result.exit_code != 0
+        assert "--yes" in result.output
