@@ -32,7 +32,9 @@ class CxDeployer:
             CxStudioError: If the deploy API call fails.
         """
         try:
-            result = self._client.deploy_to_environment(ref, environment)
+            # Build environment resource name
+            environment_name = f"{ref.name}/environments/{environment}"
+            result = self._client.deploy_to_environment(environment_name, [])
             return DeployResult(
                 environment=environment,
                 status="deployed",
@@ -75,7 +77,7 @@ class CxDeployer:
             CxStudioError: If the API call to list environments fails.
         """
         try:
-            envs = self._client.list_environments(ref)
+            envs = self._client.list_environments(ref.name)
             return {
                 "agent": ref.name,
                 "environments": [

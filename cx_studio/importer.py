@@ -46,7 +46,7 @@ class CxImporter:
         """
         try:
             # 1. Fetch snapshot from CX API
-            snapshot = self._client.fetch_snapshot(ref)
+            snapshot = self._client.fetch_snapshot(ref.name)
 
             # 2. Map to AutoAgent config dict
             config_dict = self._mapper.to_autoagent(snapshot)

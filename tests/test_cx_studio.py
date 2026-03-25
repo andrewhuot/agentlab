@@ -296,7 +296,9 @@ class TestCxDeployer:
         result = deployer.deploy_to_environment(ref, "staging")
         assert result.environment == "staging"
         assert result.status == "deployed"
-        mock_client.deploy_to_environment.assert_called_once_with(ref, "staging")
+        # Verify client is called with environment_name string and version_configs list
+        expected_env_name = f"{ref.name}/environments/staging"
+        mock_client.deploy_to_environment.assert_called_once_with(expected_env_name, [])
 
     def test_get_deploy_status(self):
         mock_client = MagicMock()
@@ -499,6 +501,120 @@ class TestCxCli:
         assert result.exit_code == 0
         assert "--config" in result.output
         assert "--snapshot" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Client argument type tests (UX-005, UX-006, UX-007)
+# ---------------------------------------------------------------------------
+
+class TestCxClientArgumentTypes:
+    """Tests to verify that string arguments are passed to client methods correctly."""
+
+    def test_importer_passes_string_to_fetch_snapshot(self):
+        """UX-005: Verify importer passes ref.name (string) to client.fetch_snapshot."""
+        snapshot = _make_snapshot()
+        mock_client = MagicMock()
+        mock_client.fetch_snapshot.return_value = snapshot
+
+        importer = CxImporter(mock_client)
+        ref = _make_ref()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            importer.import_agent(ref, output_dir=tmpdir)
+            # Verify client was called with string, not CxAgentRef object
+            mock_client.fetch_snapshot.assert_called_once()
+            call_arg = mock_client.fetch_snapshot.call_args[0][0]
+            assert isinstance(call_arg, str), f"Expected string, got {type(call_arg)}"
+            assert call_arg == ref.name
+
+    def test_exporter_passes_string_and_dict_to_update_agent(self):
+        """UX-006: Verify exporter passes (resource_name: str, updates: dict) to client.update_agent."""
+        snapshot = _make_snapshot()
+        mock_client = MagicMock()
+        mapper = CxMapper()
+        config = mapper.to_autoagent(snapshot)
+        # Modify description to trigger agent update
+        config["description"] = "Updated description"
+
+        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
+            json.dump(snapshot.model_dump(), f)
+            snap_path = f.name
+
+        try:
+            exporter = CxExporter(mock_client)
+            result = exporter.export_agent(config, _make_ref(), snap_path, dry_run=False)
+
+            if mock_client.update_agent.called:
+                # Verify client was called with (str, dict), not (str, CxAgent)
+                call_args = mock_client.update_agent.call_args[0]
+                assert len(call_args) == 2
+                assert isinstance(call_args[0], str), f"Expected string as first arg, got {type(call_args[0])}"
+                assert isinstance(call_args[1], dict), f"Expected dict as second arg, got {type(call_args[1])}"
+        finally:
+            os.unlink(snap_path)
+
+    def test_exporter_passes_string_and_dict_to_update_playbook(self):
+        """UX-006: Verify exporter passes (resource_name: str, updates: dict) to client.update_playbook."""
+        snapshot = _make_snapshot()
+        mock_client = MagicMock()
+        mapper = CxMapper()
+        config = mapper.to_autoagent(snapshot)
+        # Modify prompt to trigger playbook update
+        config["prompts"]["root"] = "Updated prompt instructions"
+
+        with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
+            json.dump(snapshot.model_dump(), f)
+            snap_path = f.name
+
+        try:
+            exporter = CxExporter(mock_client)
+            result = exporter.export_agent(config, _make_ref(), snap_path, dry_run=False)
+
+            if mock_client.update_playbook.called:
+                # Verify client was called with (str, dict), not (str, CxPlaybook)
+                call_args = mock_client.update_playbook.call_args[0]
+                assert len(call_args) == 2
+                assert isinstance(call_args[0], str), f"Expected string as first arg, got {type(call_args[0])}"
+                assert isinstance(call_args[1], dict), f"Expected dict as second arg, got {type(call_args[1])}"
+        finally:
+            os.unlink(snap_path)
+
+    def test_deployer_passes_string_to_deploy_to_environment(self):
+        """UX-007: Verify deployer passes environment_name string to client.deploy_to_environment."""
+        mock_client = MagicMock()
+        mock_client.deploy_to_environment.return_value = {"version": "v1"}
+
+        deployer = CxDeployer(mock_client)
+        ref = _make_ref()
+
+        deployer.deploy_to_environment(ref, "production")
+
+        # Verify client was called with string environment_name and version_configs list
+        mock_client.deploy_to_environment.assert_called_once()
+        call_args = mock_client.deploy_to_environment.call_args[0]
+        assert len(call_args) == 2
+        assert isinstance(call_args[0], str), f"Expected string as first arg, got {type(call_args[0])}"
+        assert isinstance(call_args[1], list), f"Expected list as second arg, got {type(call_args[1])}"
+        # Verify environment name is fully qualified
+        assert call_args[0].endswith("/environments/production")
+
+    def test_deployer_passes_string_to_list_environments(self):
+        """UX-007: Verify deployer passes agent_name string to client.list_environments."""
+        mock_client = MagicMock()
+        mock_client.list_environments.return_value = [
+            CxEnvironment(name="env/prod", display_name="production", description="Prod"),
+        ]
+
+        deployer = CxDeployer(mock_client)
+        ref = _make_ref()
+
+        deployer.get_deploy_status(ref)
+
+        # Verify client was called with string, not CxAgentRef object
+        mock_client.list_environments.assert_called_once()
+        call_arg = mock_client.list_environments.call_args[0][0]
+        assert isinstance(call_arg, str), f"Expected string, got {type(call_arg)}"
+        assert call_arg == ref.name
 
 
 # ---------------------------------------------------------------------------

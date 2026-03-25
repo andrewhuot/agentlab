@@ -66,7 +66,12 @@ class CxExporter:
 
             # Update agent resource if generative settings or description changed
             if any(c["resource"] == "agent" for c in changes):
-                self._client.update_agent(ref, updated_snapshot.agent)
+                agent_updates = {
+                    "displayName": updated_snapshot.agent.display_name,
+                    "description": updated_snapshot.agent.description,
+                    "generativeSettings": updated_snapshot.agent.generative_settings,
+                }
+                self._client.update_agent(updated_snapshot.agent.name, agent_updates)
                 resources_updated += 1
 
             # Update only playbooks whose instructions changed
@@ -76,7 +81,13 @@ class CxExporter:
                     None,
                 )
                 if orig is not None and orig.instructions != playbook.instructions:
-                    self._client.update_playbook(ref, playbook)
+                    playbook_updates = {
+                        "displayName": playbook.display_name,
+                        "instruction": {"steps": playbook.instructions},
+                        "steps": playbook.steps,
+                        "examples": playbook.examples,
+                    }
+                    self._client.update_playbook(playbook.name, playbook_updates)
                     resources_updated += 1
 
             return ExportResult(
