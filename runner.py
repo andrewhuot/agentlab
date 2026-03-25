@@ -2294,19 +2294,30 @@ def server(host: str, port: int, reload: bool) -> None:
 # ---------------------------------------------------------------------------
 
 @cli.command("mcp-server")
-@click.option("--port", default=None, type=int, help="HTTP/SSE port (default: stdio mode).")
+@click.option("--port", default=None, type=int, help="HTTP/SSE port (NOT YET IMPLEMENTED — stdio mode only).")
 def mcp_server_cmd(port: int | None) -> None:
     """Start MCP server for AI coding tool integration.
 
-    By default runs in stdio mode (for Claude Code, Codex, etc.).
-    Use --port for HTTP/SSE mode.
+    Runs in stdio mode for Claude Code, Cursor, and other MCP-compatible tools.
+    HTTP/SSE mode is not yet implemented.
+
+    Setup for Claude Code:
+      Add to ~/.claude/mcp.json:
+      {
+        "mcpServers": {
+          "autoagent": {
+            "command": "autoagent",
+            "args": ["mcp-server"]
+          }
+        }
+      }
 
     Examples:
-      autoagent mcp-server
-      autoagent mcp-server --port 8081
+      autoagent mcp-server                  # Stdio mode (default)
+      autoagent mcp-server --port 8081      # HTTP/SSE mode (not yet implemented)
     """
     if port is not None:
-        click.echo(f"HTTP/SSE mode on port {port} is not yet implemented. Use stdio mode.")
+        click.echo(f"HTTP/SSE mode on port {port} is not yet implemented. Use stdio mode (no --port flag).")
         return
 
     from mcp_server.server import run_stdio

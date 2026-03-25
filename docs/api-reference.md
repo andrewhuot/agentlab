@@ -1,12 +1,14 @@
 # API Reference
 
-All endpoints are served under `/api/`. The server runs on `http://localhost:8000` by default.
+Complete reference for all 123 API endpoints. All endpoints are served under `/api/`. The server runs on `http://localhost:8000` by default.
 
 Start the server:
 
 ```bash
 autoagent server
 ```
+
+Interactive docs: `http://localhost:8000/docs` (Swagger) or `http://localhost:8000/redoc` (ReDoc).
 
 ---
 
@@ -423,3 +425,232 @@ GET /api/registry/search?q=order&type=skills
   }
 }
 ```
+
+---
+
+## Change Review
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/changes` | List all change cards |
+| `GET` | `/api/changes/{card_id}` | Get a specific change card |
+| `POST` | `/api/changes/{card_id}/apply` | Apply a change card |
+| `POST` | `/api/changes/{card_id}/reject` | Reject a change card |
+| `PATCH` | `/api/changes/{card_id}/hunks` | Update hunks in a change card |
+
+---
+
+## Runbooks
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/runbooks` | List available runbooks |
+| `GET` | `/api/runbooks/{name}` | Get a specific runbook |
+| `POST` | `/api/runbooks/{name}/apply` | Apply a runbook |
+| `POST` | `/api/runbooks` | Create a new runbook |
+
+---
+
+## Memory
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/memory` | Get project memory (AUTOAGENT.md) |
+| `POST` | `/api/memory` | Add to project memory |
+| `PUT` | `/api/memory` | Update project memory |
+
+---
+
+## Skills
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/skills` | List executable skills |
+| `GET` | `/api/skills/{name}` | Get a specific skill |
+| `POST` | `/api/skills/{name}/apply` | Apply a skill |
+| `POST` | `/api/skills/recommend` | Get skill recommendations |
+| `POST` | `/api/skills/install` | Install a skill from file |
+| `POST` | `/api/skills/{name}/export` | Export a skill |
+| `GET` | `/api/skills/stats` | Get skill usage statistics |
+| `POST` | `/api/skills/learn` | Learn skills from patterns |
+
+---
+
+## CX Integration
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/cx/agents` | List CX agents in a project |
+| `POST` | `/api/cx/import` | Import a CX agent |
+| `POST` | `/api/cx/export` | Export config to CX |
+| `POST` | `/api/cx/deploy` | Deploy to CX environment |
+| `POST` | `/api/cx/widget` | Generate chat widget |
+| `GET` | `/api/cx/status` | Get CX agent status |
+
+### POST `/api/cx/import`
+
+```json
+// Request
+{
+  "project": "my-project",
+  "location": "us-central1",
+  "agent_id": "abc123",
+  "output_dir": "./output",
+  "include_test_cases": true
+}
+
+// Response (201 Created)
+{
+  "config_path": "./output/agent_config.yaml",
+  "eval_path": "./output/agent_eval_cases.json",
+  "snapshot_path": "./output/agent_snapshot.json",
+  "agent_name": "Customer Support Bot",
+  "surfaces_mapped": ["prompts", "tools", "routing"],
+  "test_cases_imported": 42
+}
+```
+
+---
+
+## ADK Integration
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/adk/import` | Import an ADK agent |
+| `POST` | `/api/adk/export` | Export to ADK format |
+| `POST` | `/api/adk/deploy` | Deploy an ADK agent |
+| `GET` | `/api/adk/status` | Get ADK agent status |
+| `GET` | `/api/adk/diff` | Diff ADK agent against snapshot |
+
+### POST `/api/adk/import`
+
+```json
+// Request
+{
+  "path": "./agent",
+  "output": "./output/agent_config.yaml"
+}
+
+// Response (201 Created)
+{
+  "config_path": "./output/agent_config.yaml",
+  "agent_name": "ADK Agent",
+  "surfaces_imported": ["prompts", "tools"]
+}
+```
+
+---
+
+## Agent Skills
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/agent-skills/gaps` | Analyze skill gaps |
+| `POST` | `/api/agent-skills/analyze` | Analyze agent capabilities |
+| `POST` | `/api/agent-skills/generate` | Generate new skills |
+| `GET` | `/api/agent-skills` | List agent skills |
+| `GET` | `/api/agent-skills/{skill_id}` | Get a specific agent skill |
+
+### GET `/api/agent-skills/gaps`
+
+```json
+// Response
+{
+  "gaps": [
+    {
+      "category": "order_management",
+      "missing_skills": ["order_cancellation", "order_modification"],
+      "impact": "high",
+      "recommendation": "Add cancellation flow"
+    }
+  ]
+}
+```
+
+---
+
+## Natural Language
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/edit` | Apply natural language edits to config |
+| `POST` | `/api/diagnose` | Run failure diagnosis |
+| `POST` | `/api/diagnose/chat` | Chat-based diagnosis |
+
+### POST `/api/edit`
+
+```json
+// Request
+{
+  "description": "Make the agent more empathetic in billing conversations",
+  "dry_run": false
+}
+
+// Response
+{
+  "changes": [
+    {
+      "path": "instruction",
+      "old": "Handle billing queries efficiently",
+      "new": "Handle billing queries with empathy and patience. Acknowledge customer concerns."
+    }
+  ],
+  "applied": true,
+  "config_version": 42
+}
+```
+
+---
+
+## Tasks
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/tasks/{task_id}` | Get task status |
+
+Used to poll status of long-running operations like eval runs and optimization cycles.
+
+```json
+// Response
+{
+  "task_id": "task_abc123",
+  "status": "running",
+  "progress": 0.65,
+  "result": null
+}
+```
+
+---
+
+## WebSocket
+
+| Path | Description |
+|------|-------------|
+| `WS` `/ws` | WebSocket connection for real-time updates |
+
+Message types:
+- `eval_complete` - Eval run finished
+- `optimize_complete` - Optimization cycle finished
+- `loop_cycle` - Loop cycle update
+- `deploy_complete` - Deployment finished
+
+---
+
+## Summary
+
+Total API surface: **123 endpoints** across 29 route modules.
+
+Primary categories:
+- Eval & optimization (10 endpoints)
+- Config & deploy (7 endpoints)
+- Observability (traces, health, events) (18 endpoints)
+- Control & gates (6 endpoints)
+- Advanced features (judges, context, autofix) (15 endpoints)
+- Registry & skills (12 endpoints)
+- Change management (9 endpoints)
+- Integrations (CX, ADK) (11 endpoints)
+- Natural language (3 endpoints)
+- Core infrastructure (32 endpoints)
+
+All endpoints return JSON. Error responses follow standard HTTP status codes with structured error bodies.
+

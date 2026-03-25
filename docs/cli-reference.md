@@ -1,6 +1,8 @@
 # CLI Reference
 
-Complete reference for every `autoagent` command. All commands support `--help` for inline documentation.
+Complete reference for all 102 `autoagent` commands. All commands support `--help` for inline documentation.
+
+Quick index: `init`, `server`, `status`, `doctor`, `logs`, `eval`, `optimize`, `config`, `deploy`, `loop`, `pause`, `resume`, `pin`, `unpin`, `reject`, `autofix`, `judges`, `context`, `registry`, `trace`, `scorer`, `quickstart`, `demo`, `edit`, `explain`, `diagnose`, `replay`, `review`, `runbook`, `memory`, `skill`, `cx`, `adk`, `mcp-server`.
 
 ## Core Commands
 
@@ -460,3 +462,404 @@ Test a scorer against a trace.
 ```bash
 autoagent scorer test <name> --trace <trace_id> [--db PATH]
 ```
+
+---
+
+## Quickstart & Demo
+
+### `autoagent quickstart`
+
+Run the full golden path: init, seed, eval, optimize, deploy.
+
+```bash
+autoagent quickstart [--agent-name NAME] [--verbose] [--target-dir DIR] [--auto-open]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--agent-name` | `AutoAgent` | Name for the agent |
+| `--verbose` | off | Show detailed output |
+| `--target-dir` | `.` | Target directory |
+| `--auto-open` | off | Auto-open web console after completion |
+
+### `autoagent demo`
+
+Demo commands for presentations.
+
+Subcommands:
+- `autoagent demo quickstart` - Quick demo setup
+- `autoagent demo vp` - VP-level 5-minute demo with synthetic data
+
+### `autoagent demo vp`
+
+Run the VP demo with a broken agent scenario.
+
+```bash
+autoagent demo vp [--agent-name NAME] [--company NAME] [--no-pause] [--web]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--agent-name` | `Support Bot` | Agent name |
+| `--company` | `Your Company` | Company name for the demo |
+| `--no-pause` | off | Skip dramatic pauses |
+| `--web` | off | Auto-open web console after demo |
+
+---
+
+## Natural Language Commands
+
+### `autoagent edit`
+
+Apply natural language edits to agent config.
+
+```bash
+autoagent edit [DESCRIPTION] [--interactive] [--dry-run] [--json]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--interactive` | Interactive mode with confirmation prompts |
+| `--dry-run` | Show what would change without applying |
+| `--json` | Output results as JSON |
+
+### `autoagent explain`
+
+Generate a plain-English summary of the agent's current state.
+
+```bash
+autoagent explain [--verbose] [--json]
+```
+
+### `autoagent diagnose`
+
+Run failure diagnosis and optionally fix issues interactively.
+
+```bash
+autoagent diagnose [--interactive] [--json]
+```
+
+### `autoagent replay`
+
+Show optimization history like git log --oneline.
+
+```bash
+autoagent replay [--limit N]
+```
+
+---
+
+## Change Review
+
+### `autoagent review list`
+
+List pending change cards from the optimizer.
+
+```bash
+autoagent review list [--limit N]
+```
+
+### `autoagent review show`
+
+Show details of a specific change card.
+
+```bash
+autoagent review show <card_id>
+```
+
+### `autoagent review apply`
+
+Apply a change card.
+
+```bash
+autoagent review apply <card_id>
+```
+
+### `autoagent review reject`
+
+Reject a change card with a reason.
+
+```bash
+autoagent review reject <card_id> --reason "reason text"
+```
+
+### `autoagent review export`
+
+Export a change card to a file.
+
+```bash
+autoagent review export <card_id>
+```
+
+---
+
+## Runbooks
+
+### `autoagent runbook list`
+
+List available runbooks.
+
+```bash
+autoagent runbook list
+```
+
+### `autoagent runbook show`
+
+Show details of a specific runbook.
+
+```bash
+autoagent runbook show <name>
+```
+
+### `autoagent runbook apply`
+
+Apply a runbook to the agent.
+
+```bash
+autoagent runbook apply <name>
+```
+
+### `autoagent runbook create`
+
+Create a new runbook from a file.
+
+```bash
+autoagent runbook create <name> --file <path>
+```
+
+---
+
+## Memory
+
+### `autoagent memory show`
+
+Display the project memory (AUTOAGENT.md).
+
+```bash
+autoagent memory show
+```
+
+### `autoagent memory add`
+
+Add a note to project memory.
+
+```bash
+autoagent memory add <note> [--section SECTION]
+```
+
+---
+
+## Executable Skills
+
+### `autoagent skill list`
+
+List available executable skills.
+
+```bash
+autoagent skill list [--category CAT] [--platform PLATFORM] [--json]
+```
+
+### `autoagent skill show`
+
+Show details of a specific skill.
+
+```bash
+autoagent skill show <name> [--version N]
+```
+
+### `autoagent skill recommend`
+
+Get skill recommendations based on failure patterns.
+
+```bash
+autoagent skill recommend [--json]
+```
+
+### `autoagent skill apply`
+
+Apply a skill to the agent.
+
+```bash
+autoagent skill apply <name>
+```
+
+### `autoagent skill install`
+
+Install a skill from a file.
+
+```bash
+autoagent skill install <path>
+```
+
+### `autoagent skill export`
+
+Export a skill to a file.
+
+```bash
+autoagent skill export <name> [--output-path PATH]
+```
+
+### `autoagent skill stats`
+
+Show skill usage statistics.
+
+```bash
+autoagent skill stats [--top N]
+```
+
+### `autoagent skill learn`
+
+Learn new skills from recent optimization patterns.
+
+```bash
+autoagent skill learn [--limit N]
+```
+
+---
+
+## CX Integration
+
+### `autoagent cx list`
+
+List CX agents in a project.
+
+```bash
+autoagent cx list --project PROJECT --location LOCATION [--credentials PATH]
+```
+
+### `autoagent cx import`
+
+Import a CX agent into AutoAgent format.
+
+```bash
+autoagent cx import --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  --output-dir DIR [--credentials PATH] [--include-test-cases]
+```
+
+### `autoagent cx export`
+
+Export optimized config back to CX Agent Studio.
+
+```bash
+autoagent cx export --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  --config-path CONFIG --snapshot-path SNAPSHOT [--credentials PATH] [--dry-run]
+```
+
+### `autoagent cx deploy`
+
+Deploy agent to a CX environment.
+
+```bash
+autoagent cx deploy --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  --environment ENV [--credentials PATH]
+```
+
+### `autoagent cx status`
+
+Show CX agent deployment status.
+
+```bash
+autoagent cx status --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  [--credentials PATH]
+```
+
+### `autoagent cx widget`
+
+Generate a chat-messenger web widget HTML file.
+
+```bash
+autoagent cx widget --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  [--title TITLE] [--color COLOR] [--output-path PATH]
+```
+
+---
+
+## ADK Integration
+
+### `autoagent adk import`
+
+Import an Agent Development Kit agent.
+
+```bash
+autoagent adk import --path PATH --output OUTPUT
+```
+
+### `autoagent adk export`
+
+Export to ADK format.
+
+```bash
+autoagent adk export --path PATH [--output OUTPUT] --snapshot SNAPSHOT [--dry-run]
+```
+
+### `autoagent adk deploy`
+
+Deploy an ADK agent.
+
+```bash
+autoagent adk deploy --path PATH --target TARGET --project PROJECT --region REGION
+```
+
+### `autoagent adk status`
+
+Show ADK agent status.
+
+```bash
+autoagent adk status --path PATH [--json]
+```
+
+### `autoagent adk diff`
+
+Diff an ADK agent against a snapshot.
+
+```bash
+autoagent adk diff --path PATH --snapshot SNAPSHOT
+```
+
+---
+
+## MCP Server
+
+### `autoagent mcp-server`
+
+Start MCP server for AI coding tool integration.
+
+```bash
+autoagent mcp-server [--port PORT]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--port` | HTTP/SSE port (default: stdio mode). Note: HTTP/SSE mode not yet implemented. |
+
+By default runs in stdio mode for Claude Code, Codex, and other AI coding assistants that support the Model Context Protocol.
+
+**Stdio mode only:** The MCP server currently only supports stdio transport. HTTP/SSE mode will be added in a future release.
+
+**Example usage with Claude Code:**
+
+Add to your MCP config file:
+
+```json
+{
+  "mcpServers": {
+    "autoagent": {
+      "command": "autoagent",
+      "args": ["mcp-server"]
+    }
+  }
+}
+```
+
+---
+
+## Config Migration
+
+### `autoagent config migrate`
+
+Migrate old config format to new schema.
+
+```bash
+autoagent config migrate <input_file> [--output FILE]
+```
+

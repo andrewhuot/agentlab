@@ -752,35 +752,54 @@ SQLite-backed per-cycle and daily budget tracking. The loop halts when spend lim
 
 ## CLI Reference
 
+102 commands across 34 top-level groups.
+
 ```
 autoagent <group> <command> [options]
 ```
 
-| Group | Commands |
-|-------|----------|
-| `eval` | `run`, `history`, `compare`, `export` |
-| `optimize` | `run`, `status`, `history` |
-| `loop` | `start`, `stop`, `status`, `--max-cycles`, `--stop-on-plateau` |
-| `autofix` | `analyze`, `propose`, `apply`, `status` |
-| `judges` | `list`, `create`, `calibrate`, `drift-check` |
-| `context` | `analyze`, `simulate`, `report` |
-| `registry` | `list`, `add`, `update`, `delete`, `import`, `export`, `diff` |
-| `trace` | `list`, `grade`, `blame-map` |
-| `scorer` | `create`, `test`, `list`, `refine` |
-| `config` | `show`, `diff`, `promote`, `rollback` |
-| `deploy` | `canary`, `promote`, `rollback`, `status` |
-| `server` | Start the web console and API |
-| `status` | Current loop and system status |
-| `logs` | Tail structured logs |
-| `pause` / `resume` | Human control over the loop |
-| `pin` / `unpin` | Lock/unlock surfaces from mutation |
-| `reject` | Reject and rollback an experiment |
+| Group | Commands | Purpose |
+|-------|----------|---------|
+| `init` | - | Scaffold new project |
+| `quickstart` | - | Run full golden path |
+| `demo` | `quickstart`, `vp` | Presentation demos |
+| `server` | - | Start API + web console |
+| `status` | - | System health and metrics |
+| `doctor` | - | Configuration diagnostics |
+| `logs` | - | View structured logs |
+| `eval` | `run`, `results`, `list` | Evaluation suite |
+| `optimize` | - | Run optimization cycles |
+| `config` | `list`, `show`, `diff`, `migrate` | Config management |
+| `deploy` | - | Deploy with canary |
+| `loop` | - | Continuous optimization |
+| `pause` / `resume` | - | Human control |
+| `pin` / `unpin` | - | Lock config surfaces |
+| `reject` | - | Rollback experiment |
+| `autofix` | `suggest`, `apply`, `history` | AI-powered fixes |
+| `judges` | `list`, `calibrate`, `drift` | Judge operations |
+| `context` | `analyze`, `simulate`, `report` | Context engineering |
+| `registry` | `list`, `show`, `add`, `diff`, `import` | Modular registry |
+| `trace` | `grade`, `blame`, `graph` | Trace analysis |
+| `scorer` | `create`, `list`, `show`, `refine`, `test` | NL scorer studio |
+| `review` | `list`, `show`, `apply`, `reject`, `export` | Change review |
+| `runbook` | `list`, `show`, `apply`, `create` | Runbook management |
+| `memory` | `show`, `add` | Project memory |
+| `skill` | `list`, `show`, `recommend`, `apply`, `install`, `export`, `stats`, `learn` | Executable skills |
+| `edit` | - | Natural language config edits |
+| `explain` | - | Plain-English agent summary |
+| `diagnose` | - | Failure diagnosis |
+| `replay` | - | Optimization history |
+| `cx` | `list`, `import`, `export`, `deploy`, `status`, `widget` | CX Agent Studio integration |
+| `adk` | `import`, `export`, `deploy`, `status`, `diff` | Agent Development Kit integration |
+| `mcp-server` | - | Model Context Protocol server |
+
+See [docs/cli-reference.md](docs/cli-reference.md) for full details.
 
 ---
 
 ## Web Console
 
-19 pages served at `http://localhost:8000`:
+29 pages served at `http://localhost:8000`:
 
 | Page | Purpose |
 |------|---------|
@@ -788,6 +807,7 @@ autoagent <group> <command> [options]
 | Eval Runs | Sortable table of all evaluations |
 | Eval Detail | Per-case results with pass/fail breakdown |
 | Optimize | Trigger optimization, view attempt history |
+| Live Optimize | Real-time optimization with streaming updates |
 | Experiments | Reviewable experiment cards with hypothesis and diff |
 | Opportunities | Ranked optimization opportunity queue |
 | Traces | ADK event traces and spans |
@@ -802,13 +822,22 @@ autoagent <group> <command> [options]
 | Context Workbench | Context analysis, compaction simulation |
 | Registry | Skills, policies, tools, handoff schemas |
 | Scorer Studio | NL scorer creation and testing |
+| Change Review | Review and approve proposed config changes |
+| Runbooks | Curated bundles of skills, policies, and tools |
+| Skills | Executable optimization strategies |
+| Project Memory | Persistent project context (AUTOAGENT.md) |
+| CX Import | Import CX Agent Studio agents |
+| CX Deploy | Deploy to CX environments |
+| ADK Import | Import Agent Development Kit agents |
+| ADK Deploy | Deploy ADK agents |
+| Agent Skills | Agent skill generation and gap analysis |
 | Settings | Runtime configuration |
 
 ---
 
 ## API
 
-75 endpoints across 18 route modules. Representative endpoints:
+123 endpoints across 29 route modules. Representative endpoints:
 
 ```
 GET    /api/health                        Health check
@@ -828,7 +857,42 @@ GET    /api/loop/status                   Current loop state
 POST   /api/control/pause                 Pause the loop
 ```
 
-Full route modules: `health`, `eval`, `optimize`, `experiments`, `opportunities`, `deploy`, `config`, `control`, `traces`, `conversations`, `events`, `loop`, `autofix`, `judges`, `context`, `registry`, `scorers`.
+Full route modules: `health`, `eval`, `optimize`, `optimize_stream`, `quickfix`, `experiments`, `opportunities`, `deploy`, `config`, `control`, `traces`, `conversations`, `events`, `loop`, `autofix`, `judges`, `context`, `registry`, `scorers`, `changes`, `runbooks`, `memory`, `cx_studio`, `adk`, `skills`, `agent_skills`, `edit`, `diagnose`.
+
+---
+
+## MCP Integration
+
+AutoAgent implements the Model Context Protocol for integration with AI coding assistants.
+
+**Start the MCP server:**
+
+```bash
+autoagent mcp-server
+```
+
+**Configure Claude Code** (add to `~/.claude/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "autoagent": {
+      "command": "autoagent",
+      "args": ["mcp-server"]
+    }
+  }
+}
+```
+
+**Current support:**
+- Stdio transport (for Claude Code, Cursor, etc.)
+- Tools: `status`, `eval_run`, `optimize`, `config_list`, `config_show`, `config_diff`, `deploy`, `conversations_list`, `trace_grade`, `memory_show`
+- JSON-RPC 2.0 protocol
+
+**Limitations:**
+- Stdio mode only (HTTP/SSE planned for future release)
+
+See [docs/mcp-integration.md](docs/mcp-integration.md) for full setup guide and tool reference.
 
 ---
 
@@ -921,7 +985,7 @@ Configure multiple models in `autoagent.yaml`. The optimizer uses them for judge
 
 ```
 agent/          Agent framework, config, tools, specialists
-api/            FastAPI server, 75 endpoints across 18 route modules
+api/            FastAPI server, 123 endpoints across 29 route modules
 context/        Context Engineering Workbench (analyzer, simulator, metrics)
 control/        Governance wrapper for promotion decisions
 core/           10 first-class domain objects
@@ -934,7 +998,7 @@ logger/         Structured logging
 observer/       Traces, anomaly detection, failure clustering, blame map, trace grading
 optimizer/      Loop, search, mutations, bandit, Pareto, cost tracker, prompt_opt/
 registry/       Modular registry (skills, policies, tool contracts, handoff schemas)
-web/            React console, 19 pages, 29 components
+web/            React console, 29 pages, TypeScript + React
 ```
 
 ---

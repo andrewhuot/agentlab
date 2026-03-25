@@ -10,23 +10,45 @@ autoagent server
 
 ## Route Map
 
+All 29 pages in the web console:
+
 | Page | Route | Primary job |
 |---|---|---|
 | Dashboard | `/` | System health snapshot and recent optimization activity |
 | Eval Runs | `/evals` | Start eval runs and compare run-level outcomes |
 | Eval Detail | `/evals/:id` | Investigate one run at per-case granularity |
 | Optimize | `/optimize` | Trigger optimization cycles and inspect gate outcomes |
+| Live Optimize | `/live-optimize` | Real-time optimization with streaming updates |
 | Configs | `/configs` | Browse versioned configs, inspect YAML, diff versions |
 | Conversations | `/conversations` | Explore user conversations, filters, and tool traces |
 | Deploy | `/deploy` | Manage active/canary versions, rollback, and history |
 | Loop Monitor | `/loop` | Run/stop continuous loop and watch cycle-by-cycle progress |
+| Opportunities | `/opportunities` | Optimization opportunities from failure analysis |
+| Experiments | `/experiments` | Experiment tracking and A/B test results |
+| Traces | `/traces` | Structured trace events and span analysis |
+| Event Log | `/events` | Real-time event stream from optimization loop |
+| AutoFix | `/autofix` | Reviewable fix proposals from failure patterns |
+| JudgeOps | `/judge-ops` | Judge versioning, calibration, and drift monitoring |
+| Context Workbench | `/context` | Context window analysis and compaction strategies |
+| Change Review | `/changes` | Review and approve proposed config changes |
+| Runbooks | `/runbooks` | Curated bundles of skills, policies, and tools |
+| Skills | `/skills` | Executable optimization strategies for the proposer |
+| Project Memory | `/memory` | Persistent project context (AUTOAGENT.md) |
+| Registry | `/registry` | Modular registry of skills, policies, tools, handoffs |
+| Blame Map | `/blame` | Failure clustering and root cause attribution |
+| Scorer Studio | `/scorer-studio` | Create and refine eval scorers from natural language |
+| CX Import | `/cx/import` | Import CX Agent Studio agents |
+| CX Deploy | `/cx/deploy` | Deploy to CX environments |
+| ADK Import | `/adk/import` | Import Agent Development Kit agents |
+| ADK Deploy | `/adk/deploy` | Deploy ADK agents |
+| Agent Skills | `/agent-skills` | Agent skill generation and gap analysis |
 | Settings | `/settings` | Operator shortcuts and runtime path reference |
 
 ## Global UX
 
 ### Layout and Navigation
 
-- Left sidebar includes all 9 pages and highlights the active route.
+- Left sidebar includes all 29 pages and highlights the active route.
 - Sidebar collapses into a mobile drawer on smaller screens.
 - Header includes page title plus breadcrumbs:
   - Example: `Eval Runs / Run <id>` on `/evals/:id`.

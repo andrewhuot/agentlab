@@ -1,11 +1,18 @@
 # CX Agent Studio Integration Guide
 
-This guide describes a practical path to integrate AutoAgent VNextCC with Google Cloud CX Agent Studio (Dialogflow CX / CCAI).
+This guide describes how to use AutoAgent VNextCC with Google Cloud CX Agent Studio (Dialogflow CX / CCAI).
 
 Current state:
-- AutoAgent core loop is implemented for local config/version control.
-- A native CX adapter is **not** implemented in this repository yet.
-- This document defines the recommended architecture and rollout plan for customer deployments.
+- Full CX integration is **implemented and functional**
+- Import CX agents into AutoAgent format
+- Export optimized configs back to CX
+- Deploy directly to CX environments
+- Generate chat widgets for CX agents
+
+Limitations:
+- No automatic conversation sync from CX (manual conversation import required)
+- Limited bidirectional sync (CX UI edits won't auto-merge with AutoAgent changes)
+- HTTP/SSE mode not yet implemented (stdio mode only for some features)
 
 ## Who This Is For
 
@@ -195,16 +202,33 @@ Capture these dimensions for each candidate:
 - fallback/escalation rate
 - route-level failure concentration
 
-## Example Future CLI (proposed)
+## Current CLI Commands
 
-These commands are examples for a future integration package, not current built-ins:
+The following CX integration commands are available now:
 
 ```bash
-autoagent cx connect --project-id P --location L --agent-id A
-autoagent cx sync conversations --since 2026-03-01T00:00:00Z
-autoagent cx propose --window 500
-autoagent cx apply --proposal-id prop_123 --strategy canary
-autoagent cx rollback --deployment-id dep_456
+# List all CX agents in a project
+autoagent cx list --project PROJECT --location LOCATION [--credentials PATH]
+
+# Import a CX agent into AutoAgent format
+autoagent cx import --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  --output-dir DIR [--credentials PATH] [--include-test-cases]
+
+# Export optimized config back to CX
+autoagent cx export --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  --config-path CONFIG --snapshot-path SNAPSHOT [--credentials PATH] [--dry-run]
+
+# Deploy to a CX environment
+autoagent cx deploy --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  --environment ENV [--credentials PATH]
+
+# Check CX agent status
+autoagent cx status --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  [--credentials PATH]
+
+# Generate a chat widget for a CX agent
+autoagent cx widget --project PROJECT --location LOCATION --agent-id AGENT_ID \
+  [--title TITLE] [--color COLOR] [--output-path PATH]
 ```
 
 ## Non-Goals for Initial Release
