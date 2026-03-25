@@ -43,7 +43,7 @@ async def optimize_stream(
 
         for cycle in range(1, cycles + 1):
             # Event 1: cycle_start
-            yield f"event: cycle_start\ndata: {json.dumps({'cycle': cycle, 'total': cycles})}\n\n"
+            yield f"event: cycle_start\ndata: {json.dumps({'cycle': cycle, 'total': cycles, 'source': 'simulated'})}\n\n"
             await asyncio.sleep(0.1)
 
             # Event 2: diagnosis
@@ -56,6 +56,7 @@ async def optimize_stream(
                 },
                 'dominant': 'routing_error',
                 'total_failures': 40,
+                'source': 'simulated',
             }
             yield f"event: diagnosis\ndata: {json.dumps(diagnosis_result)}\n\n"
             await asyncio.sleep(0.5)
@@ -66,16 +67,19 @@ async def optimize_stream(
                     'change_description': 'Enhance routing rules with semantic disambiguation patterns',
                     'config_section': 'router.disambiguation_strategy',
                     'reasoning': 'Failures show ambiguous intent classification; adding semantic patterns should improve routing accuracy by 8-12%',
+                    'source': 'simulated',
                 },
                 {
                     'change_description': 'Tighten safety guardrails for PII handling',
                     'config_section': 'safety.pii_detection',
                     'reasoning': 'Safety violations concentrated in personal data scenarios; stricter guardrails will reduce violations by 40%',
+                    'source': 'simulated',
                 },
                 {
                     'change_description': 'Add few-shot examples for edge cases',
                     'config_section': 'prompts.few_shot_examples',
                     'reasoning': 'Quality issues stem from unfamiliar user patterns; targeted examples should boost coverage',
+                    'source': 'simulated',
                 },
             ]
             proposal_result = proposals[(cycle - 1) % len(proposals)]
@@ -91,6 +95,7 @@ async def optimize_stream(
                 'score_before': round(score_before, 4),
                 'score_after': round(score_after, 4),
                 'improvement': round(improvement, 4),
+                'source': 'simulated',
             }
             yield f"event: evaluation\ndata: {json.dumps(eval_result)}\n\n"
             await asyncio.sleep(0.5)
@@ -101,6 +106,7 @@ async def optimize_stream(
                 'accepted': accepted,
                 'p_value': 0.02 if accepted else 0.15,
                 'effect_size': round(improvement / 0.02, 2) if accepted else 0.5,
+                'source': 'simulated',
             }
             yield f"event: decision\ndata: {json.dumps(decision_result)}\n\n"
             await asyncio.sleep(0.5)
@@ -116,6 +122,7 @@ async def optimize_stream(
                 'change_description': proposal_result['change_description'],
                 'score_delta': round(score_after - score_before, 4),
                 'accepted': accepted,
+                'source': 'simulated',
             }
             yield f"event: cycle_complete\ndata: {json.dumps(cycle_complete_result)}\n\n"
             await asyncio.sleep(0.3)
@@ -126,6 +133,7 @@ async def optimize_stream(
             'baseline': round(baseline_score, 4),
             'final': round(current_score, 4),
             'improvement': round(current_score - baseline_score, 4),
+            'source': 'simulated',
         }
         yield f"event: optimization_complete\ndata: {json.dumps(final_result)}\n\n"
 

@@ -46,7 +46,7 @@ async def quickfix(request: Request, body: QuickfixRequest):
     # 3. Save as experiment
     # 4. Run 1 optimization cycle targeting those surfaces
     # 5. Return actual results
-    
+
     # Mock response for UI integration
     return {
         "success": True,
@@ -54,4 +54,6 @@ async def quickfix(request: Request, body: QuickfixRequest):
         "score_before": 0.72,
         "score_after": 0.78,
         "improvement": 0.06,
+        "source": "mock",
+        "warning": "This is a mock response. Full implementation pending.",
     }

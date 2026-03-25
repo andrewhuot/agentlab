@@ -27,7 +27,7 @@ async def get_opportunity_count(request: Request) -> dict:
     """Return the count of open opportunities."""
     queue = getattr(request.app.state, "opportunity_queue", None)
     if queue is None:
-        return {"open": 0}
+        return {"open": 0, "message": "Opportunity queue not configured"}
     return {"open": queue.count_open()}
 
 
@@ -40,7 +40,7 @@ async def list_opportunities(
     """List opportunities sorted by priority."""
     queue = getattr(request.app.state, "opportunity_queue", None)
     if queue is None:
-        return {"opportunities": []}
+        return {"opportunities": [], "message": "Opportunity queue not configured"}
     if status == "open":
         opportunities = queue.list_open(limit=limit)
     else:

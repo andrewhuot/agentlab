@@ -23,7 +23,7 @@ async def get_experiment_stats(request: Request) -> dict:
     """Return experiment counts grouped by status."""
     store = getattr(request.app.state, "experiment_store", None)
     if store is None:
-        return {"counts": {}}
+        return {"counts": {}, "message": "Experiment store not configured"}
     all_cards = store.get_all()
     counts = Counter(card.status for card in all_cards)
     return {"counts": dict(counts)}
@@ -38,7 +38,7 @@ async def list_experiments(
     """List recent experiments, optionally filtered by status."""
     store = getattr(request.app.state, "experiment_store", None)
     if store is None:
-        return {"experiments": []}
+        return {"experiments": [], "message": "Experiment store not configured"}
     if status:
         cards = store.list_by_status(status=status, limit=limit)
     else:
@@ -111,7 +111,7 @@ async def get_archive(request: Request) -> dict:
             "created_at": "2026-03-23T16:00:00Z",
         },
     ]
-    return {"entries": mock_entries}
+    return {"entries": mock_entries, "source": "mock", "message": "Archive store not configured, returning mock data"}
 
 
 @router.get("/judge-calibration")
@@ -132,6 +132,8 @@ async def get_judge_calibration(request: Request) -> dict:
         "position_bias": 0.03,
         "verbosity_bias": 0.06,
         "disagreement_rate": 0.18,
+        "source": "mock",
+        "message": "Judge calibration store not configured, returning mock data",
     }
 
 
