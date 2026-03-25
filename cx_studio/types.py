@@ -115,7 +115,7 @@ class CxAgentSnapshot(BaseModel):
 
 
 class CxWidgetConfig(BaseModel):
-    """Configuration required to render the df-messenger web widget."""
+    """Configuration required to render the chat-messenger web widget."""
 
     project_id: str
     agent_id: str

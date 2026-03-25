@@ -3392,7 +3392,7 @@ def cx_deploy_cmd(project: str, location: str, agent_id: str, environment: str, 
 @click.option("--color", default="#1a73e8", show_default=True, help="Primary color hex.")
 @click.option("--output", "output_path", default=None, help="Output HTML file path.")
 def cx_widget_cmd(project: str, location: str, agent_id: str, title: str, color: str, output_path: str | None) -> None:
-    """Generate a df-messenger web widget HTML file."""
+    """Generate a chat-messenger web widget HTML file."""
     from cx_studio import CxDeployer, CxAuth, CxClient
     from cx_studio.types import CxWidgetConfig
 

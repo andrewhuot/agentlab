@@ -255,8 +255,8 @@ class TestCxDeployer:
             primary_color="#ff0000",
         )
         html = _build_widget_html(wc)
-        assert "df-messenger" in html
-        assert "my-project" in html
+        assert "chat-messenger" in html
+        assert "agent-1" in html
         assert "agent-1" in html
         assert "Support Bot" in html
         assert "#ff0000" in html

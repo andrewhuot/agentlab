@@ -170,7 +170,7 @@ async def deploy_cx_agent(body: CxDeployRequest) -> CxDeployResponse:
 
 @router.post("/widget", response_model=CxWidgetResponse)
 async def generate_cx_widget(body: CxWidgetRequest) -> CxWidgetResponse:
-    """Generate df-messenger web widget HTML."""
+    """Generate chat-messenger web widget HTML."""
     from cx_studio import CxDeployer, CxAuth, CxClient
     from cx_studio.types import CxWidgetConfig
     widget_config = CxWidgetConfig(
