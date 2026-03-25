@@ -9,8 +9,6 @@ from runner import (
     _stream_cycle_output,
     _generate_recommendations,
     _bar_chart,
-    _status_next_action,
-)
 
 
 @pytest.fixture
@@ -43,6 +41,41 @@ class TestBarChart:
     def test_length_always_equals_width(self):
         for pct in [0.0, 0.1, 0.33, 0.5, 0.75, 0.99, 1.0]:
             assert len(_bar_chart(pct, width=10)) == 10
+
+
+class TestSoulHelpers:
+    def test_score_mood_none(self):
+        assert _score_mood(None) == "Warming up"
+
+    def test_score_mood_high(self):
+        assert _score_mood(0.91) == "Flying"
+
+    def test_score_mood_low(self):
+        assert _score_mood(0.4) == "Needs love"
+
+    def test_soul_line_known_context(self):
+        assert "learning" in _soul_line("status").lower()
+
+    def test_soul_line_fallback(self):
+        assert _soul_line("unknown") == "AutoAgent is online."
+
+    def test_print_cli_plan(self, runner):
+        @__import__("click").command()
+        def _cmd():
+            _print_cli_plan("Plan", ["one", "two"])
+
+        result = runner.invoke(_cmd, [])
+        assert "Plan" in result.output
+        assert "1. one" in result.output
+
+    def test_print_next_actions(self, runner):
+        @__import__("click").command()
+        def _cmd():
+            _print_next_actions(["autoagent status"])
+
+        result = runner.invoke(_cmd, [])
+        assert "Next actions" in result.output
+        assert "autoagent status" in result.output
 
 
 # ---------------------------------------------------------------------------
