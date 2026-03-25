@@ -1,0 +1,500 @@
+skills:
+  - name: keyword_expansion
+    version: 1
+    description: Expand routing keywords based on failure analysis
+    category: routing
+    platform: universal
+    target_surfaces:
+      - routing.rules.*.keywords
+    mutations:
+      - name: add_missing_keywords
+        mutation_type: keyword_expansion
+        target_surface: "routing.rules.{agent}.keywords"
+        description: Add semantically related keywords to reduce routing misses
+        template: "Analyze misrouted conversations and identify keywords that should route to {agent}"
+        parameters:
+          max_keywords_to_add: 10
+          require_semantic_similarity: true
+    examples:
+      - name: billing_keyword_fix
+        surface: "routing.rules[billing_agent].keywords"
+        before: ["billing", "account", "subscription"]
+        after: ["billing", "account", "subscription", "invoice", "charge", "refund", "payment", "receipt", "credit"]
+        improvement: 0.12
+        context: "40% of billing queries were misrouted because keywords missed common billing terms"
+    guardrails:
+      - Never remove existing working keywords
+      - Keep total keywords under 30 per agent to avoid false positives
+      - Verify new keywords don't overlap with other agents' keywords
+    eval_criteria:
+      - metric: routing_accuracy
+        target: 0.85
+        operator: gt
+        weight: 1.0
+    triggers:
+      - failure_family: routing_error
+        metric_name: routing_accuracy
+        threshold: 0.85
+        operator: lt
+    author: autoagent-builtin
+    tags: [routing, keywords, core]
+
+  - name: instruction_hardening
+    version: 1
+    description: Strengthen agent instructions with explicit do/don't rules to reduce ambiguous outputs
+    category: quality
+    platform: universal
+    target_surfaces:
+      - agent.*.instructions
+    mutations:
+      - name: inject_explicit_rules
+        mutation_type: instruction_rewrite
+        target_surface: "agent.{agent}.instructions"
+        description: Prepend a structured DO/DON'T block derived from failure conversation analysis
+        template: "Review failed conversations for {agent} and produce a concise list of explicit rules that would have prevented each failure. Format as DO: and DON'T: pairs."
+        parameters:
+          max_rules_to_add: 8
+          preserve_existing_rules: true
+          failure_lookback_days: 14
+    examples:
+      - name: support_agent_hardening
+        surface: "agent.support_agent.instructions"
+        before: "Help users resolve their issues efficiently and professionally."
+        after: "Help users resolve their issues efficiently and professionally.\n\nDO: Confirm the account email before making any changes.\nDO: Offer to escalate if resolution requires more than 3 steps.\nDON'T: Promise refunds without checking eligibility criteria first.\nDON'T: Share account details over chat without identity verification."
+        improvement: 0.18
+        context: "18% of CSAT failures traced to agents making commitments outside their authority or skipping verification steps"
+    guardrails:
+      - Never delete or contradict existing policy-backed instructions
+      - New rules must be grounded in observed failure patterns, not hypothetical edge cases
+      - Cap injected rules at 8 to avoid instruction bloat degrading general performance
+      - Rules must be actionable and measurable, not vague platitudes
+    eval_criteria:
+      - metric: task_completion_rate
+        target: 0.88
+        operator: gt
+        weight: 0.7
+      - metric: policy_violation_rate
+        target: 0.02
+        operator: lt
+        weight: 0.3
+    triggers:
+      - failure_family: instruction_gap
+        metric_name: task_completion_rate
+        threshold: 0.80
+        operator: lt
+    author: autoagent-builtin
+    tags: [quality, instructions, core]
+
+  - name: fewshot_optimization
+    version: 1
+    description: Add or refine few-shot examples from high-scoring conversations to improve output consistency
+    category: quality
+    platform: universal
+    target_surfaces:
+      - agent.*.examples
+    mutations:
+      - name: inject_fewshot_examples
+        mutation_type: fewshot_bootstrap
+        target_surface: "agent.{agent}.examples"
+        description: Select the top-k conversations by CSAT and score, format as input/output pairs, and prepend to examples list
+        template: "Select the {k} best-rated conversations for {agent} from the last {lookback_days} days. Reformat each as a concise (input, ideal_output) pair suitable for few-shot prompting."
+        parameters:
+          k: 5
+          lookback_days: 30
+          min_csat_score: 4
+          deduplicate_by_intent: true
+    examples:
+      - name: billing_fewshot_boost
+        surface: "agent.billing_agent.examples"
+        before: []
+        after:
+          - input: "I was charged twice for my subscription last month"
+            output: "I can see two charges on your account for that period. I'll initiate a refund for the duplicate charge now — you should see it within 3-5 business days."
+          - input: "How do I cancel my plan?"
+            output: "I can help you cancel. Before I do, I want to make sure this is the right choice — is there a specific issue I can resolve for you instead? If you'd like to proceed, I'll cancel your plan effective at the end of your current billing cycle."
+        improvement: 0.09
+        context: "Agents without examples defaulted to generic responses; few-shot examples aligned tone and depth with top-performer baselines"
+    guardrails:
+      - Only use conversations with explicit positive CSAT signal
+      - Anonymize all PII from examples before injection
+      - Keep total example count under 10 to stay within context budget
+      - Remove examples if they become outdated relative to product changes
+    eval_criteria:
+      - metric: response_quality_score
+        target: 0.82
+        operator: gt
+        weight: 1.0
+    triggers:
+      - failure_family: output_quality
+        metric_name: response_quality_score
+        threshold: 0.75
+        operator: lt
+    author: autoagent-builtin
+    tags: [quality, fewshot, examples]
+
+  - name: safety_guardrail_tightening
+    version: 1
+    description: Add confidential data patterns and refusal templates to prevent unsafe disclosures
+    category: safety
+    platform: universal
+    target_surfaces:
+      - agent.*.safety_config
+      - agent.*.instructions
+    mutations:
+      - name: add_pii_refusal_patterns
+        mutation_type: safety_rule_injection
+        target_surface: "agent.{agent}.safety_config.refusal_patterns"
+        description: Inject regex patterns for sensitive data types and corresponding refusal templates
+        template: "Analyze recent conversations for {agent} where sensitive data was disclosed or requested. Generate refusal templates and detection patterns for each data category found."
+        parameters:
+          categories:
+            - credit_card
+            - ssn
+            - password
+            - internal_system_id
+          refusal_style: polite_redirect
+          add_escalation_path: true
+    examples:
+      - name: billing_pii_guardrails
+        surface: "agent.billing_agent.safety_config"
+        before:
+          refusal_patterns: []
+        after:
+          refusal_patterns:
+            - pattern: "\\b\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{4}\\b"
+              category: credit_card
+              refusal: "I'm not able to process credit card numbers through chat. Please use our secure payment portal or call our billing line."
+            - pattern: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+              category: ssn
+              refusal: "I cannot accept Social Security numbers over chat. Please contact our secure identity verification line."
+        improvement: 0.95
+        context: "Audit found 3 instances of agents echoing back partial card numbers when users included them in messages"
+    guardrails:
+      - Never weaken existing safety rules — only add or strengthen
+      - Refusal messages must always offer an alternative path, never a dead end
+      - Test patterns against synthetic PII before deployment
+      - Log all pattern matches for audit purposes
+    eval_criteria:
+      - metric: pii_disclosure_rate
+        target: 0.001
+        operator: lt
+        weight: 1.0
+    triggers:
+      - failure_family: safety_violation
+        metric_name: pii_disclosure_rate
+        threshold: 0.005
+        operator: gt
+    author: autoagent-builtin
+    tags: [safety, pii, guardrails, core]
+
+  - name: tool_timeout_tuning
+    version: 1
+    description: Optimize tool call timeouts based on observed p95 latency data to reduce unnecessary failures
+    category: latency
+    platform: universal
+    target_surfaces:
+      - tools.*.timeout_ms
+    mutations:
+      - name: calibrate_timeouts_from_p95
+        mutation_type: numeric_parameter_tune
+        target_surface: "tools.{tool_name}.timeout_ms"
+        description: Set timeout to p95 latency + 20% headroom, replacing the current static default
+        template: "For tool {tool_name}, retrieve p95 response latency over the past {lookback_days} days and calculate a calibrated timeout with {headroom_pct}% headroom."
+        parameters:
+          lookback_days: 7
+          headroom_pct: 20
+          min_timeout_ms: 500
+          max_timeout_ms: 30000
+    examples:
+      - name: order_lookup_timeout_fix
+        surface: "tools.order_lookup.timeout_ms"
+        before: 5000
+        after: 2800
+        improvement: 0.07
+        context: "p95 latency for order_lookup was 2300ms; 5000ms timeout was masking slow-path bugs and degrading UX via long waits"
+    guardrails:
+      - Never set timeout below observed p50 latency — this will cause spurious failures
+      - Alert on-call if new timeout is less than 50% of previous timeout
+      - Exclude outlier spikes (p99.9) from baseline calculation
+      - Re-evaluate timeouts after any dependent service deployment
+    eval_criteria:
+      - metric: tool_timeout_error_rate
+        target: 0.01
+        operator: lt
+        weight: 0.6
+      - metric: tool_p95_latency_ms
+        target: 3000
+        operator: lt
+        weight: 0.4
+    triggers:
+      - failure_family: tool_timeout
+        metric_name: tool_timeout_error_rate
+        threshold: 0.03
+        operator: gt
+    author: autoagent-builtin
+    tags: [latency, tools, timeouts]
+
+  - name: retry_policy_optimization
+    version: 1
+    description: Add or tune retry-with-backoff policies for flaky tools to improve reliability without hammering upstream services
+    category: latency
+    platform: universal
+    target_surfaces:
+      - tools.*.retry_policy
+    mutations:
+      - name: inject_exponential_backoff_retry
+        mutation_type: retry_policy_upsert
+        target_surface: "tools.{tool_name}.retry_policy"
+        description: Add exponential backoff retry policy calibrated to observed flakiness rate and downstream rate limits
+        template: "Analyze {tool_name} error logs for the past {lookback_days} days. Identify transient vs permanent error classes. Generate a retry policy with appropriate max_attempts and backoff configuration."
+        parameters:
+          lookback_days: 7
+          max_attempts: 3
+          base_delay_ms: 200
+          backoff_multiplier: 2.0
+          jitter: true
+          retryable_status_codes: [429, 502, 503, 504]
+    examples:
+      - name: inventory_api_retry
+        surface: "tools.inventory_check.retry_policy"
+        before: {}
+        after:
+          max_attempts: 3
+          base_delay_ms: 250
+          backoff_multiplier: 2.0
+          jitter: true
+          retryable_errors: ["rate_limit", "gateway_timeout", "service_unavailable"]
+          non_retryable_errors: ["not_found", "unauthorized", "invalid_input"]
+        improvement: 0.11
+        context: "inventory_check had 8% transient error rate during peak hours; retries recovered 85% of those without user-visible impact"
+    guardrails:
+      - Never retry non-idempotent write operations without explicit idempotency key support
+      - Cap max_attempts at 5 to prevent thundering herd scenarios
+      - Always include jitter to avoid synchronized retry storms
+      - Log each retry attempt with attempt number and delay for observability
+    eval_criteria:
+      - metric: tool_success_rate
+        target: 0.97
+        operator: gt
+        weight: 1.0
+    triggers:
+      - failure_family: tool_flakiness
+        metric_name: tool_transient_error_rate
+        threshold: 0.05
+        operator: gt
+    author: autoagent-builtin
+    tags: [latency, retry, reliability, tools]
+
+  - name: context_pruning
+    version: 1
+    description: Reduce context window token usage without degrading output quality by removing low-signal content
+    category: cost
+    platform: universal
+    target_surfaces:
+      - agent.*.context_config
+    mutations:
+      - name: prune_low_signal_context
+        mutation_type: context_window_optimization
+        target_surface: "agent.{agent}.context_config"
+        description: Identify and remove context sections with low retrieval utility scores, and compress verbose system prompt sections
+        template: "Analyze context utilization for {agent}. Score each context section by how often it is referenced in outputs. Flag sections below {utility_threshold} for removal or compression."
+        parameters:
+          utility_threshold: 0.1
+          max_token_reduction_pct: 30
+          preserve_safety_context: true
+          compress_verbose_sections: true
+    examples:
+      - name: support_context_trim
+        surface: "agent.support_agent.context_config"
+        before:
+          token_count: 4200
+          sections: ["company_history", "product_catalog", "faq", "escalation_policy", "refund_policy"]
+        after:
+          token_count: 2900
+          sections: ["faq", "escalation_policy", "refund_policy"]
+          removed: ["company_history", "product_catalog"]
+        improvement: 0.31
+        context: "company_history and full product_catalog were never cited in agent outputs; removing them cut costs 31% with zero CSAT impact"
+    guardrails:
+      - Never prune safety-critical context (refusal templates, PII rules)
+      - Validate quality metrics before and after pruning in shadow mode
+      - Keep a pruning audit log for rollback
+      - Limit single-pass reduction to 30% of tokens to avoid cliff effects
+    eval_criteria:
+      - metric: context_token_cost_per_conversation
+        target: 0.05
+        operator: lt
+        weight: 0.5
+      - metric: response_quality_score
+        target: 0.82
+        operator: gt
+        weight: 0.5
+    triggers:
+      - failure_family: cost_spike
+        metric_name: cost_per_conversation_usd
+        threshold: 0.08
+        operator: gt
+    author: autoagent-builtin
+    tags: [cost, context, tokens]
+
+  - name: response_compression
+    version: 1
+    description: Tighten response length while maintaining helpfulness to reduce output token costs
+    category: cost
+    platform: universal
+    target_surfaces:
+      - agent.*.instructions
+    mutations:
+      - name: inject_brevity_instruction
+        mutation_type: instruction_append
+        target_surface: "agent.{agent}.instructions"
+        description: Append a calibrated brevity directive based on observed average response length vs. user satisfaction correlation
+        template: "Analyze response length distribution for {agent}. Identify the length bracket with the highest CSAT. Produce a brevity instruction that targets that optimal length range."
+        parameters:
+          target_length_percentile: 50
+          min_length_tokens: 20
+          max_length_tokens: 200
+          preserve_detail_for_complex_intents: true
+    examples:
+      - name: billing_response_compression
+        surface: "agent.billing_agent.instructions"
+        before: "Provide thorough and complete responses to all customer queries."
+        after: "Provide thorough and complete responses to all customer queries. Keep responses concise — aim for 40-80 words for simple questions, 80-150 words for multi-step issues. Never sacrifice accuracy for brevity."
+        improvement: 0.22
+        context: "Average response was 280 tokens; CSAT analysis showed optimal range was 80-120 tokens; compression cut output costs 22% with no CSAT degradation"
+    guardrails:
+      - Never truncate responses that require step-by-step instructions
+      - Preserve all required compliance disclosures regardless of length
+      - Monitor CSAT alongside token reduction — rollback if CSAT drops >2 points
+      - Complex intents (multi-step troubleshooting) are exempt from brevity limits
+    eval_criteria:
+      - metric: avg_response_tokens
+        target: 120
+        operator: lt
+        weight: 0.4
+      - metric: csat_score
+        target: 4.2
+        operator: gt
+        weight: 0.6
+    triggers:
+      - failure_family: cost_spike
+        metric_name: output_token_cost_per_conversation
+        threshold: 0.04
+        operator: gt
+    author: autoagent-builtin
+    tags: [cost, response_length, tokens]
+
+  - name: routing_disambiguation
+    version: 1
+    description: Add disambiguation rules for ambiguous intents that match multiple agents to reduce mis-routing
+    category: routing
+    platform: universal
+    target_surfaces:
+      - routing.disambiguation_rules
+    mutations:
+      - name: add_disambiguation_rule
+        mutation_type: disambiguation_rule_injection
+        target_surface: "routing.disambiguation_rules"
+        description: Generate clarifying question templates and secondary routing signals for intent classes that have historically split across two or more agents
+        template: "Identify intents in the past {lookback_days} days that routed to multiple agents with near-equal frequency. For each ambiguous intent, produce a disambiguation rule with a clarifying question and conditional routing logic."
+        parameters:
+          lookback_days: 14
+          min_conflict_frequency: 10
+          max_clarification_turns: 1
+          confidence_threshold: 0.6
+    examples:
+      - name: billing_vs_technical_disambiguation
+        surface: "routing.disambiguation_rules"
+        before: []
+        after:
+          - intent_pattern: "account access problem"
+            conflicting_agents: ["billing_agent", "tech_support_agent"]
+            clarifying_question: "Is this about being unable to log in, or about a billing charge on your account?"
+            routing_map:
+              login: tech_support_agent
+              billing_charge: billing_agent
+        improvement: 0.15
+        context: "'account access' queries split 52/48 between billing and tech support causing 15% re-routing rate; disambiguation question resolved conflict"
+    guardrails:
+      - Disambiguation questions must be answerable in one turn — no complex multi-choice menus
+      - Never add disambiguation for intents with >80% single-agent routing confidence
+      - Validate that all routing_map branches point to valid, active agents
+      - Keep total disambiguation rules under 20 to avoid query-time latency
+    eval_criteria:
+      - metric: re_routing_rate
+        target: 0.05
+        operator: lt
+        weight: 0.7
+      - metric: routing_accuracy
+        target: 0.88
+        operator: gt
+        weight: 0.3
+    triggers:
+      - failure_family: routing_error
+        metric_name: re_routing_rate
+        threshold: 0.10
+        operator: gt
+    author: autoagent-builtin
+    tags: [routing, disambiguation, intents]
+
+  - name: handoff_schema_refinement
+    version: 1
+    description: Improve agent-to-agent handoff fidelity by tightening required fields and adding validation rules
+    category: quality
+    platform: universal
+    target_surfaces:
+      - handoff_schemas.*.required_fields
+      - handoff_schemas.*.validation_rules
+    mutations:
+      - name: tighten_handoff_required_fields
+        mutation_type: schema_field_injection
+        target_surface: "handoff_schemas.{schema_name}.required_fields"
+        description: Analyze failed handoffs to identify fields that were missing or malformed, then add them to required_fields with validation rules
+        template: "Examine failed handoff events for {schema_name} over the past {lookback_days} days. Identify which fields were absent or invalid in receiving-agent failures. Add those fields to required_fields and generate appropriate validation_rules."
+        parameters:
+          lookback_days: 14
+          min_failure_frequency: 5
+          add_type_validation: true
+          add_length_validation: true
+    examples:
+      - name: support_to_billing_handoff_fix
+        surface: "handoff_schemas.support_to_billing"
+        before:
+          required_fields: ["goal"]
+          validation_rules: {}
+        after:
+          required_fields: ["goal", "account_id", "issue_summary", "attempted_resolution"]
+          validation_rules:
+            goal:
+              type: string
+              min_length: 10
+            account_id:
+              type: string
+              pattern: "^ACC-[0-9]{6}$"
+            issue_summary:
+              type: string
+              min_length: 20
+              max_length: 500
+        improvement: 0.19
+        context: "Billing agent received 23% of handoffs without account_id, causing lookup failures and re-asking users for info they already provided"
+    guardrails:
+      - Never remove required fields that are already in production use
+      - All new required fields must have a corresponding extraction path in the source agent
+      - Test schema changes in shadow mode before promoting to production
+      - Provide clear error messages for validation failures so source agents can self-correct
+    eval_criteria:
+      - metric: handoff_success_rate
+        target: 0.95
+        operator: gt
+        weight: 0.8
+      - metric: receiving_agent_lookup_failure_rate
+        target: 0.02
+        operator: lt
+        weight: 0.2
+    triggers:
+      - failure_family: handoff_failure
+        metric_name: handoff_success_rate
+        threshold: 0.90
+        operator: lt
+    author: autoagent-builtin
+    tags: [quality, handoff, schema, core]

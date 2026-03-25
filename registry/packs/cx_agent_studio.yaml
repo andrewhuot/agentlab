@@ -1,0 +1,254 @@
+skills:
+  - name: cx_playbook_instruction_tuning
+    version: 1
+    description: Tune CX Agent Studio playbook instructions to reduce off-script responses and improve task completion
+    category: quality
+    platform: cx-agent-studio
+    target_surfaces:
+      - cx.playbooks.*.goal
+      - cx.playbooks.*.instructions
+    mutations:
+      - name: refine_playbook_goal_and_steps
+        mutation_type: instruction_rewrite
+        target_surface: "cx.playbooks.{playbook_id}.instructions"
+        description: Rewrite playbook goal and step instructions based on conversation traces where the agent deviated from the intended flow
+        template: "Review CX conversation traces for playbook {playbook_id} where the agent deviated or failed to complete the goal. Identify ambiguous step instructions and rewrite them with explicit conditions and expected outputs."
+        parameters:
+          max_steps_to_rewrite: 5
+          preserve_existing_transitions: true
+          add_explicit_end_conditions: true
+    examples:
+      - name: refund_playbook_clarification
+        surface: "cx.playbooks.refund_processing.instructions"
+        before: "Help the customer with their refund."
+        after: "Guide the customer through the refund process. Step 1: Confirm order ID and purchase date. Step 2: Verify refund eligibility using the eligibility tool. Step 3: If eligible, initiate refund and provide confirmation number. Step 4: If ineligible, explain the reason and offer store credit as an alternative. End the playbook only after confirming the customer understands the outcome."
+        improvement: 0.21
+        context: "Refund playbook had 21% incomplete rate; agents were ending conversations before confirming eligibility outcomes"
+    guardrails:
+      - Do not modify playbook transitions that are enforced by CX Studio flow logic
+      - All rewritten steps must be testable in the CX Simulator before deployment
+      - Preserve any compliance-mandated disclosure steps verbatim
+      - Changes must be reviewed by a CX admin before activating in production
+    eval_criteria:
+      - metric: playbook_completion_rate
+        target: 0.90
+        operator: gt
+        weight: 1.0
+    triggers:
+      - failure_family: playbook_incomplete
+        metric_name: playbook_completion_rate
+        threshold: 0.80
+        operator: lt
+    author: autoagent-builtin
+    tags: [quality, cx-agent-studio, playbook, instructions]
+
+  - name: cx_flow_route_optimization
+    version: 1
+    description: Optimize CX Agent Studio flow routing rules to reduce fallback-to-live-agent rate
+    category: routing
+    platform: cx-agent-studio
+    target_surfaces:
+      - cx.flows.*.route_conditions
+      - cx.flows.*.intent_routes
+    mutations:
+      - name: add_intent_route_conditions
+        mutation_type: flow_route_injection
+        target_surface: "cx.flows.{flow_id}.intent_routes"
+        description: Add missing intent route conditions derived from conversations that fell through to the default fallback route
+        template: "Analyze CX conversations that hit the {flow_id} fallback route over the past {lookback_days} days. Identify the top intents by frequency and generate intent route conditions to handle them explicitly."
+        parameters:
+          lookback_days: 14
+          min_intent_frequency: 20
+          max_routes_to_add: 5
+          use_training_phrases: true
+    examples:
+      - name: billing_flow_route_fix
+        surface: "cx.flows.main_billing_flow.intent_routes"
+        before:
+          routes: ["billing.payment", "billing.cancel"]
+          fallback: escalate_to_agent
+        after:
+          routes: ["billing.payment", "billing.cancel", "billing.refund_status", "billing.update_method", "billing.dispute"]
+          fallback: escalate_to_agent
+        improvement: 0.28
+        context: "28% of conversations were hitting the fallback route; analysis showed refund_status, update_method, and dispute were unhandled top intents"
+    guardrails:
+      - New routes must not conflict with existing route priority ordering
+      - All new intents must have at least 5 training phrases in the CX NLU model
+      - Test in CX Simulator with at least 20 sample utterances per new route before deploying
+      - Monitor fallback rate for 48 hours post-deployment and rollback if it increases
+    eval_criteria:
+      - metric: fallback_to_live_agent_rate
+        target: 0.10
+        operator: lt
+        weight: 1.0
+    triggers:
+      - failure_family: routing_error
+        metric_name: fallback_to_live_agent_rate
+        threshold: 0.20
+        operator: gt
+    author: autoagent-builtin
+    tags: [routing, cx-agent-studio, flows, intents]
+
+  - name: cx_generator_prompt_tuning
+    version: 1
+    description: Tune CX Agent Studio generative agent prompts to improve response quality and reduce hallucinations
+    category: quality
+    platform: cx-agent-studio
+    target_surfaces:
+      - cx.generators.*.prompt
+      - cx.generators.*.grounding_config
+    mutations:
+      - name: add_grounding_and_constraints
+        mutation_type: generator_prompt_rewrite
+        target_surface: "cx.generators.{generator_id}.prompt"
+        description: Rewrite generator prompt to add grounding instructions and explicit constraints that reduce hallucination and off-topic responses
+        template: "Review low-scoring responses from generator {generator_id} over the past {lookback_days} days. Identify hallucination patterns and out-of-scope topics. Rewrite the prompt with explicit grounding directives, scope constraints, and uncertainty handling instructions."
+        parameters:
+          lookback_days: 14
+          add_datastore_grounding: true
+          add_uncertainty_handling: true
+          max_prompt_length_tokens: 500
+    examples:
+      - name: product_faq_generator_fix
+        surface: "cx.generators.product_faq_gen.prompt"
+        before: "Answer the customer's question about our products."
+        after: "Answer the customer's question about our products using only the information in the provided knowledge base. If the answer is not in the knowledge base, say 'I don't have specific information on that, but I can connect you with a specialist.' Never speculate about pricing, availability, or features not explicitly documented. Respond in 2-3 sentences."
+        improvement: 0.17
+        context: "Product FAQ generator had 17% hallucination rate on pricing queries; grounding and uncertainty instructions eliminated speculative responses"
+    guardrails:
+      - Grounding instructions must reference the correct CX datastore ID for the agent
+      - Prompt changes must be validated using the CX Generative Preview tool
+      - Never remove the uncertainty fallback path — it is required for compliance
+      - Prompt length must stay within the CX generator token limit (512 tokens)
+    eval_criteria:
+      - metric: hallucination_rate
+        target: 0.03
+        operator: lt
+        weight: 0.6
+      - metric: response_quality_score
+        target: 0.85
+        operator: gt
+        weight: 0.4
+    triggers:
+      - failure_family: output_quality
+        metric_name: hallucination_rate
+        threshold: 0.08
+        operator: gt
+    author: autoagent-builtin
+    tags: [quality, cx-agent-studio, generator, grounding]
+
+  - name: cx_entity_extraction_improvement
+    version: 1
+    description: Improve CX Agent Studio entity extraction accuracy by adding training phrases and synonyms
+    category: quality
+    platform: cx-agent-studio
+    target_surfaces:
+      - cx.entities.*.training_phrases
+      - cx.entities.*.synonyms
+    mutations:
+      - name: expand_entity_training_phrases
+        mutation_type: entity_training_phrase_injection
+        target_surface: "cx.entities.{entity_id}.training_phrases"
+        description: Add training phrases and synonyms to entities that have low extraction confidence scores, derived from conversations where entities were missed or misclassified
+        template: "Analyze conversations where entity {entity_id} was missed or extracted with confidence below {min_confidence} over the past {lookback_days} days. Generate additional training phrases and synonyms that cover the observed user language patterns."
+        parameters:
+          min_confidence: 0.7
+          lookback_days: 14
+          max_phrases_to_add: 20
+          include_misspelling_variants: true
+          include_abbreviations: true
+    examples:
+      - name: order_id_entity_expansion
+        surface: "cx.entities.order_id.training_phrases"
+        before:
+          training_phrases: ["order 12345", "order number 12345"]
+          synonyms: []
+        after:
+          training_phrases:
+            - "order 12345"
+            - "order number 12345"
+            - "my order is 12345"
+            - "order #12345"
+            - "ord 12345"
+            - "reference 12345"
+            - "confirmation 12345"
+            - "tracking number 12345"
+          synonyms: ["order", "ord", "order no", "order #", "reference", "confirmation", "tracking"]
+        improvement: 0.24
+        context: "order_id entity had 76% extraction accuracy; customers used 'reference', 'confirmation', and '#' prefix patterns that weren't covered"
+    guardrails:
+      - New training phrases must not create ambiguity with other existing entities
+      - Validate extraction accuracy in CX Simulator before deploying to production
+      - Include negative examples if adding phrases that might over-generalize
+      - Do not add phrases that could match PII patterns unintentionally
+    eval_criteria:
+      - metric: entity_extraction_accuracy
+        target: 0.92
+        operator: gt
+        weight: 1.0
+    triggers:
+      - failure_family: entity_extraction_failure
+        metric_name: entity_extraction_accuracy
+        threshold: 0.80
+        operator: lt
+    author: autoagent-builtin
+    tags: [quality, cx-agent-studio, entities, nlu]
+
+  - name: cx_webhook_latency_reduction
+    version: 1
+    description: Reduce CX Agent Studio webhook latency by tuning timeouts, enabling caching, and optimizing payload size
+    category: latency
+    platform: cx-agent-studio
+    target_surfaces:
+      - cx.webhooks.*.timeout_ms
+      - cx.webhooks.*.request_body
+    mutations:
+      - name: tune_webhook_timeout_and_payload
+        mutation_type: webhook_config_optimization
+        target_surface: "cx.webhooks.{webhook_id}"
+        description: Calibrate webhook timeout to p95 latency with headroom, enable response caching for idempotent calls, and strip unused fields from request payload
+        template: "Analyze CX webhook call logs for {webhook_id} over the past {lookback_days} days. Calculate p95 response time. Identify fields in the request payload not consumed by the webhook handler. Generate optimized webhook config with calibrated timeout and minimal payload."
+        parameters:
+          lookback_days: 7
+          headroom_pct: 25
+          min_timeout_ms: 1000
+          max_timeout_ms: 10000
+          enable_caching_for_idempotent: true
+          cache_ttl_seconds: 60
+    examples:
+      - name: inventory_webhook_optimization
+        surface: "cx.webhooks.check_inventory"
+        before:
+          timeout_ms: 10000
+          payload_fields: ["session_id", "user_id", "product_id", "conversation_history", "agent_metadata"]
+          caching_enabled: false
+        after:
+          timeout_ms: 3500
+          payload_fields: ["product_id"]
+          caching_enabled: true
+          cache_ttl_seconds: 30
+          cache_key: "product_id"
+        improvement: 0.41
+        context: "Webhook p95 was 2800ms with 10s timeout masking issues; payload included conversation_history (unused) adding 2KB per call; caching cut downstream calls 41%"
+    guardrails:
+      - Only enable caching for webhooks confirmed to be idempotent by the backend team
+      - Never strip fields from request payload without validating they are not consumed server-side
+      - CX webhook timeout limit is 10s — never exceed this platform limit
+      - Monitor webhook error rates for 24 hours after any timeout change
+    eval_criteria:
+      - metric: webhook_p95_latency_ms
+        target: 3000
+        operator: lt
+        weight: 0.6
+      - metric: webhook_timeout_error_rate
+        target: 0.01
+        operator: lt
+        weight: 0.4
+    triggers:
+      - failure_family: tool_timeout
+        metric_name: webhook_p95_latency_ms
+        threshold: 5000
+        operator: gt
+    author: autoagent-builtin
+    tags: [latency, cx-agent-studio, webhook, caching]

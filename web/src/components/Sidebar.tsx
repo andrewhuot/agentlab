@@ -22,6 +22,7 @@ import {
   GitPullRequest,
   Library,
   Brain,
+  Puzzle,
 } from 'lucide-react';
 import { classNames } from '../lib/utils';
 
@@ -43,10 +44,13 @@ const navItems = [
   { to: '/judge-ops', label: 'Judge Ops', icon: Scale },
   { to: '/context', label: 'Context Workbench', icon: Layers },
   { to: '/runbooks', label: 'Runbooks', icon: Library },
+  { to: '/skills', label: 'Skills', icon: Zap },
   { to: '/registry', label: 'Registry', icon: BookOpen },
   { to: '/memory', label: 'Memory', icon: Brain },
   { to: '/blame', label: 'Blame Map', icon: MapPin },
   { to: '/scorer-studio', label: 'Scorer Studio', icon: Sparkles },
+  { to: '/adk/import', label: 'ADK Import', icon: Puzzle },
+  { to: '/adk/deploy', label: 'ADK Deploy', icon: Rocket },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

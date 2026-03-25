@@ -68,6 +68,7 @@ LAYER_1_PREFIXES = {
     "optimizer.autofix_vertex",
     "optimizer.curriculum",
     "optimizer.pareto",
+    "optimizer.skill_proposer",
     "optimizer.holdout",
     "optimizer.training_escalation",
     "observer.trace_grading",

@@ -698,3 +698,113 @@ export interface CxDeployResult {
 export interface CxWidgetResult {
   html: string;
 }
+
+// ---------------------------------------------------------------------------
+// Executable Skills
+// ---------------------------------------------------------------------------
+
+export interface ExecutableSkill {
+  name: string;
+  version: number;
+  description: string;
+  category: string;
+  platform: string;
+  target_surfaces: string[];
+  mutations: SkillMutation[];
+  examples: SkillExampleItem[];
+  guardrails: string[];
+  eval_criteria: SkillEvalCriterion[];
+  triggers: SkillTrigger[];
+  author: string;
+  tags: string[];
+  created_at: number;
+  proven_improvement: number | null;
+  times_applied: number;
+  success_rate: number;
+  status: string;
+}
+
+export interface SkillMutation {
+  name: string;
+  mutation_type: string;
+  target_surface: string;
+  description: string;
+  template: string | null;
+  parameters: Record<string, unknown>;
+}
+
+export interface SkillExampleItem {
+  name: string;
+  surface: string;
+  before: unknown;
+  after: unknown;
+  improvement: number;
+  context: string;
+}
+
+export interface SkillEvalCriterion {
+  metric: string;
+  target: number;
+  operator: string;
+  weight: number;
+}
+
+export interface SkillTrigger {
+  failure_family: string | null;
+  metric_name: string | null;
+  threshold: number | null;
+  operator: string;
+  blame_pattern: string | null;
+}
+
+export interface SkillLeaderboardEntry {
+  name: string;
+  category: string;
+  times_applied: number;
+  success_rate: number;
+  proven_improvement: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// ADK Integration
+// ---------------------------------------------------------------------------
+
+export interface AdkAgentRef {
+  path: string;
+}
+
+export interface AdkAgent {
+  name: string;
+  model: string;
+  instruction: string;
+  tools: AdkTool[];
+  sub_agents: AdkAgent[];
+  generate_config: Record<string, any>;
+}
+
+export interface AdkTool {
+  name: string;
+  description: string;
+  function_body?: string;
+}
+
+export interface AdkImportResult {
+  config_path: string;
+  snapshot_path: string;
+  agent_name: string;
+  surfaces_mapped: string[];
+  tools_imported: number;
+}
+
+export interface AdkExportResult {
+  output_path: string | null;
+  changes: Array<{ file: string; field: string; action: string }>;
+  files_modified: number;
+}
+
+export interface AdkDeployResult {
+  target: string;
+  url: string;
+  status: string;
+  deployment_info: Record<string, any>;
+}

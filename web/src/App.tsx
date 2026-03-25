@@ -22,10 +22,13 @@ import { BlameMap } from './pages/BlameMap';
 import { ScorerStudio } from './pages/ScorerStudio';
 import { ChangeReview } from './pages/ChangeReview';
 import { Runbooks } from './pages/Runbooks';
+import { Skills } from './pages/Skills';
 import { ProjectMemory } from './pages/ProjectMemory';
 import { CxImport } from './pages/CxImport';
 import { CxDeploy } from './pages/CxDeploy';
 import { LiveOptimize } from './pages/LiveOptimize';
+import { AdkImport } from './pages/AdkImport';
+import { AdkDeploy } from './pages/AdkDeploy';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,12 +63,15 @@ export default function App() {
             <Route path="/context" element={<ContextWorkbench />} />
             <Route path="/changes" element={<ChangeReview />} />
             <Route path="/runbooks" element={<Runbooks />} />
+            <Route path="/skills" element={<Skills />} />
             <Route path="/memory" element={<ProjectMemory />} />
             <Route path="/registry" element={<Registry />} />
             <Route path="/blame" element={<BlameMap />} />
             <Route path="/scorer-studio" element={<ScorerStudio />} />
             <Route path="/cx/import" element={<CxImport />} />
             <Route path="/cx/deploy" element={<CxDeploy />} />
+            <Route path="/adk/import" element={<AdkImport />} />
+            <Route path="/adk/deploy" element={<AdkDeploy />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Layout>

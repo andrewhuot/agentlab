@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  AdkAgent,
+  AdkDeployResult,
+  AdkExportResult,
+  AdkImportResult,
   ArchiveEntry,
   AutoFixApplyOutcome,
   AutoFixHistoryEntry,
@@ -20,6 +24,8 @@ import type {
   CxDeployResult,
   CxWidgetResult,
   CxChange,
+  ExecutableSkill,
+  SkillLeaderboardEntry,
   DeployHistoryEntry,
   DeployResponse,
   DeployStatus,
@@ -1518,5 +1524,108 @@ export function useCxWidget() {
     primary_color?: string;
   }>({
     mutationFn: (body) => fetchApi('/cx/widget', { method: 'POST', body: JSON.stringify(body) }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Skills
+// ---------------------------------------------------------------------------
+
+export function useSkills(category?: string, platform?: string) {
+  const params = new URLSearchParams();
+  if (category) params.set('category', category);
+  if (platform) params.set('platform', platform);
+  const qs = params.toString();
+  return useQuery<{ skills: ExecutableSkill[]; count: number }>({
+    queryKey: ['skills', category, platform],
+    queryFn: () => fetchApi<{ skills: ExecutableSkill[]; count: number }>(
+      `/skills${qs ? `?${qs}` : ''}`
+    ),
+  });
+}
+
+export function useSkill(name: string | null) {
+  return useQuery<{ skill: ExecutableSkill }>({
+    queryKey: ['skill', name],
+    queryFn: () => fetchApi<{ skill: ExecutableSkill }>(`/skills/${name}`),
+    enabled: !!name,
+  });
+}
+
+export function useSkillRecommendations() {
+  return useQuery<{ skills: ExecutableSkill[]; count: number }>({
+    queryKey: ['skills', 'recommend'],
+    queryFn: () => fetchApi<{ skills: ExecutableSkill[]; count: number }>('/skills/recommend'),
+  });
+}
+
+export function useSkillStats() {
+  return useQuery<{ leaderboard: SkillLeaderboardEntry[]; count: number }>({
+    queryKey: ['skills', 'stats'],
+    queryFn: () => fetchApi<{ leaderboard: SkillLeaderboardEntry[]; count: number }>('/skills/stats'),
+  });
+}
+
+export function useApplySkill() {
+  const queryClient = useQueryClient();
+  return useMutation<{ status: string; message: string }, ApiRequestError, string>({
+    mutationFn: (name) =>
+      fetchApi<{ status: string; message: string }>(`/skills/${encodeURIComponent(name)}/apply`, {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['skills'] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// ADK Integration
+// ---------------------------------------------------------------------------
+
+export function useAdkStatus(path: string) {
+  return useQuery<{ agent: AdkAgent }>({
+    queryKey: ['adk-status', path],
+    queryFn: () => fetchApi(`/adk/status?path=${encodeURIComponent(path)}`),
+    enabled: !!path,
+  });
+}
+
+export function useAdkImport() {
+  const qc = useQueryClient();
+  return useMutation<AdkImportResult, ApiRequestError, {
+    path: string;
+    output_dir?: string;
+  }>({
+    mutationFn: (body) => fetchApi('/adk/import', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['configs'] }),
+  });
+}
+
+export function useAdkExport() {
+  return useMutation<AdkExportResult, ApiRequestError, {
+    config_path: string;
+    output_path?: string;
+  }>({
+    mutationFn: (body) => fetchApi('/adk/export', { method: 'POST', body: JSON.stringify(body) }),
+  });
+}
+
+export function useAdkDeploy() {
+  return useMutation<AdkDeployResult, ApiRequestError, {
+    agent_path: string;
+    target: 'cloudrun' | 'vertexai';
+    project_id: string;
+    region?: string;
+  }>({
+    mutationFn: (body) => fetchApi('/adk/deploy', { method: 'POST', body: JSON.stringify(body) }),
+  });
+}
+
+export function useAdkDiff(configPath: string, snapshotPath: string) {
+  return useQuery<{ diff: string; changes: Array<{ file: string; field: string; action: string }> }>({
+    queryKey: ['adk-diff', configPath, snapshotPath],
+    queryFn: () => fetchApi(`/adk/diff?config_path=${encodeURIComponent(configPath)}&snapshot_path=${encodeURIComponent(snapshotPath)}`),
+    enabled: !!configPath && !!snapshotPath,
   });
 }

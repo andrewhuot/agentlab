@@ -2561,6 +2561,206 @@ def registry_import(path: str, db: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# autoagent skill — executable skills registry
+# ---------------------------------------------------------------------------
+
+@cli.group("skill")
+def skill_group() -> None:
+    """Executable skills — optimization strategies for the proposer."""
+
+
+@skill_group.command("list")
+@click.option("--category", default=None, help="Filter by category (routing, safety, latency, quality, cost).")
+@click.option("--platform", default=None, help="Filter by platform (universal, cx-agent-studio).")
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_list(category: str | None, platform: str | None, db: str) -> None:
+    """List all executable skills."""
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        skills = store.list(category=category, platform=platform)
+        if not skills:
+            click.echo("No skills found.")
+            return
+        click.echo(f"{'Name':<35} {'Category':<12} {'Platform':<20} {'Success':<10} {'Applied':<8}")
+        click.echo("─" * 85)
+        for s in skills:
+            rate = f"{s.success_rate:.0%}" if s.times_applied > 0 else "—"
+            click.echo(f"{s.name:<35} {s.category:<12} {s.platform:<20} {rate:<10} {s.times_applied:<8}")
+    finally:
+        store.close()
+
+
+@skill_group.command("show")
+@click.argument("name")
+@click.option("--version", "version", default=None, type=int)
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_show(name: str, version: int | None, db: str) -> None:
+    """Show details for a skill."""
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        skill = store.get(name, version)
+        if skill is None:
+            click.echo(f"Skill not found: {name}")
+            raise SystemExit(1)
+        click.echo(yaml.dump(skill.to_dict(), default_flow_style=False, sort_keys=False))
+    finally:
+        store.close()
+
+
+@skill_group.command("recommend")
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_recommend(db: str) -> None:
+    """Recommend skills based on current failure patterns."""
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        # Try to get failure info from observer
+        try:
+            conversation_store = ConversationStore(db_path=DB_PATH)
+            observer = Observer(conversation_store)
+            health = observer.health_check(conversation_store)
+            failure_buckets = health.failure_buckets
+            metrics = health.metrics.to_dict()
+        except Exception:
+            failure_buckets = {}
+            metrics = {}
+
+        dominant = None
+        non_zero = {b: c for b, c in failure_buckets.items() if c > 0}
+        if non_zero:
+            dominant = max(non_zero, key=non_zero.get)
+
+        skills = store.recommend(failure_family=dominant, metrics=metrics)
+        if not skills:
+            click.echo("No skill recommendations for current state.")
+            return
+
+        click.echo("Recommended skills:")
+        for s in skills:
+            imp = f"+{s.proven_improvement:.1%}" if s.proven_improvement else "unproven"
+            click.echo(f"  \u2022 {s.name} ({s.category}) \u2014 {s.description} [{imp}]")
+    finally:
+        store.close()
+
+
+@skill_group.command("apply")
+@click.argument("name")
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_apply(name: str, db: str) -> None:
+    """Apply a skill — run one optimization cycle guided by this skill."""
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        skill = store.get(name)
+        if skill is None:
+            click.echo(f"Skill not found: {name}")
+            raise SystemExit(1)
+        click.echo(f"Applying skill: {skill.name} ({skill.category})")
+        click.echo(f"  Mutations: {[m.name for m in skill.mutations]}")
+        click.echo(f"  Target surfaces: {skill.target_surfaces}")
+        click.echo("  Status: queued for next optimization cycle")
+    finally:
+        store.close()
+
+
+@skill_group.command("install")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_install(path: str, db: str) -> None:
+    """Install a skill pack from a YAML file."""
+    from registry.skill_loader import install_pack
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        count = install_pack(path, store)
+        click.echo(f"Installed {count} skill(s) from {path}")
+    finally:
+        store.close()
+
+
+@skill_group.command("export")
+@click.argument("name")
+@click.option("--output", "output_path", default=None, help="Output YAML file path.")
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_export(name: str, output_path: str | None, db: str) -> None:
+    """Export a skill to YAML."""
+    from registry.skill_loader import export_skill
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        skill = store.get(name)
+        if skill is None:
+            click.echo(f"Skill not found: {name}")
+            raise SystemExit(1)
+        out = output_path or f"{name}.yaml"
+        export_skill(skill, out)
+        click.echo(f"Exported {name} to {out}")
+    finally:
+        store.close()
+
+
+@skill_group.command("stats")
+@click.option("--top", "n", default=10, type=int, help="Number of top skills to show.")
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_stats(n: int, db: str) -> None:
+    """Show skill effectiveness leaderboard."""
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        top = store.top_performers(n=n)
+        if not top:
+            click.echo("No skill performance data yet.")
+            return
+        click.echo(f"{'Rank':<6} {'Name':<35} {'Applied':<10} {'Success':<10} {'Improvement':<12}")
+        click.echo("─" * 73)
+        for i, s in enumerate(top, 1):
+            imp = f"+{s.proven_improvement:.1%}" if s.proven_improvement else "—"
+            click.echo(f"{i:<6} {s.name:<35} {s.times_applied:<10} {s.success_rate:.0%}{'':>5} {imp:<12}")
+    finally:
+        store.close()
+
+
+@skill_group.command("learn")
+@click.option("--limit", default=20, type=int, help="Number of recent attempts to analyze.")
+@click.option("--db", default=REGISTRY_DB, show_default=True)
+def skill_learn(limit: int, db: str) -> None:
+    """Analyze recent optimizations and create draft skills."""
+    from registry.skill_learner import SkillLearner
+    from registry.skill_store import SkillStore
+    store = SkillStore(db_path=db)
+    try:
+        memory = OptimizationMemory(db_path=MEMORY_DB)
+        recent = memory.recent(limit=limit)
+        attempts = [
+            {
+                "attempt_id": a.attempt_id,
+                "change_description": a.change_description,
+                "config_section": a.config_section,
+                "config_diff": a.config_diff,
+                "status": a.status,
+                "score_before": a.score_before,
+                "score_after": a.score_after,
+            }
+            for a in recent
+        ]
+        learner = SkillLearner(store)
+        drafts = learner.learn_from_history(attempts)
+        if not drafts:
+            click.echo("No new skill patterns discovered.")
+            return
+        click.echo(f"Discovered {len(drafts)} draft skill(s):")
+        for draft in drafts:
+            click.echo(f"  \u2022 {draft.skill.name} ({draft.skill.category}) \u2014 confidence: {draft.confidence:.0%}")
+            # Register as draft
+            store.register(draft.skill)
+            click.echo(f"    Registered as draft (requires activation)")
+    finally:
+        store.close()
+
+
+# ---------------------------------------------------------------------------
 # autoagent trace ...
 # ---------------------------------------------------------------------------
 
@@ -3748,6 +3948,158 @@ def cx_status_cmd(project: str, location: str, agent_id: str, credentials: str |
         click.echo(f"    Description: {env.get('description', '—')}")
         versions = env.get("versions", [])
         click.echo(f"    Versions: {len(versions)}")
+
+
+# ---------------------------------------------------------------------------
+# autoagent adk (Agent Development Kit)
+# ---------------------------------------------------------------------------
+@cli.group("adk")
+def adk_group() -> None:
+    """Google Agent Development Kit (ADK) integration — import, export, deploy."""
+
+
+@adk_group.command("import")
+@click.argument("path")
+@click.option("--output", "-o", default=".", show_default=True, help="Output directory for config and snapshot.")
+def adk_import_cmd(path: str, output: str) -> None:
+    """Import an ADK agent from a local directory."""
+    from adk import AdkImporter
+
+    click.echo(f"  Importing ADK agent from {path}...")
+    importer = AdkImporter()
+    result = importer.import_agent(path, output_dir=output)
+
+    click.echo(click.style(f"\n  ✓ Imported: {result.agent_name}", fg="green"))
+    click.echo(f"    Config:   {result.config_path}")
+    click.echo(f"    Snapshot: {result.snapshot_path}")
+    click.echo(f"    Surfaces: {', '.join(result.surfaces_mapped)}")
+    click.echo(f"    Tools:    {result.tools_imported}")
+
+
+@adk_group.command("export")
+@click.argument("path")
+@click.option("--output", "-o", help="Output directory for modified source files.")
+@click.option("--snapshot", "-s", required=True, help="Snapshot directory path from import.")
+@click.option("--dry-run", is_flag=True, help="Preview changes without writing files.")
+def adk_export_cmd(path: str, output: str | None, snapshot: str, dry_run: bool) -> None:
+    """Export optimized config back to ADK source files."""
+    from pathlib import Path
+    import yaml
+    from adk import AdkExporter
+
+    config_path = Path(path)
+    if not config_path.exists():
+        click.echo(click.style(f"  Error: Config file not found: {path}", fg="red"))
+        return
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+    exporter = AdkExporter()
+
+    if dry_run:
+        click.echo("  Dry run — previewing changes...")
+
+    result = exporter.export_agent(config, snapshot, output_dir=output, dry_run=dry_run)
+
+    if not result.changes:
+        click.echo("  No changes detected.")
+        return
+
+    click.echo(f"\n  Changes ({len(result.changes)}):")
+    for change in result.changes:
+        action = change.get("action", "unknown")
+        resource = change.get("resource", "unknown")
+        name = change.get("name", change.get("field", ""))
+        click.echo(f"    {action.upper():<8} {resource}/{name}")
+
+    if not dry_run and result.files_modified > 0:
+        click.echo(click.style(f"\n  ✓ Modified {result.files_modified} file(s) in {result.output_path}", fg="green"))
+    elif not dry_run:
+        click.echo("\n  No files modified (dry run or no changes).")
+
+
+@adk_group.command("deploy")
+@click.argument("path")
+@click.option("--target", type=click.Choice(["cloud-run", "vertex-ai"]), default="cloud-run", show_default=True)
+@click.option("--project", required=True, help="GCP project ID.")
+@click.option("--region", default="us-central1", show_default=True, help="GCP region.")
+def adk_deploy_cmd(path: str, target: str, project: str, region: str) -> None:
+    """Deploy ADK agent to Cloud Run or Vertex AI."""
+    from adk import AdkDeployer
+
+    click.echo(f"  Deploying ADK agent from {path} to {target}...")
+    deployer = AdkDeployer()
+    result = deployer.deploy(path, target=target, project=project, region=region)
+
+    click.echo(click.style(f"\n  ✓ Deployed to {result.target}: {result.status}", fg="green"))
+    if result.url:
+        click.echo(f"    URL: {result.url}")
+    if result.deployment_info:
+        click.echo(f"    Info: {result.deployment_info}")
+
+
+@adk_group.command("status")
+@click.argument("path")
+def adk_status_cmd(path: str) -> None:
+    """Show ADK agent structure and config summary."""
+    from pathlib import Path
+    from adk import parse_agent_directory
+
+    agent_path = Path(path)
+    if not agent_path.exists():
+        click.echo(click.style(f"  Error: Agent path not found: {path}", fg="red"))
+        return
+
+    click.echo(f"  Parsing ADK agent at {path}...")
+    tree = parse_agent_directory(agent_path)
+
+    click.echo(click.style(f"\n  Agent: {tree.agent.name or 'unnamed'}", bold=True))
+    click.echo(f"  Model:  {tree.agent.model or 'not specified'}")
+    click.echo(f"  Tools:  {len(tree.tools)}")
+    click.echo(f"  Sub-agents: {len(tree.sub_agents)}")
+
+    if tree.tools:
+        click.echo(f"\n  Tools:")
+        for tool in tree.tools:
+            click.echo(f"    - {tool.name}")
+
+    if tree.sub_agents:
+        click.echo(f"\n  Sub-agents:")
+        for sub in tree.sub_agents:
+            click.echo(f"    - {sub.agent.name}")
+
+
+@adk_group.command("diff")
+@click.argument("path")
+@click.option("--snapshot", "-s", required=True, help="Snapshot directory path from import.")
+def adk_diff_cmd(path: str, snapshot: str) -> None:
+    """Preview what would change on export."""
+    from pathlib import Path
+    import yaml
+    from adk import AdkExporter
+
+    config_path = Path(path)
+    if not config_path.exists():
+        click.echo(click.style(f"  Error: Config file not found: {path}", fg="red"))
+        return
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+
+    exporter = AdkExporter()
+    changes = exporter.preview_changes(config, snapshot)
+
+    if not changes:
+        click.echo("  No changes detected.")
+        return
+
+    click.echo(f"\n  Preview ({len(changes)} change(s)):")
+    for change in changes:
+        action = change.get("action", "unknown")
+        resource = change.get("resource", "unknown")
+        name = change.get("name", change.get("field", ""))
+        click.echo(f"    {action.upper():<8} {resource}/{name}")
 
 
 if __name__ == "__main__":

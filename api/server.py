@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import (
+    adk as adk_routes,
     autofix,
     changes,
     config,
@@ -39,6 +40,7 @@ from api.routes import (
     runbooks,
     registry,
     scorers,
+    skills as skills_routes,
     traces,
 )
 from api.tasks import TaskManager
@@ -213,6 +215,14 @@ async def lifespan(app: FastAPI):
     )
     seed_starter_runbooks(app.state.runbook_store)
 
+    # Executable skills store
+    from registry.skill_store import SkillStore as ExecutableSkillStore
+    from registry.skill_loader import install_builtin_packs
+    app.state.skill_store = ExecutableSkillStore(
+        db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"),
+    )
+    install_builtin_packs(app.state.skill_store)
+
     # Change card store
     from optimizer.change_card import ChangeCardStore
     app.state.change_card_store = ChangeCardStore()
@@ -276,6 +286,8 @@ app.include_router(changes.router)
 app.include_router(runbooks.router)
 app.include_router(memory_routes.router)
 app.include_router(cx_studio_routes.router)
+app.include_router(adk_routes.router)
+app.include_router(skills_routes.router)
 
 
 # ---------------------------------------------------------------------------

@@ -17,6 +17,7 @@ const pageTitles: Record<string, string> = {
   '/events': 'Event Log',
   '/changes': 'Change Review',
   '/runbooks': 'Runbooks',
+  '/skills': 'Skills',
   '/memory': 'Project Memory',
   '/registry': 'Registry',
   '/blame': 'Blame Map',
