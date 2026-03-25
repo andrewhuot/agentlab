@@ -1,75 +1,155 @@
-"""Diagnosis chat API routes."""
+"""Conversational diagnosis API endpoints."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
-from pydantic import BaseModel
+import json
+import time
+import uuid
+from typing import Any
 
-router = APIRouter(prefix="/api", tags=["diagnose"])
+from fastapi import APIRouter, HTTPException, Request
 
-# In-memory session store (keyed by session_id).
-_sessions: dict[str, "DiagnoseSession"] = {}  # type: ignore[type-arg]
+from observer import Observer
+from optimizer.diagnose_session import DiagnoseSession
+from optimizer.memory import OptimizationAttempt
+from optimizer.nl_editor import NLEditor
 
-
-class DiagnoseChatRequest(BaseModel):
-    message: str
-    session_id: str | None = None
-
-
-class DiagnoseChatResponse(BaseModel):
-    response: str
-    actions: list[dict]
-    clusters: list[dict]
-    session_id: str
+router = APIRouter(prefix="/api/diagnose", tags=["diagnose"])
 
 
-@router.post("/diagnose/chat")
-async def diagnose_chat(req: DiagnoseChatRequest, request: Request) -> dict:
-    """Start or continue an interactive diagnosis session."""
-    from optimizer.diagnose_session import DiagnoseSession
+def _ensure_sessions(request: Request) -> dict[str, DiagnoseSession]:
+    sessions = getattr(request.app.state, "diagnose_sessions", None)
+    if sessions is None:
+        sessions = {}
+        request.app.state.diagnose_sessions = sessions
+    return sessions
 
-    if req.session_id and req.session_id in _sessions:
-        session = _sessions[req.session_id]
-    else:
-        # Create a new session wired to app-level dependencies when available.
-        session = DiagnoseSession(
-            store=getattr(request.app.state, "conversation_store", None),
-            observer=getattr(request.app.state, "observer", None),
-            proposer=getattr(request.app.state, "proposer", None),
-            eval_runner=getattr(request.app.state, "eval_runner", None),
-            deployer=getattr(request.app.state, "deployer", None),
-        )
-        summary = session.start()
-        _sessions[session.session_id] = session
 
-        if not req.message or req.message.strip() == "":
-            # Initial request — return the opening summary without processing a message.
-            return {
-                "response": summary,
-                "actions": _get_actions(session),
-                "clusters": [c.to_dict() for c in session.clusters],
-                "session_id": session.session_id,
+def _build_session(request: Request) -> DiagnoseSession:
+    store = request.app.state.conversation_store
+    observer = getattr(request.app.state, "observer", Observer(store))
+    proposer = getattr(request.app.state, "optimizer", None)
+    eval_runner = request.app.state.eval_runner
+    deployer = request.app.state.deployer
+    editor = NLEditor(use_mock=True)
+    return DiagnoseSession(
+        store=store,
+        observer=observer,
+        proposer=proposer,
+        eval_runner=eval_runner,
+        deployer=deployer,
+        nl_editor=editor,
+    )
+
+
+def _cluster_payload(session: DiagnoseSession) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for idx, cluster in enumerate(session.clusters):
+        rows.append(
+            {
+                "index": idx + 1,
+                "bucket": cluster.bucket,
+                "count": cluster.count,
+                "focused": idx == session.focused_cluster,
             }
+        )
+    return rows
 
-    response = session.handle_input(req.message)
 
+def _actions_payload(session: DiagnoseSession) -> list[dict[str, str]]:
+    actions: list[dict[str, str]] = []
+    if session.pending_change is not None:
+        actions.append({"label": "Apply Fix", "action": "apply"})
+    actions.extend(
+        [
+            {"label": "Show Examples", "action": "show examples"},
+            {"label": "Next Issue", "action": "next"},
+            {"label": "Skip", "action": "skip"},
+        ]
+    )
+    return actions
+
+
+def _record_applied_change(request: Request, session: DiagnoseSession, payload: dict[str, Any]) -> None:
+    memory = getattr(request.app.state, "optimization_memory", None)
+    observer = getattr(request.app.state, "observer", None)
+    if memory is None or observer is None:
+        return
+
+    report = observer.observe()
+    attempt = OptimizationAttempt(
+        attempt_id=str(uuid.uuid4())[:8],
+        timestamp=time.time(),
+        change_description=str(payload.get("description", "diagnose fix")),
+        config_diff=str(payload.get("diff", "")),
+        status="accepted",
+        config_section=f"diagnose:{payload.get('bucket', 'unknown')}",
+        score_before=float(payload.get("score_before", 0.0)),
+        score_after=float(payload.get("score_after", 0.0)),
+        significance_p_value=1.0,
+        significance_delta=float(payload.get("score_after", 0.0)) - float(payload.get("score_before", 0.0)),
+        significance_n=0,
+        health_context=json.dumps(report.metrics.to_dict()),
+    )
+    memory.log(attempt)
+
+    project_memory = getattr(request.app.state, "project_memory", None)
+    if project_memory is not None:
+        try:
+            project_memory.update_with_intelligence(
+                report=report,
+                eval_score=float(payload.get("score_after", 0.0)),
+                recent_changes=[attempt],
+                skill_gaps=[],
+            )
+        except Exception:
+            pass
+
+
+@router.post("")
+async def diagnose_overview(request: Request) -> dict[str, Any]:
+    """Run diagnosis once and return clustered summary."""
+    session = _build_session(request)
+    summary = session.start()
     return {
-        "response": response,
-        "actions": _get_actions(session),
-        "clusters": [c.to_dict() for c in session.clusters],
-        "session_id": session.session_id,
+        "summary": summary,
+        "clusters": _cluster_payload(session),
     }
 
 
-def _get_actions(session) -> list[dict]:
-    """Generate available action buttons based on current session state."""
-    actions: list[dict] = []
-    if session.focused_cluster:
-        actions.append({"label": "Show Examples", "action": "show examples"})
-        if session.pending_change:
-            actions.append({"label": "Apply Fix", "action": "apply"})
-        else:
-            actions.append({"label": "Fix This", "action": "fix"})
-        actions.append({"label": "Next Issue", "action": "next"})
-        actions.append({"label": "Skip", "action": "skip"})
-    return actions
+@router.post("/chat")
+async def diagnose_chat(request: Request) -> dict[str, Any]:
+    """Route one chat turn through a persistent DiagnoseSession."""
+    body = await request.json()
+    message = str(body.get("message", "")).strip()
+    session_id = str(body.get("session_id", "")).strip()
+
+    sessions = _ensure_sessions(request)
+    if session_id:
+        session = sessions.get(session_id)
+        if session is None:
+            raise HTTPException(status_code=404, detail=f"Unknown session_id: {session_id}")
+    else:
+        session = _build_session(request)
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = session
+        intro = session.start()
+        if not message:
+            return {
+                "response": intro,
+                "actions": _actions_payload(session),
+                "clusters": _cluster_payload(session),
+                "session_id": session_id,
+            }
+
+    before_applied = len(session.applied_changes)
+    response = session.handle_input(message)
+    if len(session.applied_changes) > before_applied:
+        _record_applied_change(request, session, session.applied_changes[-1])
+
+    return {
+        "response": response,
+        "actions": _actions_payload(session),
+        "clusters": _cluster_payload(session),
+        "session_id": session_id,
+    }

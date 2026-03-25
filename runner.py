@@ -473,7 +473,7 @@ def eval_group(ctx: click.Context) -> None:
               help="Dataset split to evaluate when using --dataset.")
 @click.option("--category", default=None, help="Run only a specific category.")
 @click.option("--output", default=None, help="Write results JSON to file.")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def eval_run(config_path: str | None, suite: str | None, dataset: str | None, dataset_split: str,
              category: str | None, output: str | None, json_output: bool = False) -> None:
     """Run eval suite against a config.
@@ -620,7 +620,7 @@ def eval_list() -> None:
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
     """Run optimization cycles to improve agent config.
 
@@ -1226,7 +1226,7 @@ def loop(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode: st
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
     """Show system health, config versions, and recent activity.
 
@@ -2653,7 +2653,7 @@ def skill_group() -> None:
 @click.option("--category", default=None, help="Filter by category (routing, safety, latency, quality, cost).")
 @click.option("--platform", default=None, help="Filter by platform (universal, cx-agent-studio).")
 @click.option("--db", default=REGISTRY_DB, show_default=True)
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def skill_list(category: str | None, platform: str | None, db: str, json_output: bool = False) -> None:
     """List all executable skills."""
     from registry.skill_store import SkillStore
@@ -2708,7 +2708,7 @@ def skill_show(name: str, version: int | None, db: str) -> None:
 
 @skill_group.command("recommend")
 @click.option("--db", default=REGISTRY_DB, show_default=True)
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def skill_recommend(db: str, json_output: bool = False) -> None:
     """Recommend skills based on current failure patterns."""
     from registry.skill_store import SkillStore
@@ -3669,7 +3669,7 @@ def demo_vp(agent_name: str, company: str, no_pause: bool, web: bool) -> None:
 @click.argument("description", required=False)
 @click.option("--interactive", "-i", is_flag=True, help="Multi-turn editing session.")
 @click.option("--dry-run", is_flag=True, help="Show proposed changes without applying.")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 def edit(description: str | None, interactive: bool, dry_run: bool, json_output: bool,
@@ -3742,7 +3742,7 @@ def edit(description: str | None, interactive: bool, dry_run: bool, json_output:
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def explain(verbose: bool, db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
     """Generate a plain-English summary of the agent's current state."""
     store = ConversationStore(db_path=db)
@@ -3930,7 +3930,7 @@ def explain(verbose: bool, db: str, configs_dir: str, memory_db: str, json_outpu
 
 @cli.command("diagnose")
 @click.option("--interactive", "-i", is_flag=True, help="Interactive diagnosis session.")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 @click.option("--db", default=DB_PATH, show_default=True)
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True)
 @click.option("--memory-db", default=MEMORY_DB, show_default=True)
@@ -3976,7 +3976,7 @@ def diagnose(interactive: bool, json_output: bool, db: str, configs_dir: str, me
 @cli.command("replay")
 @click.option("--limit", default=20, show_default=True, type=int, help="Number of entries to show.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def replay(limit: int, memory_db: str, json_output: bool = False) -> None:
     """Show optimization history like git log --oneline."""
     memory = OptimizationMemory(db_path=memory_db)
@@ -4309,7 +4309,7 @@ def adk_deploy_cmd(path: str, target: str, project: str, region: str) -> None:
 
 @adk_group.command("status")
 @click.argument("path")
-@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def adk_status_cmd(path: str, json_output: bool = False) -> None:
     """Show ADK agent structure and config summary."""
     from pathlib import Path
