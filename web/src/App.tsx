@@ -29,6 +29,7 @@ import { CxDeploy } from './pages/CxDeploy';
 import { LiveOptimize } from './pages/LiveOptimize';
 import { AdkImport } from './pages/AdkImport';
 import { AdkDeploy } from './pages/AdkDeploy';
+import { AgentSkills } from './pages/AgentSkills';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +73,7 @@ export default function App() {
             <Route path="/cx/deploy" element={<CxDeploy />} />
             <Route path="/adk/import" element={<AdkImport />} />
             <Route path="/adk/deploy" element={<AdkDeploy />} />
+            <Route path="/agent-skills" element={<AgentSkills />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Layout>

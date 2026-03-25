@@ -51,6 +51,7 @@ const navItems = [
   { to: '/scorer-studio', label: 'Scorer Studio', icon: Sparkles },
   { to: '/adk/import', label: 'ADK Import', icon: Puzzle },
   { to: '/adk/deploy', label: 'ADK Deploy', icon: Rocket },
+  { to: '/agent-skills', label: 'Agent Skills', icon: Sparkles },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

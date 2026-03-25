@@ -22,6 +22,7 @@ const pageTitles: Record<string, string> = {
   '/registry': 'Registry',
   '/blame': 'Blame Map',
   '/scorer-studio': 'Scorer Studio',
+  '/agent-skills': 'Agent Skills',
   '/settings': 'Settings',
 };
 

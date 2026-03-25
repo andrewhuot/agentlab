@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from api.routes import (
     adk as adk_routes,
+    agent_skills as agent_skills_routes,
     autofix,
     changes,
     config,
@@ -231,6 +232,10 @@ async def lifespan(app: FastAPI):
     from core.project_memory import ProjectMemory
     app.state.project_memory = ProjectMemory.load() or ProjectMemory()
 
+    # Agent skill generation store
+    from agent_skills.store import AgentSkillStore
+    app.state.agent_skill_store = AgentSkillStore()
+
     yield
     # No explicit cleanup needed — SQLite connections are context-managed
 
@@ -288,6 +293,7 @@ app.include_router(memory_routes.router)
 app.include_router(cx_studio_routes.router)
 app.include_router(adk_routes.router)
 app.include_router(skills_routes.router)
+app.include_router(agent_skills_routes.router)
 
 
 # ---------------------------------------------------------------------------

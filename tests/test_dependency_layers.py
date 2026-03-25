@@ -85,6 +85,7 @@ LAYER_1_PREFIXES = {
     "deployer",
     "control",
     "cx_studio",
+    "agent_skills",
 }
 
 LAYER_2_PREFIXES = {
