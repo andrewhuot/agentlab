@@ -4029,8 +4029,11 @@ def adk_deploy_cmd(path: str, target: str, project: str, region: str) -> None:
     from adk import AdkDeployer
 
     click.echo(f"  Deploying ADK agent from {path} to {target}...")
-    deployer = AdkDeployer()
-    result = deployer.deploy(path, target=target, project=project, region=region)
+    deployer = AdkDeployer(project=project, region=region)
+    if target == "cloud-run":
+        result = deployer.deploy_to_cloud_run(path)
+    else:
+        result = deployer.deploy_to_vertex_ai(path)
 
     click.echo(click.style(f"\n  ✓ Deployed to {result.target}: {result.status}", fg="green"))
     if result.url:
