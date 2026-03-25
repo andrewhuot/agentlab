@@ -27,6 +27,8 @@ from api.routes import (
     conversations,
     cx_studio as cx_studio_routes,
     deploy,
+    diagnose as diagnose_routes,
+    edit as edit_routes,
     eval,
     events,
     experiments,
@@ -294,6 +296,8 @@ app.include_router(cx_studio_routes.router)
 app.include_router(adk_routes.router)
 app.include_router(skills_routes.router)
 app.include_router(agent_skills_routes.router)
+app.include_router(edit_routes.router)
+app.include_router(diagnose_routes.router)
 
 
 # ---------------------------------------------------------------------------

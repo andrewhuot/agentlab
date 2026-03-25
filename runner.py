@@ -473,8 +473,9 @@ def eval_group(ctx: click.Context) -> None:
               help="Dataset split to evaluate when using --dataset.")
 @click.option("--category", default=None, help="Run only a specific category.")
 @click.option("--output", default=None, help="Write results JSON to file.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
 def eval_run(config_path: str | None, suite: str | None, dataset: str | None, dataset_split: str,
-             category: str | None, output: str | None) -> None:
+             category: str | None, output: str | None, json_output: bool = False) -> None:
     """Run eval suite against a config.
 
     Examples:
@@ -484,7 +485,7 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
       autoagent eval run --output results.json
     """
     runtime = load_runtime_config()
-    if runtime.optimizer.use_mock:
+    if runtime.optimizer.use_mock and not json_output:
         click.echo(click.style(
             "\u26a0 Running with mock provider. Results are simulated. "
             "Set use_mock: false in autoagent.yaml for real evaluation.",
@@ -494,9 +495,11 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
     config = None
     if config_path:
         config = _load_config_dict(config_path)
-        click.echo(f"Evaluating config: {config_path}")
+        if not json_output:
+            click.echo(f"Evaluating config: {config_path}")
     else:
-        click.echo("Evaluating with default config")
+        if not json_output:
+            click.echo("Evaluating with default config")
 
     runner = EvalRunner(
         cases_dir=suite,
@@ -505,9 +508,15 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
 
     if category:
         score = runner.run_category(category, config=config, dataset_path=dataset, split=dataset_split)
+        if json_output:
+            click.echo(json.dumps(_score_to_dict(score), indent=2))
+            return
         _print_score(score, f"Category: {category}")
     else:
         score = runner.run(config=config, dataset_path=dataset, split=dataset_split)
+        if json_output:
+            click.echo(json.dumps(_score_to_dict(score), indent=2))
+            return
         _print_score(score, "Full eval suite")
 
     if output:
@@ -611,7 +620,8 @@ def eval_list() -> None:
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, configs_dir: str, memory_db: str) -> None:
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
     """Run optimization cycles to improve agent config.
 
     Examples:
@@ -657,11 +667,23 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
     if best_score_file.exists():
         all_time_best = float(best_score_file.read_text().strip())
 
+    json_cycle_results: list[dict] = []
+
     for cycle in range(1, cycles + 1):
         report = observer.observe()
 
         if not report.needs_optimization:
-            click.echo(f"\n  Cycle {cycle}/{cycles} — System healthy; skipping optimization.")
+            if not json_output:
+                click.echo(f"\n  Cycle {cycle}/{cycles} — System healthy; skipping optimization.")
+            json_cycle_results.append({
+                "cycle": cycle,
+                "total_cycles": cycles,
+                "status": "skipped",
+                "accepted": False,
+                "score_before": None,
+                "score_after": None,
+                "change_description": None,
+            })
             continue
 
         current_config = _ensure_active_config(deployer)
@@ -680,16 +702,27 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
         score_before: float | None = latest.score_before if latest else None
         p_value: float | None = latest.significance_p_value if latest else None
 
-        _stream_cycle_output(
-            cycle_num=cycle,
-            total=cycles,
-            report=report,
-            proposal_desc=proposal_desc,
-            score_after=score_after,
-            score_before=score_before,
-            p_value=p_value,
-            all_time_best=all_time_best,
-        )
+        json_cycle_results.append({
+            "cycle": cycle,
+            "total_cycles": cycles,
+            "status": opt_status,
+            "accepted": new_config is not None,
+            "score_before": score_before,
+            "score_after": score_after,
+            "change_description": proposal_desc,
+        })
+
+        if not json_output:
+            _stream_cycle_output(
+                cycle_num=cycle,
+                total=cycles,
+                report=report,
+                proposal_desc=proposal_desc,
+                score_after=score_after,
+                score_before=score_before,
+                p_value=p_value,
+                all_time_best=all_time_best,
+            )
 
         # Update all_time_best if we got a new score
         if score_after is not None and score_after > all_time_best:
@@ -698,7 +731,12 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
         if new_config is not None:
             score = eval_runner.run(config=new_config)
             deploy_result = deployer.deploy(new_config, _score_to_dict(score))
-            click.echo(f"  Deploy: {deploy_result}")
+            if not json_output:
+                click.echo(f"  Deploy: {deploy_result}")
+
+    if json_output:
+        click.echo(json.dumps(json_cycle_results, indent=2))
+        return
 
     if cycles > 1:
         click.echo(f"\nOptimization complete. {cycles} cycles executed.")
@@ -1188,16 +1226,13 @@ def loop(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode: st
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-def status(db: str, configs_dir: str, memory_db: str) -> None:
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
     """Show system health, config versions, and recent activity.
 
     Examples:
       autoagent status
     """
-    # Feature 5: Rich status display
-    click.echo(click.style("\nAutoAgent Status", bold=True))
-    click.echo("━" * 17)
-
     store = ConversationStore(db_path=db)
     deployer = Deployer(configs_dir=configs_dir, store=store)
     memory = OptimizationMemory(db_path=memory_db)
@@ -1205,34 +1240,55 @@ def status(db: str, configs_dir: str, memory_db: str) -> None:
     # Config info
     deploy_status = deployer.status()
     active = deploy_status["active_version"]
-    config_str = f"v{active:03d}" if active else "none"
-    click.echo(f"  Config:     {config_str}")
 
     # Conversations count (preserved for compatibility)
     total_conversations = store.count()
-    click.echo(f"  Conversations: {total_conversations}")
 
     # Eval score from memory
     recent_attempts = memory.recent(limit=1)
-    if recent_attempts:
-        latest = recent_attempts[0]
-        click.echo(f"  Eval score: {latest.score_after:.4f}")
-    else:
-        click.echo("  Eval score: n/a")
+    latest = recent_attempts[0] if recent_attempts else None
 
     # Health metrics
     report = Observer(store).observe()
     metrics = report.metrics
-    safety_str = f"{metrics.safety_violation_rate:.3f}"
-    safety_ok = "✓" if metrics.safety_violation_rate == 0.0 else "✗"
-    click.echo(f"  Safety:     {safety_str} {safety_ok}")
 
     # Cycles run
     all_attempts = memory.recent(limit=100)
-    click.echo(f"  Cycles run: {len(all_attempts)}")
 
     # Top failures bar chart
     buckets = report.failure_buckets
+
+    if json_output:
+        data = {
+            "config_version": active,
+            "conversations": total_conversations,
+            "eval_score": latest.score_after if latest else None,
+            "safety_violation_rate": metrics.safety_violation_rate,
+            "cycles_run": len(all_attempts),
+            "failure_buckets": buckets,
+            "loop_status": "idle",
+        }
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    # Feature 5: Rich status display
+    click.echo(click.style("\nAutoAgent Status", bold=True))
+    click.echo("━" * 17)
+
+    config_str = f"v{active:03d}" if active else "none"
+    click.echo(f"  Config:     {config_str}")
+    click.echo(f"  Conversations: {total_conversations}")
+
+    if latest:
+        click.echo(f"  Eval score: {latest.score_after:.4f}")
+    else:
+        click.echo("  Eval score: n/a")
+
+    safety_str = f"{metrics.safety_violation_rate:.3f}"
+    safety_ok = "✓" if metrics.safety_violation_rate == 0.0 else "✗"
+    click.echo(f"  Safety:     {safety_str} {safety_ok}")
+    click.echo(f"  Cycles run: {len(all_attempts)}")
+
     if buckets:
         click.echo("\n  Top failures:")
         total_failures = sum(buckets.values())
@@ -2234,6 +2290,30 @@ def server(host: str, port: int, reload: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
+# autoagent mcp-server
+# ---------------------------------------------------------------------------
+
+@cli.command("mcp-server")
+@click.option("--port", default=None, type=int, help="HTTP/SSE port (default: stdio mode).")
+def mcp_server_cmd(port: int | None) -> None:
+    """Start MCP server for AI coding tool integration.
+
+    By default runs in stdio mode (for Claude Code, Codex, etc.).
+    Use --port for HTTP/SSE mode.
+
+    Examples:
+      autoagent mcp-server
+      autoagent mcp-server --port 8081
+    """
+    if port is not None:
+        click.echo(f"HTTP/SSE mode on port {port} is not yet implemented. Use stdio mode.")
+        return
+
+    from mcp_server.server import run_stdio
+    run_stdio()
+
+
+# ---------------------------------------------------------------------------
 # Legacy: autoagent run (kept for backward compatibility)
 # ---------------------------------------------------------------------------
 
@@ -2573,14 +2653,31 @@ def skill_group() -> None:
 @click.option("--category", default=None, help="Filter by category (routing, safety, latency, quality, cost).")
 @click.option("--platform", default=None, help="Filter by platform (universal, cx-agent-studio).")
 @click.option("--db", default=REGISTRY_DB, show_default=True)
-def skill_list(category: str | None, platform: str | None, db: str) -> None:
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def skill_list(category: str | None, platform: str | None, db: str, json_output: bool = False) -> None:
     """List all executable skills."""
     from registry.skill_store import SkillStore
     store = SkillStore(db_path=db)
     try:
         skills = store.list(category=category, platform=platform)
         if not skills:
-            click.echo("No skills found.")
+            if json_output:
+                click.echo(json.dumps([], indent=2))
+            else:
+                click.echo("No skills found.")
+            return
+        if json_output:
+            data = [
+                {
+                    "name": s.name,
+                    "category": s.category,
+                    "platform": s.platform,
+                    "success_rate": s.success_rate,
+                    "times_applied": s.times_applied,
+                }
+                for s in skills
+            ]
+            click.echo(json.dumps(data, indent=2))
             return
         click.echo(f"{'Name':<35} {'Category':<12} {'Platform':<20} {'Success':<10} {'Applied':<8}")
         click.echo("─" * 85)
@@ -2611,7 +2708,8 @@ def skill_show(name: str, version: int | None, db: str) -> None:
 
 @skill_group.command("recommend")
 @click.option("--db", default=REGISTRY_DB, show_default=True)
-def skill_recommend(db: str) -> None:
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def skill_recommend(db: str, json_output: bool = False) -> None:
     """Recommend skills based on current failure patterns."""
     from registry.skill_store import SkillStore
     store = SkillStore(db_path=db)
@@ -2634,7 +2732,23 @@ def skill_recommend(db: str) -> None:
 
         skills = store.recommend(failure_family=dominant, metrics=metrics)
         if not skills:
-            click.echo("No skill recommendations for current state.")
+            if json_output:
+                click.echo(json.dumps([], indent=2))
+            else:
+                click.echo("No skill recommendations for current state.")
+            return
+
+        if json_output:
+            data = [
+                {
+                    "name": s.name,
+                    "category": s.category,
+                    "description": s.description,
+                    "proven_improvement": s.proven_improvement,
+                }
+                for s in skills
+            ]
+            click.echo(json.dumps(data, indent=2))
             return
 
         click.echo("Recommended skills:")
@@ -3547,12 +3661,89 @@ def demo_vp(agent_name: str, company: str, no_pause: bool, web: bool) -> None:
         _auto_open_console()
 
 
+# ---------------------------------------------------------------------------
+# autoagent edit — Natural Language Config Editing
+# ---------------------------------------------------------------------------
+
+@cli.command("edit")
+@click.argument("description", required=False)
+@click.option("--interactive", "-i", is_flag=True, help="Multi-turn editing session.")
+@click.option("--dry-run", is_flag=True, help="Show proposed changes without applying.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
+@click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
+def edit(description: str | None, interactive: bool, dry_run: bool, json_output: bool,
+         db: str, configs_dir: str) -> None:
+    """Apply natural language edits to agent config.
+
+    Examples:
+      autoagent edit "Make the billing agent more empathetic"
+      autoagent edit "Reduce response verbosity" --dry-run
+      autoagent edit --interactive
+    """
+    from optimizer.nl_editor import NLEditor
+
+    store = ConversationStore(db_path=db)
+    deployer = Deployer(configs_dir=configs_dir, store=store)
+    current_config = _ensure_active_config(deployer)
+    editor = NLEditor()
+
+    if interactive:
+        click.echo("AutoAgent Edit (type 'quit' to exit)")
+        while True:
+            try:
+                user_input = click.prompt(">", prompt_suffix=" ")
+            except (EOFError, KeyboardInterrupt):
+                break
+            if user_input.strip().lower() in ("quit", "exit", "q"):
+                break
+            result = editor.apply_and_eval(user_input, current_config)
+            if json_output:
+                click.echo(json.dumps(result.to_dict(), indent=2))
+            else:
+                click.echo(f"  Surfaces: {', '.join(editor.parse_intent(user_input, current_config).target_surfaces)}")
+                click.echo(f"  Diff: {result.diff_summary}")
+                click.echo(f"  Eval: {result.score_before:.2f} → {result.score_after:.2f} ({result.score_after - result.score_before:+.2f})")
+                if not dry_run and result.accepted:
+                    current_config = result.new_config
+                    click.echo(click.style("  ✓ Applied.", fg="green"))
+                elif dry_run:
+                    click.echo("  (dry run — not applied)")
+                else:
+                    click.echo(click.style("  ✗ Rejected (score did not improve).", fg="red"))
+        return
+
+    if not description:
+        click.echo("Usage: autoagent edit \"description\" or autoagent edit --interactive")
+        return
+
+    result = editor.apply_and_eval(description, current_config)
+
+    if json_output:
+        click.echo(json.dumps(result.to_dict(), indent=2))
+        return
+
+    intent = editor.parse_intent(description, current_config)
+    click.echo(f"  Intent: {intent.change_type}")
+    click.echo(f"  Surfaces: {', '.join(intent.target_surfaces)}")
+    click.echo(f"  Diff: {result.diff_summary}")
+    click.echo(f"  Eval: {result.score_before:.2f} → {result.score_after:.2f} ({result.score_after - result.score_before:+.2f})")
+
+    if dry_run:
+        click.echo("  (dry run — not applied)")
+    elif result.accepted:
+        click.echo(click.style("  ✓ Applied.", fg="green"))
+    else:
+        click.echo(click.style("  ✗ Rejected (score did not improve).", fg="red"))
+
+
 @cli.command("explain")
 @click.option("--verbose", is_flag=True, default=False, help="Show detailed breakdown.")
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-def explain(verbose: bool, db: str, configs_dir: str, memory_db: str) -> None:
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def explain(verbose: bool, db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
     """Generate a plain-English summary of the agent's current state."""
     store = ConversationStore(db_path=db)
     observer = Observer(store)
@@ -3595,6 +3786,25 @@ def explain(verbose: bool, db: str, configs_dir: str, memory_db: str) -> None:
         header_parts.append(f"({runtime_label})")
     header = "Your Agent: " + " ".join(header_parts)
 
+    # Prose summary
+    cycle_count = len(attempts)
+    pct_correct = int(sr * 100)
+
+    top_bucket = max(failure_buckets, key=failure_buckets.get) if failure_buckets else None
+    total_failures = sum(failure_buckets.values())
+
+    if json_output:
+        data = {
+            "health_label": health_label,
+            "success_rate": sr,
+            "failure_buckets": failure_buckets,
+            "top_failure": top_bucket,
+            "cycle_count": cycle_count,
+            "config_version": dep_status.get("active_version"),
+        }
+        click.echo(json.dumps(data, indent=2))
+        return
+
     click.echo(click.style(header, bold=True))
     click.echo(click.style("━" * len(header), fg="cyan"))
     click.echo()
@@ -3602,13 +3812,6 @@ def explain(verbose: bool, db: str, configs_dir: str, memory_db: str) -> None:
     health_str = click.style(f"{health_label} ({sr:.2f}/1.00)", fg=health_color, bold=True)
     click.echo(f"Overall health: {health_str}")
     click.echo()
-
-    # Prose summary
-    cycle_count = len(attempts)
-    pct_correct = int(sr * 100)
-
-    top_bucket = max(failure_buckets, key=failure_buckets.get) if failure_buckets else None
-    total_failures = sum(failure_buckets.values())
 
     if top_bucket and total_failures > 0:
         top_pct = int((failure_buckets[top_bucket] / total_failures) * 100)
@@ -3725,13 +3928,75 @@ def explain(verbose: bool, db: str, configs_dir: str, memory_db: str) -> None:
             click.echo("  No optimization history yet.")
 
 
+@cli.command("diagnose")
+@click.option("--interactive", "-i", is_flag=True, help="Interactive diagnosis session.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--db", default=DB_PATH, show_default=True)
+@click.option("--configs-dir", default=CONFIGS_DIR, show_default=True)
+@click.option("--memory-db", default=MEMORY_DB, show_default=True)
+def diagnose(interactive: bool, json_output: bool, db: str, configs_dir: str, memory_db: str) -> None:
+    """Run failure diagnosis and optionally fix issues interactively."""
+    from optimizer.diagnose_session import DiagnoseSession
+
+    store = ConversationStore(db_path=db)
+    observer = Observer(store)
+    deployer = Deployer(configs_dir=configs_dir, store=store)
+
+    session = DiagnoseSession(
+        store=store,
+        observer=observer,
+        deployer=deployer,
+    )
+    summary = session.start()
+
+    if json_output:
+        click.echo(json.dumps(session.to_dict(), indent=2))
+        return
+
+    click.echo(summary)
+
+    if not interactive:
+        return
+
+    # Interactive REPL
+    click.echo("\nAutoAgent Diagnosis (type 'quit' to exit)")
+    while True:
+        try:
+            user_input = click.prompt(">", prompt_suffix=" ")
+        except (EOFError, KeyboardInterrupt):
+            break
+        if not user_input.strip():
+            continue
+        response = session.handle_input(user_input)
+        click.echo(response)
+        if session._classify_input(user_input) == "quit":
+            break
+
+
 @cli.command("replay")
 @click.option("--limit", default=20, show_default=True, type=int, help="Number of entries to show.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
-def replay(limit: int, memory_db: str) -> None:
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def replay(limit: int, memory_db: str, json_output: bool = False) -> None:
     """Show optimization history like git log --oneline."""
     memory = OptimizationMemory(db_path=memory_db)
     attempts = memory.recent(limit=limit)
+
+    if json_output:
+        data = [
+            {
+                "version": i + 1,
+                "score_before": attempt.score_before,
+                "score_after": attempt.score_after,
+                "status": attempt.status,
+                "change_description": attempt.change_description,
+                "timestamp": attempt.timestamp,
+                "config_section": attempt.config_section,
+            }
+            for i, attempt in enumerate(reversed(attempts))
+        ]
+        click.echo(json.dumps(data, indent=2))
+        return
 
     click.echo(click.style("AutoAgent Optimization History", bold=True))
     click.echo(click.style("━" * 30, fg="cyan"))
@@ -4044,7 +4309,8 @@ def adk_deploy_cmd(path: str, target: str, project: str, region: str) -> None:
 
 @adk_group.command("status")
 @click.argument("path")
-def adk_status_cmd(path: str) -> None:
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def adk_status_cmd(path: str, json_output: bool = False) -> None:
     """Show ADK agent structure and config summary."""
     from pathlib import Path
     from adk import parse_agent_directory
@@ -4056,6 +4322,16 @@ def adk_status_cmd(path: str) -> None:
 
     click.echo(f"  Parsing ADK agent at {path}...")
     tree = parse_agent_directory(agent_path)
+
+    if json_output:
+        data = {
+            "agent_name": tree.agent.name,
+            "model": tree.agent.model,
+            "tools": [t.name for t in tree.tools],
+            "sub_agents": [s.agent.name for s in tree.sub_agents],
+        }
+        click.echo(json.dumps(data, indent=2))
+        return
 
     click.echo(click.style(f"\n  Agent: {tree.agent.name or 'unnamed'}", bold=True))
     click.echo(f"  Model:  {tree.agent.model or 'not specified'}")

@@ -808,3 +808,24 @@ export interface AdkDeployResult {
   status: string;
   deployment_info: Record<string, any>;
 }
+
+// Diagnosis Chat types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  metadata?: {
+    type?: 'text' | 'diff' | 'metrics' | 'action';
+    diff?: string;
+    metrics?: { before: number; after: number };
+    actions?: { label: string; action: string }[];
+  };
+}
+
+export interface DiagnoseChatResponse {
+  response: string;
+  actions: { label: string; action: string }[];
+  clusters: any[];
+  session_id: string;
+}

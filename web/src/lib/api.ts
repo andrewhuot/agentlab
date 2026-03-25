@@ -48,6 +48,7 @@ import type {
   TaskStatus,
   Trace,
   TraceEvent,
+  DiagnoseChatResponse,
 } from './types';
 
 const API_BASE = '/api';
@@ -1627,5 +1628,16 @@ export function useAdkDiff(configPath: string, snapshotPath: string) {
     queryKey: ['adk-diff', configPath, snapshotPath],
     queryFn: () => fetchApi(`/adk/diff?config_path=${encodeURIComponent(configPath)}&snapshot_path=${encodeURIComponent(snapshotPath)}`),
     enabled: !!configPath && !!snapshotPath,
+  });
+}
+
+// Diagnosis Chat
+export function useDiagnoseChat() {
+  return useMutation({
+    mutationFn: (data: { message: string; session_id?: string }) =>
+      fetchApi<DiagnoseChatResponse>('/diagnose/chat', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   });
 }

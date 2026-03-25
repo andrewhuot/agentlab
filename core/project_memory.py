@@ -12,6 +12,9 @@ from typing import Any
 
 AUTOAGENT_MD_FILENAME = "AUTOAGENT.md"
 
+INTEL_BEGIN = "<!-- BEGIN AUTOAGENT INTELLIGENCE — auto-updated, do not edit -->"
+INTEL_END = "<!-- END AUTOAGENT INTELLIGENCE -->"
+
 AUTOAGENT_MD_TEMPLATE = '''# AUTOAGENT.md — Project Memory
 
 ## Agent Identity
@@ -86,6 +89,118 @@ class ProjectMemory:
                     if keyword in lower:
                         immutable.add(keyword)
         return immutable
+
+    def _build_intelligence_section(
+        self,
+        report: dict | None,
+        eval_score: float | None,
+        recent_changes: list[dict] | None,
+        skill_gaps: list[dict] | None,
+    ) -> str:
+        """Build the markdown content for the intelligence section."""
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+
+        # Extract metrics from report
+        safety = "n/a"
+        routing = "n/a"
+        latency = "n/a"
+        issues: list[str] = []
+        if report:
+            svr = report.get("safety_violation_rate")
+            safety = f"{svr:.2f}" if svr is not None else "n/a"
+            sr = report.get("success_rate")
+            routing = f"{sr * 100:.0f}" if sr is not None else "n/a"
+            lat = report.get("avg_latency_ms")
+            latency = f"{lat / 1000:.1f}" if lat is not None else "n/a"
+            # Collect issues from report
+            for key, val in report.items():
+                if key.endswith("_issues") and isinstance(val, list):
+                    issues.extend(val)
+                elif key == "issues" and isinstance(val, list):
+                    issues.extend(val)
+
+        score_str = f"{eval_score:.2f}" if eval_score is not None else "n/a"
+
+        lines: list[str] = [INTEL_BEGIN]
+        lines.append("## Current Health")
+        lines.append(
+            f"Score: {score_str} | Safety: {safety} | Routing: {routing}% | Latency: {latency}s"
+        )
+        lines.append(f"Last updated: {ts} UTC")
+        lines.append("")
+
+        lines.append("## Active Issues")
+        if issues:
+            for i, issue in enumerate(issues, 1):
+                lines.append(f"{i}. {issue}")
+        else:
+            lines.append("No active issues")
+        lines.append("")
+
+        lines.append("## Recent Changes")
+        if recent_changes:
+            for change in recent_changes:
+                version = change.get("version", "?")
+                delta = change.get("delta", 0.0)
+                description = change.get("description", "")
+                sign = "+" if delta >= 0 else ""
+                lines.append(f"- v{version} ({sign}{delta:.2f}): {description}")
+        else:
+            lines.append("No recent changes")
+        lines.append("")
+
+        lines.append("## Skill Gaps")
+        if skill_gaps:
+            for gap in skill_gaps:
+                description = gap.get("description", "")
+                count = gap.get("count", 0)
+                handled = gap.get("handled", 0)
+                lines.append(f"- {description} ({count} user requests, {handled} handled)")
+        else:
+            lines.append("No skill gaps identified")
+        lines.append(INTEL_END)
+
+        return "\n".join(lines)
+
+    def update_with_intelligence(
+        self,
+        report: dict | None = None,
+        eval_score: float | None = None,
+        recent_changes: list[dict] | None = None,
+        skill_gaps: list[dict] | None = None,
+    ) -> None:
+        """Update AUTOAGENT.md with current agent intelligence.
+
+        Manages content between sentinel markers. Preserves all user-written
+        content outside the markers.
+        """
+        # Ensure file_path is set
+        if not self.file_path:
+            self.save()
+
+        # Reload from disk in case of external modifications
+        path = Path(self.file_path)
+        if path.exists():
+            current_content = path.read_text(encoding="utf-8")
+        else:
+            current_content = self.raw_content
+
+        intel_section = self._build_intelligence_section(
+            report, eval_score, recent_changes, skill_gaps
+        )
+
+        if INTEL_BEGIN in current_content and INTEL_END in current_content:
+            # Replace existing section (inclusive of markers)
+            before = current_content[: current_content.index(INTEL_BEGIN)]
+            after = current_content[current_content.index(INTEL_END) + len(INTEL_END):]
+            new_content = before + intel_section + after
+        else:
+            # Append at the end, ensuring a newline separator
+            separator = "" if current_content.endswith("\n") else "\n"
+            new_content = current_content + separator + intel_section + "\n"
+
+        path.write_text(new_content, encoding="utf-8")
+        self.raw_content = new_content
 
     @classmethod
     def load(cls, directory: str = ".") -> ProjectMemory | None:

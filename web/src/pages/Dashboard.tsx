@@ -16,6 +16,7 @@ import {
 } from '../lib/api';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { Confetti } from '../components/Confetti';
+import { DiagnosisChat } from '../components/DiagnosisChat';
 import { EmptyState } from '../components/EmptyState';
 import { FixButton } from '../components/FixButton';
 import { HealthPulse } from '../components/HealthPulse';
@@ -529,6 +530,9 @@ export function Dashboard() {
           </ul>
         </div>
       )}
+
+      {/* Diagnosis Chat Widget */}
+      <DiagnosisChat />
     </div>
   );
 }

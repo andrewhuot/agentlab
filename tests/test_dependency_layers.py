@@ -86,6 +86,8 @@ LAYER_1_PREFIXES = {
     "control",
     "cx_studio",
     "agent_skills",
+    "optimizer.nl_editor",
+    "optimizer.diagnose_session",
 }
 
 LAYER_2_PREFIXES = {
@@ -93,6 +95,7 @@ LAYER_2_PREFIXES = {
     "web",
     "agent.server",
     "agent.dashboard_data",
+    "mcp_server",
 }
 
 # runner.py is special — it's the CLI and can import anything
