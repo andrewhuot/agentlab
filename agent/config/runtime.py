@@ -2,11 +2,34 @@
 
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+
+_LEGACY_TO_MODE = {
+    "simple": "standard",
+    "adaptive": "advanced",
+    "full": "research",
+    "pro": "research",
+}
+
+
+def _legacy_strategy_to_mode(strategy: str | None) -> str:
+    normalized = (strategy or "").strip().lower()
+    return _LEGACY_TO_MODE.get(normalized, "standard")
+
+
+def _mode_to_legacy_strategy(mode: str | None) -> str:
+    normalized = (mode or "").strip().lower()
+    if normalized == "advanced":
+        return "adaptive"
+    if normalized == "research":
+        return "full"
+    return "simple"
 
 
 class RetryConfig(BaseModel):
@@ -117,6 +140,56 @@ class RuntimeConfig(BaseModel):
     eval: EvalRuntimeConfig = Field(default_factory=EvalRuntimeConfig)
     budget: BudgetRuntimeConfig = Field(default_factory=BudgetRuntimeConfig)
     optimization: OptimizationConfig = Field(default_factory=OptimizationConfig)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_legacy(cls, raw: object) -> object:
+        """Migrate legacy strategy-centric config to optimization-first fields."""
+        if isinstance(raw, dict):
+            return migrate_legacy_runtime_config(raw)
+        return raw
+
+
+def migrate_legacy_runtime_config(data: dict) -> dict:
+    """Convert legacy strategy-centric config keys into optimization-first fields."""
+    migrated = copy.deepcopy(data)
+    optimizer = migrated.get("optimizer")
+    if not isinstance(optimizer, dict):
+        optimizer = {}
+        migrated["optimizer"] = optimizer
+
+    optimization = migrated.get("optimization")
+    if not isinstance(optimization, dict):
+        optimization = {}
+        migrated["optimization"] = optimization
+
+    # Infer mode from legacy search_strategy if not explicitly set
+    resolved_mode = optimization.get("mode")
+    if not isinstance(resolved_mode, str) or not resolved_mode.strip():
+        resolved_mode = _legacy_strategy_to_mode(
+            str(optimizer.get("search_strategy", "simple"))
+        )
+    optimization["mode"] = resolved_mode
+
+    # Default objective
+    if not isinstance(optimization.get("objective"), str) or not optimization.get("objective", "").strip():
+        optimization["objective"] = "Maximize task success while honoring guardrails."
+
+    # Normalize guardrails
+    guardrails = optimization.get("guardrails")
+    if not isinstance(guardrails, list):
+        optimization["guardrails"] = []
+
+    # Normalize autonomy
+    autonomy = str(optimization.get("autonomy", "supervised")).strip().lower()
+    if autonomy not in {"supervised", "semi-auto", "autonomous"}:
+        autonomy = "supervised"
+    optimization["autonomy"] = autonomy
+
+    # Back-fill legacy search_strategy from mode
+    optimizer.setdefault("search_strategy", _mode_to_legacy_strategy(resolved_mode))
+    optimizer.setdefault("bandit_policy", "thompson")
+    return migrated
 
 
 def load_runtime_config(path: str = "autoagent.yaml") -> RuntimeConfig:

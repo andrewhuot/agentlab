@@ -247,6 +247,18 @@ STARTER_PLAYBOOKS: list[dict[str, Any]] = [
         ],
         "surfaces": ["examples"],
     },
+    {
+        "name": "stabilize-multilingual-support",
+        "description": "Improve multilingual quality and reduce language-specific regressions",
+        "tags": ["multilingual", "quality", "localization"],
+        "skills": ["locale_aware_prompting", "fewshot_language_refresh"],
+        "policies": ["language_consistency_policy"],
+        "tool_contracts": [],
+        "triggers": [
+            {"failure_family": "quality_degradation", "root_cause": "language_mismatch"},
+        ],
+        "surfaces": ["examples.multilingual", "instructions.multilingual_agent"],
+    },
 ]
 
 

@@ -151,10 +151,10 @@ class TestSeedStarter:
     def test_seed_starter_playbooks(self, store: PlaybookStore):
         count = seed_starter_playbooks(store)
         assert count == len(STARTER_PLAYBOOKS)
-        assert count == 6
+        assert count == 7
 
     def test_seed_starter_playbooks_idempotent(self, store: PlaybookStore):
         first = seed_starter_playbooks(store)
         second = seed_starter_playbooks(store)
-        assert first == 6
+        assert first == 7
         assert second == 0  # no duplicates
