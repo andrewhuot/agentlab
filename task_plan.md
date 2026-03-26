@@ -1,64 +1,60 @@
-# Task Plan: Add additive NL-first builder, transcript intelligence, and diagnosis-to-change workflows
+# Task Plan: Complete product vision review from CODEX_PRODUCT_REVIEW_PROMPT
 
 ## Goal
-Implement an additive feature slice in AutoAgent VNextCC that brings in natural-language agent building, transcript ingestion, conversation analytics, and diagnosis-to-change workflows without destabilizing the current optimization golden path.
+Read the requested AutoAgent VNextCC product surfaces (docs, pages, CLI, API, key backend modules) and produce a comprehensive `CODEX_PRODUCT_VISION_REVIEW.md`, then run the specified completion event command.
 
 ## Current Phase
-Phase 5
+Phase 1
 
 ## Phases
-### Phase 1: Requirements & Discovery
-- [x] Understand user intent
-- [x] Identify constraints and requirements
-- [x] Document findings in findings.md
-- **Status:** completed
-
-### Phase 2: Planning & Structure
-- [x] Define technical approach
-- [x] Identify additive product surfaces that preserve the current golden path
-- [x] Document decisions with rationale
-- **Status:** completed
-
-### Phase 3: Implementation
-- [x] Add the chosen backend and frontend feature slices
-- [x] Write tests for behavior changes
-- [x] Keep existing flows intact while expanding capability
-- **Status:** completed
-
-### Phase 4: Testing & Verification
-- [x] Run targeted tests for changed areas
-- [x] Document test results in progress.md
-- [x] Fix any issues found
-- **Status:** completed
-
-### Phase 5: Delivery
-- [x] Review final diff
-- [x] Summarize what changed and any remaining gaps
-- [ ] Deliver to user
+### Phase 1: Scope Confirmation & Coverage Setup
+- [x] Read `CODEX_PRODUCT_REVIEW_PROMPT.md`
+- [x] Inventory target directories and files
+- [ ] Log exact coverage checklist in findings/progress
 - **Status:** in_progress
 
+### Phase 2: Documentation and UX Surface Review
+- [ ] Read `README.md`, `ARCHITECTURE_OVERVIEW.md`, and all files under `docs/`
+- [ ] Read all product pages in `web/src/pages/` (excluding page tests from product-surface count)
+- [ ] Capture top product-value and UX complexity findings
+- **Status:** pending
+
+### Phase 3: CLI, API, and Backend Deep Review
+- [ ] Analyze full CLI command surface in `runner.py`
+- [ ] Analyze API route surface in `api/routes/` and endpoint map
+- [ ] Review key backend packages: `optimizer/`, `observer/`, `evals/`, `registry/`, `cx_studio/`, `adk/`, `agent_skills/`
+- [ ] Extract simplification opportunities tied to concrete files
+- **Status:** pending
+
+### Phase 4: Draft and Validate Review Document
+- [ ] Write `CODEX_PRODUCT_VISION_REVIEW.md` with all required sections
+- [ ] Ensure claims reference concrete pages/modules/terms
+- [ ] Verify tone is direct, specific, and action-oriented
+- **Status:** pending
+
+### Phase 5: Finalization & Completion Event
+- [ ] Run final diff/status checks
+- [ ] Run: `openclaw system event --text "Done: Codex product vision review — CODEX_PRODUCT_VISION_REVIEW.md written" --mode now`
+- [ ] Deliver concise completion summary to user
+- **Status:** pending
+
 ## Key Questions
-1. Which existing product surfaces can absorb these capabilities without disrupting the current optimizer and evaluation loop?
-2. What is the smallest valuable implementation slice that expresses the competitor-inspired UX while staying cohesive with the current app?
-3. How should transcript ingestion, analytics, and change application connect to the existing data model and UI flows?
+1. What is the irreducible core workflow that should define AutoAgent for most users?
+2. Which current pages are true workflow stages versus internal implementation details surfaced as top-level navigation?
+3. How can API and CLI breadth be preserved for power users while drastically simplifying day-1 user experience?
 
 ## Decisions Made
 | Decision | Rationale |
 |----------|-----------|
-| Treat `/Users/andrew/Desktop/AutoAgent-VNextCC` as the target repo | It is the most recently modified matching product and its README aligns with the requested feature direction |
-| Create planning files manually | The `session-catchup.py` helper exited without output, so manual setup is safer than repeating a failing action |
-| Add a dedicated `/intelligence` workspace instead of overloading a single existing page | This keeps the current golden path intact while giving the new transcript and prompt-to-agent workflows a cohesive home |
-| Implement transcript intelligence as a backend service plus API routes that feed existing review models | This keeps the feature additive and lets transcript-derived recommendations flow through the current `ChangeCardStore` and review UI |
-| Repair the unfinished NL editor and diagnose/change-review contract mismatches while adding the new feature slice | The repo already had partial natural-language infrastructure, but it was unreliable until those contracts were aligned |
+| Treat this as a fresh full-scope review even with an existing prior draft file | User requested complete execution of the prompt now, including a specific output filename and completion event |
+| Use a coverage-first audit pass before writing conclusions | Prevents missing required surfaces across docs/UI/CLI/API/backend |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-| `session-catchup.py` exited with code `-1` and no output | 1 | Switched to manual planning file creation and logged the issue for traceability |
-| Global `web` lint/build checks fail in unrelated pre-existing files | 1 | Verified touched frontend files separately and recorded the wider repo blockers in `progress.md` instead of refactoring unrelated surfaces |
+| None yet | 1 | N/A |
 
 ## Notes
-- Preserve the current optimization loop and existing golden path as the primary constraint.
-- Favor additive navigation and workflow entry points over replacing existing pages or interaction patterns.
-- The implemented slice centers on a new Intelligence Studio, transcript archive ingestion, report-driven agent updates, and prompt-to-agent artifact generation.
-- Final delivery should call out that backend tests passed and the touched frontend files verified cleanly, while the full frontend lint/build remains blocked by unrelated existing issues.
+- Maintain explicit checklist tracking of every requested surface.
+- Prefer direct file-backed evidence over generic product commentary.
+- Completion is not done until the event command succeeds.
