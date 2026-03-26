@@ -435,7 +435,12 @@ class WhatIfEngine:
     def _get_conversation_record(self, conversation_id: str) -> ConversationRecord | None:
         """Retrieve a conversation record from the store."""
         try:
-            return self.conversation_store.get(conversation_id)
+            # ConversationStore doesn't have a get method, so we fetch recent and filter
+            recent = self.conversation_store.get_recent(limit=1000)
+            for record in recent:
+                if record.conversation_id == conversation_id:
+                    return record
+            return None
         except Exception as e:
             logger.error(f"Failed to get conversation {conversation_id}: {e}")
             return None

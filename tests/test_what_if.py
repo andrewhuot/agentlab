@@ -214,7 +214,8 @@ def test_what_if_engine_compare_outcomes() -> None:
     assert comparison["improved"] == 1
     assert comparison["degraded"] == 1
     assert comparison["unchanged"] == 1
-    assert comparison["avg_delta"] > 0
+    # avg_delta should be 0.0 (improved +0.1, degraded -0.1, unchanged 0)
+    assert abs(comparison["avg_delta"]) < 0.01
 
 
 def test_what_if_engine_compare_outcomes_mismatched_lengths() -> None:

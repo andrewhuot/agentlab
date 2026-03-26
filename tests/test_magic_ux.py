@@ -9,6 +9,11 @@ from runner import (
     _stream_cycle_output,
     _generate_recommendations,
     _bar_chart,
+    _score_mood,
+    _soul_line,
+    _print_cli_plan,
+    _print_next_actions,
+    _status_next_action,
 )
 
 

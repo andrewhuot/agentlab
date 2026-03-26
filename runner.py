@@ -1437,6 +1437,7 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
 
     # Loop status
     click.echo("\n  Loop: idle")
+    recs = _generate_recommendations(report, None)
     suggested_actions = ["autoagent optimize --cycles 2", "autoagent logs --limit 10"]
     if recs:
         first_runbook = recs[0].split("autoagent runbook apply ")[-1].strip()

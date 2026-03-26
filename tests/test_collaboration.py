@@ -20,6 +20,8 @@ def _tmp_json() -> str:
     """Return a path to a fresh temp JSON file."""
     fd, path = tempfile.mkstemp(suffix=".json")
     os.close(fd)
+    # Delete the file so TeamManager can create it properly
+    os.unlink(path)
     return path
 
 
@@ -258,6 +260,8 @@ def test_review_manager_rejection_blocks_approval() -> None:
 
 def test_review_manager_list_pending() -> None:
     """ReviewManager should list pending reviews."""
+    import time as time_mod
+
     db_path = _tmp_db()
     manager = ReviewManager(db_path=db_path)
 
@@ -267,6 +271,7 @@ def test_review_manager_list_pending() -> None:
         reviewers=["alice"],
         policy="any_one",
     )
+    time_mod.sleep(0.002)  # Avoid ID collision
     manager.request_review(
         change_id="change2",
         reviewers=["bob"],
