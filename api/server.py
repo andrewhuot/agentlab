@@ -20,39 +20,40 @@ from api.routes import (
     adk as adk_routes,
     agent_skills as agent_skills_routes,
     assistant as assistant_routes,
-    autofix,
-    changes,
-    collaboration,
-    config,
-    context,
-    control,
-    conversations,
+    autofix as autofix_routes,
+    changes as changes_routes,
+    cicd as cicd_routes,
+    collaboration as collaboration_routes,
+    config as config_routes,
+    context as context_routes,
+    control as control_routes,
+    conversations as conversations_routes,
     cx_studio as cx_studio_routes,
-    deploy,
+    deploy as deploy_routes,
     diagnose as diagnose_routes,
     edit as edit_routes,
-    eval,
-    events,
-    experiments,
-    health,
-    impact,
-    intelligence,
-    judges,
-    knowledge,
-    loop,
+    eval as eval_routes,
+    events as events_routes,
+    experiments as experiments_routes,
+    health as health_routes,
+    impact as impact_routes,
+    intelligence as intelligence_routes,
+    judges as judges_routes,
+    knowledge as knowledge_routes,
+    loop as loop_routes,
     memory as memory_routes,
-    notifications,
-    opportunities,
-    optimize,
-    optimize_stream,
-    quickfix,
-    runbooks,
-    registry,
-    sandbox,
-    scorers,
+    notifications as notifications_routes,
+    opportunities as opportunities_routes,
+    optimize as optimize_routes,
+    optimize_stream as optimize_stream_routes,
+    quickfix as quickfix_routes,
+    runbooks as runbooks_routes,
+    registry as registry_routes,
+    sandbox as sandbox_routes,
+    scorers as scorers_routes,
     skills as skills_routes,
-    traces,
-    what_if,
+    traces as traces_routes,
+    what_if as what_if_routes,
 )
 from api.tasks import TaskManager
 from api.websocket import ConnectionManager
@@ -284,42 +285,43 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # API routes
 # ---------------------------------------------------------------------------
-app.include_router(eval.router)
-app.include_router(optimize.router)
-app.include_router(optimize_stream.router)
-app.include_router(quickfix.router)
-app.include_router(config.router)
-app.include_router(health.router)
-app.include_router(conversations.router)
-app.include_router(deploy.router)
-app.include_router(loop.router)
-app.include_router(traces.router)
-app.include_router(opportunities.router)
-app.include_router(experiments.router)
-app.include_router(control.router)
-app.include_router(events.router)
-app.include_router(autofix.router)
-app.include_router(judges.router)
-app.include_router(context.router)
-app.include_router(intelligence.router)
-app.include_router(registry.router)
-app.include_router(scorers.router)
-app.include_router(changes.router)
-app.include_router(runbooks.router)
+app.include_router(eval_routes.router)
+app.include_router(optimize_routes.router)
+app.include_router(optimize_stream_routes.router)
+app.include_router(quickfix_routes.router)
+app.include_router(config_routes.router)
+app.include_router(health_routes.router)
+app.include_router(conversations_routes.router)
+app.include_router(deploy_routes.router)
+app.include_router(loop_routes.router)
+app.include_router(traces_routes.router)
+app.include_router(opportunities_routes.router)
+app.include_router(experiments_routes.router)
+app.include_router(control_routes.router)
+app.include_router(events_routes.router)
+app.include_router(autofix_routes.router)
+app.include_router(judges_routes.router)
+app.include_router(context_routes.router)
+app.include_router(intelligence_routes.router)
+app.include_router(registry_routes.router)
+app.include_router(scorers_routes.router)
+app.include_router(changes_routes.router)
+app.include_router(runbooks_routes.router)
 app.include_router(memory_routes.router)
 app.include_router(cx_studio_routes.router)
 app.include_router(adk_routes.router)
+app.include_router(cicd_routes.router)
 app.include_router(skills_routes.router)
 app.include_router(agent_skills_routes.router)
 app.include_router(edit_routes.router)
 app.include_router(diagnose_routes.router)
 app.include_router(assistant_routes.router)
-app.include_router(notifications.router)
-app.include_router(sandbox.router)
-app.include_router(knowledge.router)
-app.include_router(what_if.router)
-app.include_router(impact.router)
-app.include_router(collaboration.router)
+app.include_router(notifications_routes.router)
+app.include_router(sandbox_routes.router)
+app.include_router(knowledge_routes.router)
+app.include_router(what_if_routes.router)
+app.include_router(impact_routes.router)
+app.include_router(collaboration_routes.router)
 
 
 # ---------------------------------------------------------------------------
