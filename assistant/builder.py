@@ -15,10 +15,9 @@ Supports three building modes:
 
 from __future__ import annotations
 
-import json
 from typing import Any, AsyncIterator
 
-from assistant.agent_generator import AgentGenerator, GeneratedAgentConfig
+from assistant.agent_generator import AgentGenerator
 from assistant.events import CardEvent, Event, SuggestionsEvent, TextEvent, ThinkingEvent
 from assistant.intent_extractor import IntentExtractor
 

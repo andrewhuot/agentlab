@@ -8,16 +8,14 @@ modules.
 from __future__ import annotations
 
 import json
-import re
 import sqlite3
 import time
-from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, AsyncIterator
 
 from observer.blame_map import BlameCluster, BlameMap
-from observer.traces import TraceEvent, TraceSpan, TraceStore
+from observer.traces import TraceEvent, TraceStore
 
 
 class EventType(str, Enum):

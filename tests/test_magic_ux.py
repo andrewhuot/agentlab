@@ -182,7 +182,6 @@ class TestStreamCycleOutput:
         report = self._make_report({})
         # Use CliRunner to capture click.echo output
         with runner.isolated_filesystem():
-            import io
             from click.testing import CliRunner as CR
             r = CR()
 

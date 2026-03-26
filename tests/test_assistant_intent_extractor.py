@@ -6,8 +6,6 @@ import pytest
 
 from assistant.intent_extractor import (
     ConversationAnalysis,
-    Entity,
-    FailureMode,
     Intent,
     IntentExtractor,
     RoutingPattern,

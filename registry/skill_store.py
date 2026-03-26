@@ -7,7 +7,6 @@ unified skill store format under the hood.
 
 from __future__ import annotations
 
-from typing import Any
 
 from core.skills.store import SkillStore as UnifiedSkillStore
 from core.skills.types import (

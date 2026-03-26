@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 
 from optimizer.mutations import (
-    MutationRegistry,
     MutationSurface,
     RiskClass,
     create_default_registry,

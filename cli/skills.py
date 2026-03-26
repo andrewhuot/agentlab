@@ -33,7 +33,7 @@ import yaml
 from core.skills.composer import SkillComposer
 from core.skills.marketplace import SkillMarketplace
 from core.skills.store import SkillStore
-from core.skills.types import Skill, SkillKind
+from core.skills.types import SkillKind
 from core.skills.validator import SkillValidator
 
 # Default database path

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
-import pytest
 
 from registry.skill_loader import load_pack, install_pack, install_builtin_packs, export_skill
 from registry.skill_store import SkillStore

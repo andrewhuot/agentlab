@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException, Request
 
 from evals.nl_scorer import NLScorer
 from evals.scorer import EvalResult
-from evals.scorer_spec import ScorerSpec
 
 router = APIRouter(prefix="/api/scorers", tags=["scorers"])
 

@@ -10,11 +10,8 @@ import pytest
 from core.skills.loader import SkillLoadError, SkillLoader
 from core.skills.store import SkillStore
 from core.skills.types import (
-    EvalCriterion,
-    MutationOperator,
     Skill,
     SkillKind,
-    TriggerCondition,
 )
 
 

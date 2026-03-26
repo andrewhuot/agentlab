@@ -4041,7 +4041,6 @@ def cx_list(project: str, location: str, credentials: str | None) -> None:
     from cx_studio import CxAuth, CxClient
     auth = CxAuth(credentials_path=credentials)
     client = CxClient(auth)
-    from cx_studio.types import CxAgentRef
     agents = client.list_agents(project, location)
     if not agents:
         click.echo("No agents found.")

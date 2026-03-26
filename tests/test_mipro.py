@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass, field
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from evals.runner import EvalRunner, TestCase
+from evals.runner import TestCase
 from evals.scorer import CompositeScore, EvalResult
 from optimizer.prompt_opt.mipro import MIPROv2, _EARLY_STOP_PATIENCE
 from optimizer.prompt_opt.surrogate import BayesianSurrogate
@@ -17,9 +14,8 @@ from optimizer.prompt_opt.types import (
     FewShotExample,
     OptimizationResult,
     ProConfig,
-    PromptCandidate,
 )
-from optimizer.providers import LLMRequest, LLMResponse, LLMRouter, ModelConfig
+from optimizer.providers import LLMRequest, LLMResponse
 
 
 # ======================================================================

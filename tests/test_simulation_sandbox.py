@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from simulator.persona import PERSONAS, get_persona_by_name, get_personas_by_difficulty
 from simulator.sandbox import SimulationSandbox, SyntheticConversation

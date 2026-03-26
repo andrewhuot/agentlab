@@ -5,7 +5,6 @@ These functions are standalone — they create their own stores/components
 so the MCP server is self-contained.
 """
 from __future__ import annotations
-import json
 import os
 from typing import Any
 

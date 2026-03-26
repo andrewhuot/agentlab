@@ -7,7 +7,6 @@ import tempfile
 from unittest.mock import MagicMock
 
 from evals.what_if import (
-    ImpactProjection,
     ReplayOutcome,
     WhatIfEngine,
     WhatIfResult,

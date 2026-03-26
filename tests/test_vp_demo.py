@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from evals.vp_demo_data import SyntheticDataset, generate_vp_demo_dataset, get_vp_demo_summary
 from logger.store import ConversationRecord

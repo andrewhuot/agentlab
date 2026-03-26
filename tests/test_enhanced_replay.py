@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import json
 
-import pytest
 
 from core.types import ReplayMode
 from evals.replay import (
     EnhancedReplayHarness,
     EnvironmentSnapshot,
     ReplayStore,
-    SnapshotDiff,
     SnapshotStore,
 )
 from evals.side_effects import SideEffectClass, ToolContract, ToolContractRegistry

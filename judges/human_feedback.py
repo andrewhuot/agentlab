@@ -6,11 +6,9 @@ measure agreement, surface disagreements, and sample cases for review.
 
 from __future__ import annotations
 
-import json
 import random
 import sqlite3
 import time
-import uuid
 from dataclasses import dataclass, field
 
 

@@ -10,7 +10,6 @@ from core.skills.types import (
     ToolDefinition,
     Policy,
     TestCase,
-    SkillDependency,
 )
 from core.skills.validator import SkillValidator, ValidationResult
 

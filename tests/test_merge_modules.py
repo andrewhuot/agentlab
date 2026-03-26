@@ -10,14 +10,12 @@ Tests cover:
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 
 import pytest
 
 from control.governance import GovernanceEngine
 from data.repositories import SQLiteArtifactRepository, SQLiteTraceRepository
-from deployer.release_manager import PromotionRecord, PromotionStage, ReleaseManager
+from deployer.release_manager import PromotionStage, ReleaseManager
 from deployer.versioning import ConfigVersionManager
 from graders.deterministic import DeterministicGrader, GradeResult
 from graders.llm_judge import BinaryRubricJudge, LLMJudgeConfig

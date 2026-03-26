@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -11,8 +10,6 @@ from api.models import (
     OptimizeCycleResult,
     OptimizeRequest,
     OptimizeResponse,
-    TaskStatus,
-    TaskStatusEnum,
 )
 from api.tasks import Task
 

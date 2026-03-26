@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from evals.replay import ReplayStore, RecordedToolIO, _hash_input
+from evals.replay import ReplayStore, _hash_input
 from logger.store import ConversationRecord
 
 logger = logging.getLogger(__name__)

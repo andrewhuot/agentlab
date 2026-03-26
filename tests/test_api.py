@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import time
 
-import pytest
 
 from api.models import (
-    TaskStatusEnum,
     EvalRunRequest,
     OptimizeRequest,
     DeployRequest,

@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from core.types import GraderBundle, GraderSpec, GraderType, MetricLayer
+from core.types import GraderBundle, GraderSpec, GraderType
 
 
 @dataclass

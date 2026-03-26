@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from optimizer.model_routing import (
     ModelSpec,

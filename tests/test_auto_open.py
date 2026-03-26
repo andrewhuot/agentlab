@@ -1,7 +1,6 @@
 """Tests for auto-open web console feature."""
-import socket
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from click.testing import CliRunner
 from runner import cli, _auto_open_console
 
@@ -11,7 +10,7 @@ def runner():
 
 class TestAutoOpenHelper:
     def test_auto_open_importable(self):
-        from runner import _auto_open_console
+        pass
 
     @patch("runner.webbrowser", create=True)
     @patch("runner.socket", create=True)

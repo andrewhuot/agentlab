@@ -6,9 +6,8 @@ import json
 import time
 from pathlib import Path
 
-import pytest
 
-from optimizer.human_control import HumanControlState, HumanControlStore
+from optimizer.human_control import HumanControlStore
 
 
 def test_default_state(tmp_path: Path) -> None:

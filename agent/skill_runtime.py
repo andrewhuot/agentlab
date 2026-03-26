@@ -13,14 +13,13 @@ Key Features:
 
 from __future__ import annotations
 
-import re
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
 from core.skills.composer import SkillComposer, ResolutionStrategy
 from core.skills.store import SkillStore
-from core.skills.types import Skill, SkillKind
+from core.skills.types import Skill
 from core.skills.validator import SkillValidator, ValidationResult
 
 

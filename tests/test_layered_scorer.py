@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 
 from core.types import MetricLayer
-from evals.scorer import DimensionScores, EvalResult, LayeredDimensionScores, LayeredScorer
+from evals.scorer import EvalResult, LayeredDimensionScores, LayeredScorer
 
 
 # ---------------------------------------------------------------------------

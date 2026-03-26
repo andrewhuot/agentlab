@@ -5,6 +5,7 @@ module remains importable in environments that have not installed httpx.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import time
 from datetime import datetime, timezone
@@ -27,12 +28,7 @@ from .types import (
 # HTTP helpers
 # ---------------------------------------------------------------------------
 
-_HTTPX_AVAILABLE: bool
-try:
-    import httpx  # type: ignore[import]
-    _HTTPX_AVAILABLE = True
-except ImportError:
-    _HTTPX_AVAILABLE = False
+_HTTPX_AVAILABLE = importlib.util.find_spec("httpx") is not None
 
 
 def _build_base_url(location: str) -> str:

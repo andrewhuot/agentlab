@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
 
 from optimizer.mode_router import (
     AutonomyLevel,
     ModeConfig,
     ModeRouter,
     OptimizationMode,
-    ResolvedStrategy,
-    _LEGACY_STRATEGY_MAP,
-    _MODE_STRATEGY_MAP,
 )
 from optimizer.search import BanditPolicy, SearchStrategy
 

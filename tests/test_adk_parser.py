@@ -7,7 +7,6 @@ import pytest
 
 from adk.errors import AdkParseError
 from adk.parser import parse_agent_directory
-from adk.types import AdkAgent, AdkAgentTree, AdkTool
 
 
 # ---------------------------------------------------------------------------

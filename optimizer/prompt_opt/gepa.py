@@ -22,7 +22,6 @@ import random
 from typing import Any
 
 from evals.runner import EvalRunner
-from evals.scorer import CompositeScore
 from optimizer.providers import LLMRequest, LLMRouter
 
 from .types import (

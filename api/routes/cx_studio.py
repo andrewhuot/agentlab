@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/cx", tags=["cx-studio"])
@@ -224,9 +224,7 @@ async def preview_cx_export(
     snapshot_path: str,
 ) -> CxPreviewResponse:
     """Preview what changes an export would make."""
-    import json
     import yaml
-    from pathlib import Path
     from cx_studio import CxExporter, CxAuth, CxClient
 
     try:

@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from core.types import ArchiveEntry, JudgeVerdict
+from core.types import JudgeVerdict
 from observer.opportunities import OptimizationOpportunity
 from .experiments import ExperimentCard
 from .memory import OptimizationMemory

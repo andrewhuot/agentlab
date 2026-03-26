@@ -8,7 +8,7 @@ import time
 from observer.opportunities import OptimizationOpportunity
 from optimizer.experiments import ExperimentCard
 from optimizer.memory import OptimizationAttempt, OptimizationMemory
-from optimizer.mutations import MutationRegistry, create_default_registry
+from optimizer.mutations import create_default_registry
 from optimizer.proposer import Proposer
 from optimizer.search import (
     CandidateMutation,

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-from notifications.manager import NotificationManager, Subscription, VALID_EVENT_TYPES
+from notifications.manager import NotificationManager
 from notifications.channels import WebhookChannel, SlackChannel, EmailChannel
 
 

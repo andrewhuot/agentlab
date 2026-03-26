@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from evals.data_engine import (
     business_impact_score,

@@ -7,10 +7,9 @@ based on configuration and budget constraints.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from evals.runner import EvalRunner
-from optimizer.providers import LLMRouter, LLMRequest
+from optimizer.providers import LLMRouter
 from .types import ProAlgorithm, ProConfig, OptimizationResult
 
 logger = logging.getLogger(__name__)

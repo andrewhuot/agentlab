@@ -7,7 +7,6 @@ so that the mapper layer can evolve each side independently.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel, Field
 

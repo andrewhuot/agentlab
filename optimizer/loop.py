@@ -12,7 +12,7 @@ from typing import Any
 
 from agent.config.schema import AgentConfig, config_diff, validate_config
 from evals.anti_goodhart import AntiGoodhartConfig, AntiGoodhartGuard
-from evals.runner import EvalRunner, TestCase
+from evals.runner import EvalRunner
 from evals.statistics import paired_significance
 from observer.metrics import HealthReport
 from observer.opportunities import FailureClusterer, OptimizationOpportunity

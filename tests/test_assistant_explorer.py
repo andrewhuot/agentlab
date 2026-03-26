@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import json
-import sqlite3
 import tempfile
 import time
 from pathlib import Path
@@ -15,7 +12,6 @@ from assistant.explorer import (
     ClusterCard,
     ConversationExplorer,
     ConversationState,
-    Event,
     EventType,
     CardEvent,
     TextEvent,

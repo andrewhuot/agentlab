@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
-from optimizer.holdout import HoldoutConfig, HoldoutManager, HoldoutSplit
+from optimizer.holdout import HoldoutConfig, HoldoutManager
 
 
 # ---------------------------------------------------------------------------

@@ -17,7 +17,7 @@ from core.skills.types import (
     SkillDependency,
     SkillExample,
 )
-from core.skills.validator import SkillValidator, ValidationResult
+from core.skills.validator import SkillValidator
 
 
 class TestIntegration:

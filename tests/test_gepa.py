@@ -10,7 +10,7 @@ import pytest
 from evals.runner import TestCase
 from evals.scorer import CompositeScore
 from optimizer.prompt_opt.gepa import GEPA
-from optimizer.prompt_opt.types import OptimizationResult, ProConfig, PromptCandidate
+from optimizer.prompt_opt.types import OptimizationResult, ProConfig
 from optimizer.providers import LLMRequest, LLMResponse
 
 

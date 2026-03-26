@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from deployer.canary import CanaryManager
 from deployer.release_manager import PromotionStage, ReleaseManager
 from deployer.versioning import ConfigVersionManager
 

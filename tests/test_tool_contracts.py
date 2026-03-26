@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
 
 from core.types import ReplayMode, ToolContractVersion
 from evals.side_effects import (
     SideEffectClass,
-    ToolClassification,
     ToolClassificationRegistry,
     ToolContract,
     ToolContractRegistry,

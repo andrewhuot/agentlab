@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from optimizer.change_card import DiffHunk
 from optimizer.diff_engine import DiffEngine, UnifiedDiff, _format_yaml_value

@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
 
 from agent_skills.gap_analyzer import GapAnalyzer
-from agent_skills.types import SkillGap
 
 
 # ---------------------------------------------------------------------------

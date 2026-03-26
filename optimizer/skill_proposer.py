@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 
 from optimizer.proposer import Proposal, Proposer
 from registry.skill_store import SkillStore

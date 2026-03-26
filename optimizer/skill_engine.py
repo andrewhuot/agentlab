@@ -30,8 +30,6 @@ from core.skills.types import (
 )
 from optimizer.mutations import (
     MutationRegistry,
-    MutationSurface,
-    RiskClass,
     create_default_registry,
 )
 

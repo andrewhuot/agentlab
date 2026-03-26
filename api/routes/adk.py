@@ -1,7 +1,6 @@
 """ADK (Agent Development Kit) API routes — import, export, deploy."""
 from __future__ import annotations
 
-from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -163,7 +162,6 @@ async def get_adk_status(path: str) -> dict:
 async def preview_adk_diff(config_path: str, snapshot_path: str) -> AdkDiffResponse:
     """Preview export changes."""
     import yaml
-    from pathlib import Path
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)

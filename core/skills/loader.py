@@ -30,7 +30,7 @@ from core.skills.types import (
     ToolDefinition,
     TriggerCondition,
 )
-from core.skills.validator import SkillValidator, ValidationResult
+from core.skills.validator import SkillValidator
 
 logger = logging.getLogger(__name__)
 

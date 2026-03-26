@@ -10,7 +10,7 @@ from core.skills.types import (
     SkillDependency,
     ToolDefinition,
 )
-from core.skills.validator import SkillValidator, ValidationResult
+from core.skills.validator import SkillValidator
 
 
 class MockSkillStore:

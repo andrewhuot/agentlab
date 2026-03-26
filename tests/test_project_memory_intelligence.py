@@ -4,7 +4,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from core.project_memory import ProjectMemory, INTEL_BEGIN, INTEL_END
 

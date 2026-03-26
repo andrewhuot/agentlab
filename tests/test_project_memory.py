@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
-from core.project_memory import AUTOAGENT_MD_FILENAME, ProjectMemory
+from core.project_memory import ProjectMemory
 
 
 # ---------------------------------------------------------------------------

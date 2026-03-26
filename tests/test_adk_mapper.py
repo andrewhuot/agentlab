@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pytest
 
-from adk.errors import AdkImportError
 from adk.mapper import AdkMapper
 from adk.parser import parse_agent_directory
 from adk.types import AdkAgent, AdkAgentTree, AdkTool

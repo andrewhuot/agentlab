@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlite3
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from observer.trace_grading import SpanGrade, TraceGrader

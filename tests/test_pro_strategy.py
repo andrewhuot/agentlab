@@ -4,17 +4,14 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from evals.runner import EvalRunner
-from evals.scorer import CompositeScore, EvalResult
 from observer.metrics import HealthMetrics, HealthReport
 from optimizer.prompt_opt import (
     OptimizationResult,
     ProAlgorithm,
     ProConfig,
     ProSearchStrategy,
-    PromptCandidate,
 )
 from optimizer.prompt_opt.gepa import GEPA
 from optimizer.prompt_opt.simba import SIMBA

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
 
 from context.analyzer import ContextSnapshot
 from context.simulator import SimulationResult

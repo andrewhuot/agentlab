@@ -4,7 +4,6 @@ Layer: Layer 1 (Advanced). May import from Layer 0 / stdlib / PyPI only.
 """
 from __future__ import annotations
 
-import json
 import shutil
 from pathlib import Path
 

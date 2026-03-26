@@ -4,20 +4,16 @@ from __future__ import annotations
 
 import copy
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from evals.runner import TestCase
-from evals.scorer import CompositeScore, EvalResult
+from evals.scorer import CompositeScore
 from optimizer.prompt_opt.bootstrap_fewshot import BootstrapFewShot
 from optimizer.prompt_opt.types import ProConfig
 from optimizer.providers import (
     LLMRequest,
     LLMResponse,
-    LLMRouter,
-    ModelConfig,
-    RetryPolicy,
 )
 
 

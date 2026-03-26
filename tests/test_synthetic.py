@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from evals.synthetic import (
-    FAILURE_FAMILIES,
     SyntheticDataset,
     generate_conversations,
     generate_dataset,

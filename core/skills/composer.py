@@ -13,7 +13,7 @@ from typing import Protocol, Any
 
 import yaml
 
-from core.skills.types import Skill, SkillKind, SkillDependency
+from core.skills.types import Skill
 
 
 class ConflictType(str, Enum):

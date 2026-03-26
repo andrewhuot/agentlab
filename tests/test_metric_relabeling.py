@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from core.types import METRIC_LAYER_DISPLAY_NAMES, MetricLayer
 

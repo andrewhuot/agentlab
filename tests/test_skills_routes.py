@@ -6,7 +6,6 @@ Tests CRUD operations, composition, marketplace, validation, and search.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient

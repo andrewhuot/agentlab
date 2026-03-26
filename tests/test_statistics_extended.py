@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 
 from evals.statistics import (
     PowerAnalysis,
-    PromotionDecision,
     SafetySeverityTier,
     check_promotion_criteria,
     compute_required_sample_size,

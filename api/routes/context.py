@@ -86,7 +86,6 @@ async def simulate(
 @router.get("/report")
 async def report(request: Request) -> dict[str, Any]:
     """Aggregate context health report."""
-    from context.metrics import ContextMetrics
 
     # Return aggregate metrics (empty defaults if no data)
     return {

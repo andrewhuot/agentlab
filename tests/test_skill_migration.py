@@ -7,7 +7,6 @@ import sqlite3
 import time
 from pathlib import Path
 
-import pytest
 
 from agent_skills.types import GeneratedFile, GeneratedSkill
 from core.skills.store import SkillStore as UnifiedSkillStore

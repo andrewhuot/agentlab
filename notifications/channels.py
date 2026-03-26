@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import smtplib
 from email.message import EmailMessage
 from typing import Any

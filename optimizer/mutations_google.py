@@ -9,7 +9,6 @@ See: https://cloud.google.com/vertex-ai/docs/generative-ai/prompt-optimizer
 
 from __future__ import annotations
 
-import copy
 from typing import Any
 
 from optimizer.mutations import (

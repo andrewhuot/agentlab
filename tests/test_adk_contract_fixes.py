@@ -1,10 +1,7 @@
 """Tests for UX audit ADK contract fixes (Track 1)."""
 from __future__ import annotations
 
-from pathlib import Path
-from unittest.mock import Mock, patch
 
-import pytest
 
 # Test the importer accepts no parser/mapper args (UX-001)
 def test_importer_no_parser_mapper_args():
@@ -45,7 +42,7 @@ def test_parse_agent_directory_is_function():
 def test_agent_tree_uses_agent_field(tmp_path):
     """Test AdkAgentTree has .agent field instead of .root."""
     from adk import parse_agent_directory
-    from adk.types import AdkAgent, AdkAgentTree
+    from adk.types import AdkAgent
 
     # Create minimal agent directory
     agent_dir = tmp_path / "test_agent"

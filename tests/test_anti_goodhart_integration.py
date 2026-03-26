@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from evals.anti_goodhart import AntiGoodhartConfig, AntiGoodhartGuard, AntiGoodhartVerdict
+from evals.anti_goodhart import AntiGoodhartConfig, AntiGoodhartGuard
 from evals.scorer import CompositeScore, EvalResult
 from observer.metrics import HealthMetrics, HealthReport
 from optimizer.loop import Optimizer, StrategyDiagnostics

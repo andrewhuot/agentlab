@@ -31,7 +31,6 @@ from core.skills import (
     SkillComposer,
     SkillMarketplace,
     SkillValidator,
-    ValidationResult,
 )
 
 router = APIRouter(prefix="/api/skills", tags=["skills"])

@@ -8,7 +8,6 @@ from typing import Optional
 
 from fastapi import APIRouter, Query, Request, HTTPException
 
-from api.models import ArchiveEntryResponse, JudgeCalibrationResponse
 
 router = APIRouter(prefix="/api/experiments", tags=["experiments"])
 

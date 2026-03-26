@@ -16,12 +16,11 @@ from observer.trace_grading import (
     RetrievalQualityGrader,
     RoutingGrader,
     SpanGrade,
-    SpanGrader,
     ToolArgumentGrader,
     ToolSelectionGrader,
     TraceGrader,
 )
-from observer.trace_graph import TraceGraph, TraceGraphEdge, TraceGraphNode
+from observer.trace_graph import TraceGraph, TraceGraphNode
 from observer.blame_map import BlameCluster, BlameMap
 
 

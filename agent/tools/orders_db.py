@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 
 ORDERS: dict[str, dict] = {
     "ORD-1001": {
