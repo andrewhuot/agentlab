@@ -657,6 +657,86 @@ def skill_search(query: str, kind: str | None, db: str, marketplace: bool, json_
 
 
 # ---------------------------------------------------------------------------
+# skill recommend
+# ---------------------------------------------------------------------------
+
+@click.command("recommend")
+@click.option("--failure-family", help="Filter by failure family (e.g., routing_error, hallucination).")
+@click.option("--metric", help="Filter by metric name.")
+@click.option("--db", default=DEFAULT_SKILLS_DB, show_default=True, help="Skills database path.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def skill_recommend(
+    failure_family: str | None,
+    metric: str | None,
+    db: str,
+    json_output: bool,
+) -> None:
+    """Recommend skills based on failure patterns or metrics.
+
+    Examples:
+      autoagent skill recommend
+      autoagent skill recommend --failure-family routing_error
+      autoagent skill recommend --metric accuracy --json
+    """
+    store = _get_store(db)
+
+    try:
+        # Get all active build skills
+        all_skills = store.list(kind=SkillKind.BUILD, status="active")
+
+        # Filter by triggers if criteria provided
+        matching_skills = []
+        if failure_family or metric:
+            for skill in all_skills:
+                for trigger in skill.triggers:
+                    if failure_family and trigger.failure_family == failure_family:
+                        matching_skills.append(skill)
+                        break
+                    if metric and trigger.metric_name == metric:
+                        matching_skills.append(skill)
+                        break
+        else:
+            # No filters, return all
+            matching_skills = all_skills
+
+        if not matching_skills:
+            if json_output:
+                click.echo(json.dumps([], indent=2))
+            else:
+                click.echo("No matching skills found.")
+            return
+
+        if json_output:
+            # Format for JSON output as expected by tests
+            data = [
+                {
+                    "name": s.name,
+                    "category": s.domain,
+                    "description": s.description,
+                    "proven_improvement": s.effectiveness.avg_improvement,
+                }
+                for s in matching_skills
+            ]
+            click.echo(json.dumps(data, indent=2))
+            return
+
+        # Table output
+        click.echo(f"\nRecommended Skills ({len(matching_skills)} found)\n")
+        click.echo(f"{'Name':<35} {'Domain':<20} {'Avg Improvement':<15} {'Success Rate':<15}")
+        click.echo("─" * 90)
+
+        for skill in matching_skills:
+            click.echo(
+                f"{skill.name:<35} {skill.domain:<20} "
+                f"{skill.effectiveness.avg_improvement:<15.3f} "
+                f"{skill.effectiveness.success_rate:<15.3f}"
+            )
+
+    finally:
+        store.close()
+
+
+# ---------------------------------------------------------------------------
 # Command registration helper
 # ---------------------------------------------------------------------------
 
@@ -676,6 +756,7 @@ def register_skill_commands(cli_group: click.Group) -> None:
         skill_publish,
         skill_effectiveness,
         skill_search,
+        skill_recommend,
     ]
 
     for cmd in commands:

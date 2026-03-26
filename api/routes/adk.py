@@ -6,6 +6,9 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from adk import AdkImporter, AdkExporter, AdkDeployer
+from adk.parser import parse_agent_directory
+
 router = APIRouter(prefix="/api/adk", tags=["adk"])
 
 
@@ -66,7 +69,6 @@ class AdkDiffResponse(BaseModel):
 @router.post("/import", response_model=AdkImportResponse, status_code=201)
 async def import_adk_agent(body: AdkImportRequest) -> AdkImportResponse:
     """Import an ADK agent from local directory."""
-    from adk import AdkImporter
     try:
         importer = AdkImporter()
         result = importer.import_agent(
@@ -89,7 +91,6 @@ async def import_adk_agent(body: AdkImportRequest) -> AdkImportResponse:
 @router.post("/export", response_model=AdkExportResponse)
 async def export_adk_agent(body: AdkExportRequest) -> AdkExportResponse:
     """Export optimized config back to ADK source."""
-    from adk import AdkExporter
     try:
         exporter = AdkExporter()
         result = exporter.export_agent(
@@ -112,7 +113,6 @@ async def export_adk_agent(body: AdkExportRequest) -> AdkExportResponse:
 @router.post("/deploy", response_model=AdkDeployResponse)
 async def deploy_adk_agent(body: AdkDeployRequest) -> AdkDeployResponse:
     """Deploy ADK agent to Cloud Run or Vertex AI."""
-    from adk import AdkDeployer
     try:
         if body.target not in ["cloud-run", "vertex-ai"]:
             raise HTTPException(
@@ -140,7 +140,6 @@ async def deploy_adk_agent(body: AdkDeployRequest) -> AdkDeployResponse:
 async def get_adk_status(path: str) -> dict:
     """Get agent structure summary."""
     from pathlib import Path
-    from adk import parse_agent_directory
     try:
         if not path:
             raise HTTPException(status_code=400, detail="path is required")
@@ -165,7 +164,6 @@ async def preview_adk_diff(config_path: str, snapshot_path: str) -> AdkDiffRespo
     """Preview export changes."""
     import yaml
     from pathlib import Path
-    from adk import AdkExporter
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)

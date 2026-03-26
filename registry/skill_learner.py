@@ -144,8 +144,19 @@ class SkillLearner:
         keywords = re.findall(r'\b\w{4,}\b', change_description.lower())
         for keyword in keywords[:3]:  # Check first 3 significant keywords
             candidates = self.skill_store.search(keyword)
-            if candidates:
-                return candidates[0]
+            for candidate in candidates:
+                # Verify the candidate targets the same section
+                if config_section:
+                    # Check if candidate's target_surfaces include this section
+                    if config_section in candidate.target_surfaces:
+                        return candidate
+                    # Also check mutations' target_surface
+                    for mutation in candidate.mutations:
+                        if config_section in mutation.target_surface:
+                            return candidate
+                else:
+                    # No section filter - return first match
+                    return candidate
 
         return None
 

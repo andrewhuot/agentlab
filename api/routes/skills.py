@@ -151,15 +151,383 @@ async def list_skills(
     }
 
 
+@router.get("/recommend")
+async def recommend_skills(
+    request: Request,
+    failure_family: str | None = Query(None, description="Filter by failure family"),
+    metric_name: str | None = Query(None, description="Filter by metric name"),
+) -> dict[str, Any]:
+    """Recommend skills based on failure patterns or metrics.
+
+    Returns skills that have triggers matching the given failure family or metric.
+    """
+    store = _get_skill_store(request)
+
+    # Get all active build skills
+    all_skills = store.list(kind=SkillKind.BUILD, status="active")
+
+    # Filter by triggers if criteria provided
+    matching_skills = []
+    if failure_family or metric_name:
+        for skill in all_skills:
+            for trigger in skill.triggers:
+                if failure_family and trigger.failure_family == failure_family:
+                    matching_skills.append(skill)
+                    break
+                if metric_name and trigger.metric_name == metric_name:
+                    matching_skills.append(skill)
+                    break
+    else:
+        # No filters, return all
+        matching_skills = all_skills
+
+    return {
+        "skills": [s.to_dict() for s in matching_skills],
+        "count": len(matching_skills),
+    }
+
+
+@router.get("/stats")
+async def skill_stats(
+    request: Request,
+    n: int = Query(10, description="Number of top skills to return"),
+) -> dict[str, Any]:
+    """Get skill effectiveness leaderboard.
+
+    Returns skills sorted by success rate and average improvement.
+    """
+    store = _get_skill_store(request)
+
+    # Get all skills with effectiveness data
+    all_skills = store.list(kind=None, status="active")
+
+    # Sort by effectiveness (success rate * avg improvement)
+    def effectiveness_score(s: Skill) -> float:
+        if s.effectiveness.times_applied == 0:
+            return 0.0
+        return s.effectiveness.success_rate * s.effectiveness.avg_improvement
+
+    sorted_skills = sorted(all_skills, key=effectiveness_score, reverse=True)
+    top_n = sorted_skills[:n]
+
+    return {
+        "leaderboard": [s.to_dict() for s in top_n],
+        "count": len(top_n),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Composition
+# ---------------------------------------------------------------------------
+
+@router.post("/compose")
+async def compose_skills(
+    request: Request,
+    body: SkillComposeRequest,
+) -> dict[str, Any]:
+    """Compose multiple skills into a skill set.
+
+    Resolves dependencies, detects conflicts, and creates an ordered skill set.
+
+    Request Body:
+        skill_ids: List of skill IDs to compose
+        name: Name for the composed skill set
+        description: Description of the skill set
+        resolve_conflicts: Whether to attempt automatic conflict resolution
+
+    Returns:
+        {
+            "skillset": SkillSet dict,
+            "valid": bool,
+            "conflicts": [conflict_dict, ...],
+            "message": str
+        }
+
+    Raises:
+        HTTPException: 400 if composition fails with unresolvable conflicts
+    """
+    store = _get_skill_store(request)
+    composer = _get_skill_composer(request)
+
+    # Load skills by IDs
+    skills: list[Skill] = []
+    for skill_id in body.skill_ids:
+        skill = store.get(skill_id)
+        if skill is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Skill not found: {skill_id}"
+            )
+        skills.append(skill)
+
+    try:
+        # Compose skills
+        skillset = composer.compose(
+            skills=skills,
+            store=store,
+            name=body.name,
+            description=body.description,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Composition failed: {str(e)}"
+        )
+
+    # Check if valid
+    is_valid = skillset.validate()
+
+    if not is_valid and not body.resolve_conflicts:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Skill set has unresolved conflicts. Set resolve_conflicts=true to attempt resolution."
+        )
+
+    return {
+        "skillset": skillset.to_dict(),
+        "valid": is_valid,
+        "conflicts": [c.to_dict() for c in skillset.conflicts],
+        "message": f"Composed {len(skillset.skills)} skills into '{body.name}'"
+    }
+
+
+# ---------------------------------------------------------------------------
+# Marketplace
+# ---------------------------------------------------------------------------
+
+@router.get("/marketplace")
+async def browse_marketplace(
+    request: Request,
+    kind: str | None = Query(None, description="Filter by kind: build or runtime"),
+    domain: str | None = Query(None, description="Filter by domain"),
+    tags: str | None = Query(None, description="Comma-separated tags"),
+) -> dict[str, Any]:
+    """Browse available skills in the marketplace.
+
+    Returns skill metadata (not full definitions) for efficient browsing.
+
+    Query Parameters:
+        kind: Filter by skill kind (build/runtime)
+        domain: Filter by domain
+        tags: Comma-separated tags (skill must have at least ONE)
+
+    Returns:
+        {
+            "skills": [metadata_dict, ...],
+            "count": int,
+            "filters": {...}
+        }
+    """
+    marketplace = _get_skill_marketplace(request)
+
+    # Parse kind
+    kind_enum = None
+    if kind:
+        try:
+            kind_enum = SkillKind.BUILD if kind.lower() == "build" else SkillKind.RUNTIME
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid kind: {kind}. Must be 'build' or 'runtime'"
+            )
+
+    # Parse tags
+    tags_list = None
+    if tags:
+        tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+
+    skills = marketplace.browse(
+        kind=kind_enum,
+        domain=domain,
+        tags=tags_list,
+    )
+
+    return {
+        "skills": skills,
+        "count": len(skills),
+        "filters": {
+            "kind": kind,
+            "domain": domain,
+            "tags": tags_list,
+        }
+    }
+
+
+@router.post("/install")
+async def install_skill(
+    request: Request,
+    body: SkillInstallRequest,
+) -> dict[str, Any]:
+    """Install a skill from the marketplace.
+
+    Downloads the skill from the marketplace and installs it into the local store.
+    Source can be:
+    - Skill ID in marketplace (e.g., "keyword_expansion")
+    - URL to YAML file (e.g., "https://example.com/skills/my_skill.yaml")
+    - Local file path (e.g., "/path/to/skill.yaml")
+
+    Request Body:
+        skill_id: Marketplace skill ID, URL, or file path
+
+    Returns:
+        {
+            "success": bool,
+            "skill_id": str,
+            "skill_name": str,
+            "version": str,
+            "message": str
+        }
+
+    Raises:
+        HTTPException: 404 if skill not found in marketplace, 400 if installation fails
+    """
+    from core.skills.marketplace import MarketplaceError
+
+    # Validate request
+    if not body.source:
+        raise HTTPException(
+            status_code=400,
+            detail="Either skill_id or file_path must be provided"
+        )
+
+    marketplace = _get_skill_marketplace(request)
+    store = _get_skill_store(request)
+
+    try:
+        # Install from marketplace (supports ID, URL, or file path)
+        skill = marketplace.install(body.source, store)
+    except MarketplaceError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Skill not found: {body.skill_id}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Installation failed: {str(e)}"
+        )
+
+    return {
+        "success": True,
+        "skill_id": skill.id,
+        "skill_name": skill.name,
+        "version": skill.version,
+        "message": f"Installed '{skill.name}' v{skill.version}"
+    }
+
+
+# ---------------------------------------------------------------------------
+# Search
+# ---------------------------------------------------------------------------
+
+@router.post("/search")
+async def search_skills(
+    request: Request,
+    body: SkillSearchRequest,
+) -> dict[str, Any]:
+    """Search skills by text query.
+
+    Searches across skill name, description, capabilities, and tags.
+
+    Request Body:
+        query: Search query text
+        kind: Optional filter by kind (build/runtime)
+        domain: Optional filter by domain
+        tags: Optional comma-separated tags filter
+
+    Returns:
+        {
+            "skills": [skill_dict, ...],
+            "count": int,
+            "query": str
+        }
+    """
+    store = _get_skill_store(request)
+
+    # Parse kind
+    kind_enum = None
+    if body.kind:
+        try:
+            kind_enum = SkillKind.BUILD if body.kind.lower() == "build" else SkillKind.RUNTIME
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid kind: {body.kind}. Must be 'build' or 'runtime'"
+            )
+
+    # Search skills
+    skills = store.search(
+        query=body.query,
+        kind=kind_enum,
+    )
+
+    # Apply additional filters if specified
+    if body.domain:
+        skills = [s for s in skills if s.domain == body.domain]
+
+    if body.tags:
+        tags_list = [t.strip() for t in body.tags.split(",") if t.strip()]
+        skills = [s for s in skills if any(tag in s.tags for tag in tags_list)]
+
+    return {
+        "skills": [s.to_dict() for s in skills],
+        "count": len(skills),
+        "query": body.query,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Extraction stubs (for future implementation)
+# ---------------------------------------------------------------------------
+
+@router.post("/from-conversation")
+async def extract_from_conversation(
+    request: Request,
+) -> dict[str, Any]:
+    """Extract a skill from a conversation.
+
+    STUB: Not yet implemented.
+
+    This will analyze a conversation and extract a reusable skill pattern.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail="Skill extraction from conversations not yet implemented"
+    )
+
+
+@router.post("/from-optimization")
+async def extract_from_optimization(
+    request: Request,
+) -> dict[str, Any]:
+    """Extract a skill from an optimization cycle.
+
+    STUB: Not yet implemented.
+
+    This will analyze a successful optimization and extract it as a reusable skill.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail="Skill extraction from optimizations not yet implemented"
+    )
+
+
 @router.get("/{skill_id}")
 async def get_skill(
     request: Request,
     skill_id: str,
+    version: str | None = Query(None, description="Skill version (for name-based lookup)"),
 ) -> dict[str, Any]:
-    """Get a specific skill by ID.
+    """Get a specific skill by ID or name.
 
     Args:
-        skill_id: The unique skill identifier
+        skill_id: The unique skill identifier or name
+        version: Optional version for name-based lookup
 
     Returns:
         {"skill": skill_dict}
@@ -168,7 +536,13 @@ async def get_skill(
         HTTPException: 404 if skill not found
     """
     store = _get_skill_store(request)
+
+    # Try by ID first
     skill = store.get(skill_id)
+
+    # If not found, try by name (backward compatibility)
+    if skill is None:
+        skill = store.get_by_name(skill_id, version)
 
     if skill is None:
         raise HTTPException(
@@ -390,201 +764,47 @@ async def test_skill(
     }
 
 
-# ---------------------------------------------------------------------------
-# Composition
-# ---------------------------------------------------------------------------
-
-@router.post("/compose")
-async def compose_skills(
+@router.post("/{skill_id}/apply")
+async def apply_skill(
     request: Request,
-    body: SkillComposeRequest,
+    skill_id: str,
 ) -> dict[str, Any]:
-    """Compose multiple skills into a skill set.
+    """Queue a skill for application.
 
-    Resolves dependencies, detects conflicts, and creates an ordered skill set.
+    This is a backward compatibility endpoint that simulates queueing
+    a skill for execution. In practice, skills are applied via the
+    optimizer or agent runtime.
 
-    Request Body:
-        skill_ids: List of skill IDs to compose
-        name: Name for the composed skill set
-        description: Description of the skill set
-        resolve_conflicts: Whether to attempt automatic conflict resolution
+    Args:
+        skill_id: The skill ID or name to apply
 
     Returns:
         {
-            "skillset": SkillSet dict,
-            "valid": bool,
-            "conflicts": [conflict_dict, ...],
-            "message": str
+            "name": str,
+            "status": "queued",
+            "mutations": [...]
         }
 
     Raises:
-        HTTPException: 400 if composition fails with unresolvable conflicts
+        HTTPException: 404 if skill not found
     """
     store = _get_skill_store(request)
-    composer = _get_skill_composer(request)
 
-    # Load skills by IDs
-    skills: list[Skill] = []
-    for skill_id in body.skill_ids:
-        skill = store.get(skill_id)
-        if skill is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Skill not found: {skill_id}"
-            )
-        skills.append(skill)
+    # Get skill by ID or name
+    skill = store.get(skill_id)
+    if skill is None:
+        skill = store.get_by_name(skill_id)
 
-    try:
-        # Compose skills
-        skillset = composer.compose(
-            skills=skills,
-            store=store,
-            name=body.name,
-            description=body.description,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Composition failed: {str(e)}"
-        )
-
-    # Check if valid
-    is_valid = skillset.validate()
-
-    if not is_valid and not body.resolve_conflicts:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Skill set has unresolved conflicts. Set resolve_conflicts=true to attempt resolution."
-        )
-
-    return {
-        "skillset": skillset.to_dict(),
-        "valid": is_valid,
-        "conflicts": [c.to_dict() for c in skillset.conflicts],
-        "message": f"Composed {len(skillset.skills)} skills into '{body.name}'"
-    }
-
-
-# ---------------------------------------------------------------------------
-# Marketplace
-# ---------------------------------------------------------------------------
-
-@router.get("/marketplace")
-async def browse_marketplace(
-    request: Request,
-    kind: str | None = Query(None, description="Filter by kind: build or runtime"),
-    domain: str | None = Query(None, description="Filter by domain"),
-    tags: str | None = Query(None, description="Comma-separated tags"),
-) -> dict[str, Any]:
-    """Browse available skills in the marketplace.
-
-    Returns skill metadata (not full definitions) for efficient browsing.
-
-    Query Parameters:
-        kind: Filter by skill kind (build/runtime)
-        domain: Filter by domain
-        tags: Comma-separated tags (skill must have at least ONE)
-
-    Returns:
-        {
-            "skills": [metadata_dict, ...],
-            "count": int,
-            "filters": {...}
-        }
-    """
-    marketplace = _get_skill_marketplace(request)
-
-    # Parse kind
-    kind_enum = None
-    if kind:
-        try:
-            kind_enum = SkillKind.BUILD if kind.lower() == "build" else SkillKind.RUNTIME
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid kind: {kind}. Must be 'build' or 'runtime'"
-            )
-
-    # Parse tags
-    tags_list = None
-    if tags:
-        tags_list = [t.strip() for t in tags.split(",") if t.strip()]
-
-    skills = marketplace.browse(
-        kind=kind_enum,
-        domain=domain,
-        tags=tags_list,
-    )
-
-    return {
-        "skills": skills,
-        "count": len(skills),
-        "filters": {
-            "kind": kind,
-            "domain": domain,
-            "tags": tags_list,
-        }
-    }
-
-
-@router.post("/install")
-async def install_skill(
-    request: Request,
-    body: SkillInstallRequest,
-) -> dict[str, Any]:
-    """Install a skill from the marketplace.
-
-    Downloads the skill from the marketplace and installs it into the local store.
-    Source can be:
-    - Skill ID in marketplace (e.g., "keyword_expansion")
-    - URL to YAML file (e.g., "https://example.com/skills/my_skill.yaml")
-    - Local file path (e.g., "/path/to/skill.yaml")
-
-    Request Body:
-        skill_id: Marketplace skill ID, URL, or file path
-
-    Returns:
-        {
-            "success": bool,
-            "skill_id": str,
-            "skill_name": str,
-            "version": str,
-            "message": str
-        }
-
-    Raises:
-        HTTPException: 404 if skill not found in marketplace, 400 if installation fails
-    """
-    from core.skills.marketplace import MarketplaceError
-
-    marketplace = _get_skill_marketplace(request)
-    store = _get_skill_store(request)
-
-    try:
-        # Install from marketplace (supports ID, URL, or file path)
-        skill = marketplace.install(body.skill_id, store)
-    except MarketplaceError as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(status_code=404, detail=str(e))
-        else:
-            raise HTTPException(status_code=400, detail=str(e))
-    except FileNotFoundError:
+    if skill is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Skill not found: {body.skill_id}"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Installation failed: {str(e)}"
+            detail=f"Skill not found: {skill_id}"
         )
 
     return {
-        "success": True,
-        "skill_id": skill.id,
-        "skill_name": skill.name,
-        "version": skill.version,
-        "message": f"Installed '{skill.name}' v{skill.version}"
+        "name": skill.name,
+        "status": "queued",
+        "mutations": [m.to_dict() for m in skill.mutations],
     }
 
 
@@ -637,99 +857,3 @@ async def get_effectiveness(
         "skill_name": skill.name,
         "effectiveness": effectiveness.to_dict(),
     }
-
-
-# ---------------------------------------------------------------------------
-# Search
-# ---------------------------------------------------------------------------
-
-@router.post("/search")
-async def search_skills(
-    request: Request,
-    body: SkillSearchRequest,
-) -> dict[str, Any]:
-    """Search skills by text query.
-
-    Searches across skill name, description, capabilities, and tags.
-
-    Request Body:
-        query: Search query text
-        kind: Optional filter by kind (build/runtime)
-        domain: Optional filter by domain
-        tags: Optional comma-separated tags filter
-
-    Returns:
-        {
-            "skills": [skill_dict, ...],
-            "count": int,
-            "query": str
-        }
-    """
-    store = _get_skill_store(request)
-
-    # Parse kind
-    kind_enum = None
-    if body.kind:
-        try:
-            kind_enum = SkillKind.BUILD if body.kind.lower() == "build" else SkillKind.RUNTIME
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid kind: {body.kind}. Must be 'build' or 'runtime'"
-            )
-
-    # Search skills
-    skills = store.search(
-        query=body.query,
-        kind=kind_enum,
-    )
-
-    # Apply additional filters if specified
-    if body.domain:
-        skills = [s for s in skills if s.domain == body.domain]
-
-    if body.tags:
-        tags_list = [t.strip() for t in body.tags.split(",") if t.strip()]
-        skills = [s for s in skills if any(tag in s.tags for tag in tags_list)]
-
-    return {
-        "skills": [s.to_dict() for s in skills],
-        "count": len(skills),
-        "query": body.query,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Extraction stubs (for future implementation)
-# ---------------------------------------------------------------------------
-
-@router.post("/from-conversation")
-async def extract_from_conversation(
-    request: Request,
-) -> dict[str, Any]:
-    """Extract a skill from a conversation.
-
-    STUB: Not yet implemented.
-
-    This will analyze a conversation and extract a reusable skill pattern.
-    """
-    raise HTTPException(
-        status_code=501,
-        detail="Skill extraction from conversations not yet implemented"
-    )
-
-
-@router.post("/from-optimization")
-async def extract_from_optimization(
-    request: Request,
-) -> dict[str, Any]:
-    """Extract a skill from an optimization cycle.
-
-    STUB: Not yet implemented.
-
-    This will analyze a successful optimization and extract it as a reusable skill.
-    """
-    raise HTTPException(
-        status_code=501,
-        detail="Skill extraction from optimizations not yet implemented"
-    )

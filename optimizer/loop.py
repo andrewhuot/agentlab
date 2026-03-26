@@ -227,6 +227,8 @@ class Optimizer:
             )
             if skill_result is not None:
                 return skill_result
+            # Skill optimization failed - clear skills before falling back to proposer
+            self._current_cycle_skills = []
 
         # Fall back to standard proposer-based optimization
         past_attempts = [
@@ -593,7 +595,9 @@ class Optimizer:
         best_score = -float('inf')
         best_skill_idx = 0
 
-        baseline_score = self.eval_runner.run(config=current_config)
+        # Use validated config for baseline evaluation
+        baseline_config_dict = validated_current.model_dump(mode="python")
+        baseline_score = self.eval_runner.run(config=baseline_config_dict)
 
         for idx, proposal_config in enumerate(proposals):
             try:

@@ -498,7 +498,13 @@ class SkillComposeRequest(BaseModel):
 
 class SkillInstallRequest(BaseModel):
     """Request to install a skill from marketplace."""
-    skill_id: str = Field(..., description="Marketplace skill ID, URL, or file path to install")
+    skill_id: Optional[str] = Field(None, description="Marketplace skill ID or URL to install")
+    file_path: Optional[str] = Field(None, description="File path to skill pack YAML (backward compat)")
+
+    @property
+    def source(self) -> str | None:
+        """Get the source (skill_id or file_path)."""
+        return self.file_path or self.skill_id
 
 
 class SkillSearchRequest(BaseModel):

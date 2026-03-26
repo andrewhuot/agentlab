@@ -333,6 +333,70 @@ class SkillEngine:
         self.store.record_outcome(skill.id, improvement, success)
 
     # ------------------------------------------------------------------
+    # Proposal Generation
+    # ------------------------------------------------------------------
+
+    def propose(
+        self,
+        health_report: Any,
+        base_config: dict[str, Any],
+        max_candidates: int = 5,
+    ) -> dict[str, Any] | None:
+        """Propose a configuration change based on health diagnosis.
+
+        This is the main entry point for skill-driven optimization. It:
+        1. Analyzes the health report to identify failure families
+        2. Selects relevant skills using the selection engine
+        3. Generates candidate configurations by applying skills
+        4. Returns the first candidate (or None if no skills match)
+
+        Args:
+            health_report: Health report with failure_buckets, metrics, etc.
+            base_config: Current agent configuration.
+            max_candidates: Maximum number of skills to consider.
+
+        Returns:
+            A mutated config dict, or None if no skills were selected.
+        """
+        # Extract failure family from health report
+        failure_family = None
+        if hasattr(health_report, "failure_buckets") and health_report.failure_buckets:
+            # Get the most common failure family
+            failure_family = max(
+                health_report.failure_buckets.items(),
+                key=lambda x: x[1]
+            )[0]
+
+        # Extract metrics if available
+        metrics = None
+        if hasattr(health_report, "metrics"):
+            metrics_obj = health_report.metrics
+            metrics = {
+                "success_rate": getattr(metrics_obj, "success_rate", None),
+                "avg_latency_ms": getattr(metrics_obj, "avg_latency_ms", None),
+                "error_rate": getattr(metrics_obj, "error_rate", None),
+                "avg_cost": getattr(metrics_obj, "avg_cost", None),
+            }
+            # Remove None values
+            metrics = {k: v for k, v in metrics.items() if v is not None}
+
+        # Select relevant skills
+        skills = self.select_skills(
+            failure_family=failure_family,
+            metrics=metrics,
+            max_skills=max_candidates,
+        )
+
+        if not skills:
+            return None
+
+        # Apply the first (highest-ranked) skill
+        # In production, we might want to evaluate multiple candidates
+        # and return the best one, but for now we return the first
+        skill = skills[0]
+        return self.apply_skill(skill, base_config, context={})
+
+    # ------------------------------------------------------------------
     # Utilities
     # ------------------------------------------------------------------
 

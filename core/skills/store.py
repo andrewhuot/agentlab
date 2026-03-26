@@ -388,7 +388,7 @@ class SkillStore:
         This updates the skill's effectiveness metrics by aggregating all outcomes.
 
         Args:
-            skill_id: The skill ID.
+            skill_id: The skill ID or name.
             improvement: The improvement delta (e.g., accuracy increase, latency reduction).
             success: Whether the skill application was successful.
 
@@ -396,10 +396,15 @@ class SkillStore:
             ValueError: If skill_id does not exist.
         """
         with self._lock:
-            # Verify skill exists
+            # Verify skill exists (try by ID first, then by name)
             skill = self.get(skill_id)
             if skill is None:
+                skill = self.get_by_name(skill_id)
+            if skill is None:
                 raise ValueError(f"Skill with id='{skill_id}' not found")
+
+            # Use the actual ID for recording
+            skill_id = skill.id
 
             # Record outcome
             self._conn.execute(

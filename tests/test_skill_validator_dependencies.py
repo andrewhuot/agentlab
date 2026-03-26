@@ -27,6 +27,10 @@ class MockSkillStore:
         """Get a skill by ID."""
         return self.skills.get(skill_id)
 
+    def get(self, skill_id: str) -> Skill | None:
+        """Get a skill by ID - matches real SkillStore interface."""
+        return self.get_skill(skill_id)
+
 
 class TestValidateDependencies:
     """Test dependency validation."""

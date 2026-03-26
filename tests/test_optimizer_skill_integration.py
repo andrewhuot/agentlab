@@ -25,13 +25,21 @@ from optimizer.skill_engine import SkillEngine
 
 
 class DeterministicEvalRunner:
-    """Return baseline_score first, then always candidate_score.
+    """Return baseline_score for baseline config, candidate_score for modified configs.
 
-    Simpler approach: first call returns baseline, all subsequent calls return candidate.
-    This works for the common pattern of: baseline eval, then candidate eval(s).
+    Keys off a simple hash of key config fields to detect changes.
+    Handles both prompt changes (from skills) and routing changes (from mock proposer).
     """
 
     def __init__(self, baseline_config: dict, baseline_score: float, candidate_score: float):
+        # Validate baseline config to match what optimizer will pass
+        from agent.config.schema import validate_config
+        validated_baseline = validate_config(baseline_config)
+        validated_baseline_dict = validated_baseline.model_dump(mode="python")
+
+        # Store baseline state for comparison (use validated version)
+        self.baseline_prompts = json.dumps(validated_baseline_dict.get("prompts", {}), sort_keys=True)
+        self.baseline_routing = json.dumps(validated_baseline_dict.get("routing", {}), sort_keys=True)
         self.baseline_score = baseline_score
         self.candidate_score = candidate_score
         self.call_count = 0
@@ -40,8 +48,16 @@ class DeterministicEvalRunner:
     def run(self, config: dict | None = None) -> CompositeScore:
         self.call_count += 1
 
-        # First call gets baseline, all others get candidate
-        score = self.baseline_score if self.call_count == 1 else self.candidate_score
+        # Check if config changed from baseline
+        if config is None:
+            config = {}
+
+        current_prompts = json.dumps(config.get("prompts", {}), sort_keys=True)
+        current_routing = json.dumps(config.get("routing", {}), sort_keys=True)
+
+        is_baseline = (current_prompts == self.baseline_prompts and
+                      current_routing == self.baseline_routing)
+        score = self.baseline_score if is_baseline else self.candidate_score
         self.scores_returned.append(score)
 
         # Build realistic case results for significance testing

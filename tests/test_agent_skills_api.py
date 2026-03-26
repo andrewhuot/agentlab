@@ -183,7 +183,7 @@ class TestAgentSkillsAPI:
         assert resp.json()["count"] == 1
         assert resp.json()["skills"][0]["platform"] == "adk"
 
-    def test_503_when_no_store() -> None:
+    def test_503_when_no_store(self) -> None:
         bare_app = FastAPI()
         bare_app.include_router(router)
         c = TestClient(bare_app, raise_server_exceptions=False)
