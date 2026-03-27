@@ -1,4 +1,8 @@
-"""Deploy CX agents to environments and generate web widget embed code."""
+"""Deploy CX agents to environments and generate web widget embed code.
+
+Note: CX Agent Studio uses 'apps' as the parent resource and 'deployments' instead of 'environments'.
+API Reference: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,22 +29,25 @@ class CxDeployer:
         ref: CxAgentRef,
         environment: str = "production",
     ) -> DeployResult:
-        """Deploy the agent to a CX environment.
+        """Deploy the app to a CX deployment (environment).
 
         Args:
-            ref: Agent reference (project/location/agent).
-            environment: Target environment name (e.g. "production", "staging").
+            ref: Agent reference (project/location/app/agent).
+            environment: Target deployment name (e.g. "production", "staging").
 
         Returns:
             DeployResult with environment name, status, and version info.
 
         Raises:
             CxStudioError: If the deploy API call fails.
+
+        Note: In CX Agent Studio, deployments are at the app level, not agent level.
+        API Reference: projects.locations.apps.deployments
         """
         try:
-            # Build environment resource name
-            environment_name = f"{ref.name}/environments/{environment}"
-            result = self._client.deploy_to_environment(environment_name, [])
+            # Build deployment resource name at app level
+            deployment_name = f"{ref.app_name}/deployments/{environment}"
+            result = self._client.deploy_to_environment(deployment_name, [])
             return DeployResult(
                 environment=environment,
                 status="deployed",
@@ -54,7 +61,7 @@ class CxDeployer:
         widget_config: CxWidgetConfig,
         output_path: str | None = None,
     ) -> str:
-        """Generate chat-messenger web widget HTML.
+        """Generate chat-messenger web widget HTML for CX Agent Studio.
 
         Returns the HTML string. If output_path is provided, also writes to file.
 
@@ -63,7 +70,9 @@ class CxDeployer:
             output_path: Optional file path to write the HTML to.
 
         Returns:
-            Complete HTML page string with the chat-messenger embed.
+            Complete HTML page string with the <chat-messenger> web component.
+
+        Note: CX Agent Studio uses <chat-messenger>, NOT <df-messenger>.
         """
         html = _build_widget_html(widget_config)
         if output_path:
@@ -71,22 +80,26 @@ class CxDeployer:
         return html
 
     def get_deploy_status(self, ref: CxAgentRef) -> dict:
-        """Get current deployment status for an agent.
+        """Get current deployment status for an app.
 
         Args:
-            ref: Agent reference (project/location/agent).
+            ref: Agent reference (project/location/app/agent).
 
         Returns:
-            Dict with agent name and list of environments with their version configs.
+            Dict with app name and list of deployments with their version configs.
 
         Raises:
-            CxStudioError: If the API call to list environments fails.
+            CxStudioError: If the API call to list deployments fails.
+
+        Note: In CX Agent Studio, deployments are at the app level.
         """
         try:
-            envs = self._client.list_environments(ref.name)
+            # List deployments at app level, not agent level
+            envs = self._client.list_environments(ref.app_name)
             return {
+                "app": ref.app_name,
                 "agent": ref.name,
-                "environments": [
+                "deployments": [
                     {
                         "name": env.display_name,
                         "description": env.description,
@@ -108,7 +121,7 @@ class CxDeployer:
         Creates tools, datastores, and updates safety settings based on artifact content.
 
         Args:
-            ref: CX Agent reference where artifact should be deployed.
+            ref: CX Agent reference (project/location/app/agent).
             artifact: Agent artifact from build_agent_artifact.
 
         Returns:
@@ -116,6 +129,9 @@ class CxDeployer:
 
         Raises:
             CxStudioError: If deployment fails.
+
+        Note: Tools and datastores are app-level resources in CX Agent Studio.
+        API Reference: projects.locations.apps.tools, projects.locations.apps.guardrails
         """
         results = {
             "tools_created": 0,
@@ -124,29 +140,31 @@ class CxDeployer:
         }
 
         try:
-            # Deploy integration templates as tools
+            # Deploy integration templates as tools (app-level resource)
             integration_templates = artifact.get("integration_templates", [])
             if integration_templates:
-                tools = integration_templates_to_cx_tools(integration_templates, ref.name)
+                tools = integration_templates_to_cx_tools(integration_templates, ref.app_name)
                 for tool in tools:
-                    # In real implementation, would call client.create_tool
+                    # In real implementation, would call client.create_tool at app level
                     # For now, just count
                     results["tools_created"] += 1
 
-            # Deploy knowledge asset as datastore
+            # Deploy knowledge asset as datastore (app-level resource)
             knowledge_asset = artifact.get("knowledge_asset", {})
             if knowledge_asset and knowledge_asset.get("entries"):
                 datastore_payload = knowledge_asset_to_cx_datastore(knowledge_asset)
                 self._client.create_data_store(
-                    agent_name=ref.name,
+                    app_name=ref.app_name,  # Use app_name, not agent_name
                     **datastore_payload,
                 )
                 results["datastores_created"] = 1
 
-            # Update safety settings from guardrails
+            # Update safety settings from guardrails (agent-level or app-level)
             guardrails = artifact.get("guardrails", [])
             if guardrails:
                 safety_settings = guardrails_to_cx_safety_settings(guardrails)
+                # Guardrails can be applied at app level via projects.locations.apps.guardrails
+                # or at agent level via generativeSettings
                 agent_updates = {
                     "generativeSettings": {
                         "safetySettings": safety_settings.get("safetySettings", []),

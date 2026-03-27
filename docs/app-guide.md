@@ -43,7 +43,7 @@ All 31 pages in the web console:
 | **Registry** | `/registry` | Modular registry of skills, policies, tools, handoffs |
 | **Blame Map** | `/blame` | Failure clustering and root cause attribution |
 | **Scorer Studio** | `/scorer-studio` | Create and refine eval scorers from natural language |
-| **CX Import** | `/cx/import` | Import Google Dialogflow CX Agent Studio agents |
+| **CX Import** | `/cx/import` | Import Google CX Agent Studio agents |
 | **CX Deploy** | `/cx/deploy` | Deploy to CX environments with widget generation |
 | **ADK Import** | `/adk/import` | Import Google Agent Development Kit agents |
 | **ADK Deploy** | `/adk/deploy` | Deploy ADK agents to Cloud Run or Vertex AI |

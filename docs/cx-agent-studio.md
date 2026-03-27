@@ -1,6 +1,10 @@
 # CX Agent Studio Integration Guide
 
-This guide describes how to use AutoAgent VNextCC with Google Cloud CX Agent Studio (Dialogflow CX / CCAI).
+This guide describes how to use AutoAgent VNextCC with Google Cloud CX Agent Studio (Customer Engagement AI - Conversational Agents).
+
+**Important**: CX Agent Studio is NOT Dialogflow CX. They are separate products with different APIs:
+- CX Agent Studio: `ces.googleapis.com` API, uses apps/agents/tools/examples
+- Dialogflow CX: `dialogflow.googleapis.com` API, uses flows/intents/pages
 
 Current state:
 - Full CX integration is **implemented and functional**
@@ -17,7 +21,7 @@ Limitations:
 ## Who This Is For
 
 Use this guide if you:
-- already run an agent in Dialogflow CX
+- already run an agent in CX Agent Studio
 - want AutoAgent to analyze quality and propose improvements
 - need controlled rollout and rollback semantics in a regulated environment
 
@@ -54,8 +58,8 @@ Best for mature teams with strong observability and change governance.
 
 ```text
 ┌─────────────────────────────┐      ┌──────────────────────────────────┐
-│ Dialogflow CX (GCP)         │      │ AutoAgent VNextCC                │
-│ - Agents / Flows / Pages    │<---->│ CX Adapter Layer                 │
+│ CX Agent Studio (GCP)        │      │ AutoAgent VNextCC                │
+│ - Apps / Agents / Tools     │<---->│ CX Adapter Layer                 │
 │ - Conversations             │      │ - Conversation ingest            │
 │ - Experiments               │      │ - Config translator              │
 └──────────────┬──────────────┘      │ - Deploy bridge                  │
@@ -74,9 +78,9 @@ Best for mature teams with strong observability and change governance.
 
 ## Required Google Cloud APIs
 
-- Dialogflow CX API
-- Dialogflow Conversations API
-- Dialogflow Experiments API (if using experiments for canary)
+- CX Agent Studio API (ces.googleapis.com/v1)
+- Conversational Agents API
+- Customer Engagement AI APIs
 - Cloud Logging API (optional, for enriched analytics)
 
 ## IAM and Security Model

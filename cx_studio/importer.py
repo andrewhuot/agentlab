@@ -1,4 +1,9 @@
-"""Import CX Agent Studio agents into AutoAgent format."""
+"""Import CX Agent Studio agents into AutoAgent format.
+
+Note: CX Agent Studio uses apps as parent resources.
+Agent references should be: projects/{project}/locations/{location}/apps/{app}/agents/{agent}
+API Reference: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
+"""
 from __future__ import annotations
 
 import json
@@ -29,20 +34,23 @@ class CxImporter:
 
         1. Fetch snapshot from CX API.
         2. Map to AutoAgent config dict.
-        3. Extract test cases → eval suite.
+        3. Extract examples (test cases) → eval suite.
         4. Save snapshot for offline use + round-trip export.
         5. Write config YAML + eval JSON files.
 
         Args:
-            ref: Reference identifying the CX agent (project/location/agent triple).
+            ref: Reference identifying the CX agent.
+                Must include app_id: projects/{project}/locations/{location}/apps/{app}/agents/{agent}
             output_dir: Directory where output files will be written.
-            include_test_cases: Whether to extract CX test cases as eval cases.
+            include_test_cases: Whether to extract CX examples as eval cases.
 
         Returns:
             ImportResult with paths to all written files and a summary.
 
         Raises:
             CxImportError: On any failure during the import pipeline.
+
+        Note: In CX Agent Studio, most resources (tools, examples, etc.) are at the app level.
         """
         try:
             # 1. Fetch snapshot from CX API

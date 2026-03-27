@@ -10,25 +10,33 @@ Build a bidirectional integration between AutoAgent and Google Cloud CX Agent St
 ## Reference Documentation
 
 ### CX Agent Studio REST API
-- Base URL: `https://{region}-dialogflow.googleapis.com/v3/projects/{project}/locations/{location}/agents/{agent}`
-- Key resources:
+- Base URL: `https://ces.googleapis.com/v1`
+- Resource hierarchy: `projects/{project}/locations/{location}/apps/{app}/...`
+- Key resources (v1 API):
+  - **Apps**: Top-level application containers
   - **Agents**: CRUD on agent configs (display name, default language, description, gen AI settings)
-  - **Flows**: Conversation flows with pages, routes, event handlers
-  - **Playbooks**: LLM-powered playbooks with instructions, steps, examples
-  - **Tools**: Tool definitions (OpenAPI, data stores, functions, connectors)
-  - **Generators**: LLM generators for dynamic responses
-  - **Intents**: Intent definitions with training phrases
-  - **Entity Types**: Entity definitions
-  - **Environments**: Deployment environments (draft, staging, production)
-  - **Deployments**: Web widget deployments
-  - **Conversations**: Conversation history (for import)
-  - **Test Cases**: Existing test cases (map to AutoAgent eval cases)
+  - **Tools**: Tool definitions (OpenAPI specs, data store connections, function definitions)
+  - **Toolsets**: Collections of tools
+  - **Examples**: Few-shot learning examples (replaces test cases/training phrases)
+  - **Guardrails**: Safety settings and content filters
+  - **Deployments**: Deployment environments (production, staging, etc.)
+  - **Conversations**: Conversation history and session management
+  - **Sessions**: Runtime session handling (runSession, streamRunSession)
+  - **Versions**: Version management for apps
+  - **Changelogs**: Change history tracking
 - Auth: Google Cloud service account or ADC (Application Default Credentials)
-- API overview: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
+- API Reference: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
+
+**Note**: CX Agent Studio is NOT Dialogflow CX. The resource model is different:
+- Uses `ces.googleapis.com` (NOT `dialogflow.googleapis.com`)
+- Apps are the parent resource (NOT direct agent hierarchy)
+- Uses Examples (NOT Intents/Flows/Training Phrases from Dialogflow CX)
+- Uses Guardrails (NOT just generativeSettings)
 
 ### Web Widget Deployment
-- Embed via `<df-messenger>` web component
+- Embed via `<chat-messenger>` web component (NOT `<df-messenger>`)
 - Config includes: project-id, agent-id, language-code, chat-title, theme customization
+- Widget scripts/CSS may still be hosted at dialogflow-console URLs (legacy hosting)
 - Docs: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/deploy/web-widget
 
 ### CX Agent Studio MCP Server

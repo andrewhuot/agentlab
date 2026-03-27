@@ -1,9 +1,11 @@
 """Pydantic models for CX Agent Studio API resources.
 
 These types represent the canonical shapes returned by and sent to the
-Dialogflow CX REST API (v3). They are intentionally separate from AutoAgent's
-internal config schema so that the mapper layer can evolve each side
-independently.
+CX Agent Studio REST API v1 (Google Cloud Customer Engagement AI).
+They are intentionally separate from AutoAgent's internal config schema
+so that the mapper layer can evolve each side independently.
+
+API Reference: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
 """
 from __future__ import annotations
 
@@ -13,11 +15,16 @@ from pydantic import BaseModel, Field
 
 
 class CxAgentRef(BaseModel):
-    """Lightweight reference identifying a CX agent by its GCP coordinates."""
+    """Lightweight reference identifying a CX agent by its GCP coordinates.
+
+    Note: CX Agent Studio uses a resource hierarchy with apps as a parent:
+    projects/{project}/locations/{location}/apps/{app}/agents/{agent}
+    """
 
     project: str
     location: str
-    agent_id: str
+    app_id: str  # The app that contains the agent
+    agent_id: str = ""  # Optional - some operations work at app level
 
     @property
     def parent(self) -> str:
@@ -25,9 +32,19 @@ class CxAgentRef(BaseModel):
         return f"projects/{self.project}/locations/{self.location}"
 
     @property
+    def app_name(self) -> str:
+        """Return the fully-qualified app resource name."""
+        return f"projects/{self.project}/locations/{self.location}/apps/{self.app_id}"
+
+    @property
     def name(self) -> str:
-        """Return the fully-qualified agent resource name."""
-        return f"projects/{self.project}/locations/{self.location}/agents/{self.agent_id}"
+        """Return the fully-qualified agent resource name.
+
+        If agent_id is not set, returns the app name instead (for app-level operations).
+        """
+        if self.agent_id:
+            return f"projects/{self.project}/locations/{self.location}/apps/{self.app_id}/agents/{self.agent_id}"
+        return self.app_name
 
 
 class CxAgent(BaseModel):

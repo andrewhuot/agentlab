@@ -8,7 +8,7 @@ Quick index: `init`, `server`, `mcp-server`, `full-auto`, `status`, `doctor`, `l
 - `full-auto` — Dangerous full-auto mode with auto-promotion gates
 - `mcp-server` — Model Context Protocol server for AI coding tool integration
 - `edit`, `explain`, `diagnose` — Natural language intelligence layer with `--json` output modes
-- `cx` group — Dialogflow CX Agent Studio bidirectional integration
+- `cx` group — CX Agent Studio bidirectional integration
 - `adk` group — Google Agent Development Kit Python source integration
 - All major commands now support `--json` flag for structured output
 

@@ -1,4 +1,9 @@
-"""Export optimized AutoAgent config back to CX Agent Studio."""
+"""Export optimized AutoAgent config back to CX Agent Studio.
+
+Note: CX Agent Studio uses apps as parent resources.
+Many resources (tools, examples, deployments) are at the app level, not agent level.
+API Reference: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
+"""
 from __future__ import annotations
 
 import json
@@ -34,6 +39,7 @@ class CxExporter:
         Args:
             config: AutoAgent config dict to export.
             ref: Reference identifying the target CX agent.
+                Must include app_id: projects/{project}/locations/{location}/apps/{app}/agents/{agent}
             snapshot_path: Path to the local snapshot JSON written during import.
             dry_run: When True, compute and return the diff without pushing anything.
 
@@ -42,6 +48,8 @@ class CxExporter:
 
         Raises:
             CxExportError: On any failure during the export pipeline.
+
+        Note: Updates are sent to app-level resources (tools, examples) and agent-level (settings).
         """
         try:
             # 1. Load base snapshot from disk

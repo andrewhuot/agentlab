@@ -36,7 +36,12 @@ from cx_studio.exporter import CxExporter
 # ---------------------------------------------------------------------------
 
 def _make_ref() -> CxAgentRef:
-    return CxAgentRef(project="test-project", location="us-central1", agent_id="agent-123")
+    return CxAgentRef(
+        project="test-project",
+        location="us-central1",
+        app_id="test-app",
+        agent_id="agent-123"
+    )
 
 
 def _make_snapshot() -> CxAgentSnapshot:
@@ -127,11 +132,13 @@ class TestCxTypes:
 
     def test_agent_ref_name(self):
         ref = _make_ref()
-        assert ref.name == "projects/test-project/locations/us-central1/agents/agent-123"
+        assert ref.name == "projects/test-project/locations/us-central1/apps/test-app/agents/agent-123"
+        assert ref.app_name == "projects/test-project/locations/us-central1/apps/test-app"
 
     def test_agent_ref_global(self):
-        ref = CxAgentRef(project="proj", location="global", agent_id="a1")
+        ref = CxAgentRef(project="proj", location="global", app_id="app1", agent_id="a1")
         assert ref.parent == "projects/proj/locations/global"
+        assert ref.name == "projects/proj/locations/global/apps/app1/agents/a1"
 
     def test_snapshot_serialization(self):
         snap = _make_snapshot()
@@ -296,9 +303,10 @@ class TestCxDeployer:
         result = deployer.deploy_to_environment(ref, "staging")
         assert result.environment == "staging"
         assert result.status == "deployed"
-        # Verify client is called with environment_name string and version_configs list
-        expected_env_name = f"{ref.name}/environments/staging"
-        mock_client.deploy_to_environment.assert_called_once_with(expected_env_name, [])
+        # Verify client is called with deployment_name string and version_configs list
+        # In CX Agent Studio, deployments are at app level, not agent level
+        expected_deployment_name = f"{ref.app_name}/deployments/staging"
+        mock_client.deploy_to_environment.assert_called_once_with(expected_deployment_name, [])
 
     def test_get_deploy_status(self):
         mock_client = MagicMock()
@@ -308,8 +316,11 @@ class TestCxDeployer:
         deployer = CxDeployer(mock_client)
         ref = _make_ref()
         status = deployer.get_deploy_status(ref)
-        assert len(status["environments"]) == 1
-        assert status["environments"][0]["name"] == "production"
+        # In CX Agent Studio, deployments are at app level
+        assert "app" in status
+        assert "deployments" in status
+        assert len(status["deployments"]) == 1
+        assert status["deployments"][0]["name"] == "production"
 
 
 # ---------------------------------------------------------------------------
@@ -580,7 +591,7 @@ class TestCxClientArgumentTypes:
             os.unlink(snap_path)
 
     def test_deployer_passes_string_to_deploy_to_environment(self):
-        """UX-007: Verify deployer passes environment_name string to client.deploy_to_environment."""
+        """UX-007: Verify deployer passes deployment_name string to client.deploy_to_environment."""
         mock_client = MagicMock()
         mock_client.deploy_to_environment.return_value = {"version": "v1"}
 
@@ -589,17 +600,18 @@ class TestCxClientArgumentTypes:
 
         deployer.deploy_to_environment(ref, "production")
 
-        # Verify client was called with string environment_name and version_configs list
+        # Verify client was called with string deployment_name and version_configs list
         mock_client.deploy_to_environment.assert_called_once()
         call_args = mock_client.deploy_to_environment.call_args[0]
         assert len(call_args) == 2
         assert isinstance(call_args[0], str), f"Expected string as first arg, got {type(call_args[0])}"
         assert isinstance(call_args[1], list), f"Expected list as second arg, got {type(call_args[1])}"
-        # Verify environment name is fully qualified
-        assert call_args[0].endswith("/environments/production")
+        # Verify deployment name is fully qualified and uses app-level resource
+        # CX Agent Studio uses /deployments not /environments
+        assert call_args[0].endswith("/deployments/production")
 
     def test_deployer_passes_string_to_list_environments(self):
-        """UX-007: Verify deployer passes agent_name string to client.list_environments."""
+        """UX-007: Verify deployer passes app_name string to client.list_environments."""
         mock_client = MagicMock()
         mock_client.list_environments.return_value = [
             CxEnvironment(name="env/prod", display_name="production", description="Prod"),
@@ -610,11 +622,11 @@ class TestCxClientArgumentTypes:
 
         deployer.get_deploy_status(ref)
 
-        # Verify client was called with string, not CxAgentRef object
+        # Verify client was called with app_name string (deployments are at app level in CX Agent Studio)
         mock_client.list_environments.assert_called_once()
         call_arg = mock_client.list_environments.call_args[0][0]
         assert isinstance(call_arg, str), f"Expected string, got {type(call_arg)}"
-        assert call_arg == ref.name
+        assert call_arg == ref.app_name  # Changed from ref.name to ref.app_name
 
 
 # ---------------------------------------------------------------------------

@@ -660,7 +660,7 @@ autoagent skill publish <skill-id>
 
 ### CX Agent Studio Integration
 
-**Bidirectional Dialogflow CX integration** — import agents, optimize, export back:
+**Bidirectional CX Agent Studio integration** — import agents, optimize, export back:
 
 - **Import:** CX agent → AutoAgent schema (generativeSettings, tools, examples, flows, test cases)
 - **Export:** Optimized config → CX format with snapshot preservation
@@ -854,7 +854,7 @@ SQLite-backed per-cycle and daily budget tracking. The loop halts when spend lim
 
 ### Integration Ecosystem
 
-**CX Agent Studio** — Bidirectional Dialogflow CX integration:
+**CX Agent Studio** — Bidirectional CX Agent Studio integration:
 - Import: CX agent → AutoAgent schema (generativeSettings, tools, examples, flows, test cases)
 - Export: Optimized config → CX format with snapshot preservation
 - Deploy: One-click deploy to CX environments with widget generation
@@ -982,7 +982,7 @@ See [docs/cli-reference.md](docs/cli-reference.md) for full details.
 | **Agent Skills** | Agent-specific skill assignment and composition |
 | **Project Memory** | Persistent project context (AUTOAGENT.md) with auto-update sections |
 | **Knowledge** | Knowledge base mining from successful conversations |
-| **CX Import** | Import Google Dialogflow CX Agent Studio agents |
+| **CX Import** | Import Google CX Agent Studio agents |
 | **CX Deploy** | Deploy to CX environments with widget generation |
 | **ADK Import** | Import Google Agent Development Kit agents from Python source |
 | **ADK Deploy** | Deploy ADK agents to Cloud Run or Vertex AI |

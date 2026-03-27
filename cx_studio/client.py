@@ -1,7 +1,9 @@
-"""REST API client for CX Agent Studio (Dialogflow CX v3).
+"""REST API client for CX Agent Studio (Google Cloud Customer Engagement AI).
 
 Uses ``httpx`` when available and falls back to ``urllib.request`` so the
 module remains importable in environments that have not installed httpx.
+
+API Reference: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
 """
 from __future__ import annotations
 
@@ -33,17 +35,21 @@ _HTTPX_AVAILABLE = importlib.util.find_spec("httpx") is not None
 
 
 def _build_base_url(location: str) -> str:
-    """Return the Dialogflow CX v3 base URL for a given location."""
-    if location == "global":
-        return "https://dialogflow.googleapis.com/v3"
-    return f"https://{location}-dialogflow.googleapis.com/v3"
+    """Return the CX Agent Studio API v1 base URL.
+
+    Note: CX Agent Studio uses ces.googleapis.com, not dialogflow.googleapis.com.
+    The location parameter is currently unused as the API uses a global endpoint.
+    """
+    return "https://ces.googleapis.com/v1"
 
 
 class CxClient:
-    """Thin REST client for the Dialogflow CX v3 API.
+    """Thin REST client for the CX Agent Studio API v1.
 
     All methods return parsed Python dicts/lists or typed Pydantic models.
     Network errors are translated into ``CxApiError``.
+
+    API Reference: https://docs.cloud.google.com/customer-engagement-ai/conversational-agents/ps/reference/rest/v1-overview
 
     Args:
         auth: A ``CxAuth`` instance that supplies Authorization headers.
@@ -182,7 +188,9 @@ class CxClient:
 
         Args:
             agent_name: Fully-qualified name, e.g.
-                ``projects/my-proj/locations/us-central1/agents/abc123``.
+                ``projects/my-proj/locations/us-central1/apps/my-app/agents/abc123``.
+
+        Note: CX Agent Studio resource path includes the app layer.
         """
         location = self._location_from_name(agent_name)
         base = _build_base_url(location)
@@ -195,11 +203,18 @@ class CxClient:
             generative_settings=data.get("generativeSettings", {}),
         )
 
-    def list_agents(self, project: str, location: str) -> list[CxAgent]:
-        """List all CX agents in a project/location."""
+    def list_agents(self, app_name: str) -> list[CxAgent]:
+        """List all CX agents in an app.
+
+        Args:
+            app_name: Fully-qualified app name, e.g.
+                ``projects/my-proj/locations/us-central1/apps/my-app``.
+
+        Note: In CX Agent Studio, agents are nested under apps.
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        parent = f"projects/{project}/locations/{location}"
-        data = self._request("GET", f"{base}/{parent}/agents")
+        data = self._request("GET", f"{base}/{app_name}/agents")
         agents_raw = data.get("agents", []) if data else []
         return [
             CxAgent(
@@ -234,11 +249,19 @@ class CxClient:
     # Playbooks
     # ------------------------------------------------------------------
 
-    def list_playbooks(self, agent_name: str) -> list[CxPlaybook]:
-        """List all playbooks for a CX agent."""
-        location = self._location_from_name(agent_name)
+    def list_playbooks(self, app_name: str) -> list[CxPlaybook]:
+        """List all playbooks for a CX app.
+
+        Args:
+            app_name: Fully-qualified app name (playbooks are app-level resources).
+
+        Note: In CX Agent Studio, playbooks are app-level resources, not agent-level.
+        API endpoint: {app_name}/playbooks (NOT {agent_name}/playbooks)
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        data = self._request("GET", f"{base}/{agent_name}/playbooks")
+        # TODO: Verify if playbooks endpoint exists - may need to use /examples or other resource
+        data = self._request("GET", f"{base}/{app_name}/playbooks")
         items = data.get("playbooks", []) if data else []
         return [
             CxPlaybook(
@@ -268,11 +291,18 @@ class CxClient:
     # Tools
     # ------------------------------------------------------------------
 
-    def list_tools(self, agent_name: str) -> list[CxTool]:
-        """List all tools registered on a CX agent."""
-        location = self._location_from_name(agent_name)
+    def list_tools(self, app_name: str) -> list[CxTool]:
+        """List all tools registered on a CX app.
+
+        Args:
+            app_name: Fully-qualified app name (tools are app-level resources).
+
+        Note: In CX Agent Studio, tools are app-level resources, not agent-level.
+        API Reference: projects.locations.apps.tools
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        data = self._request("GET", f"{base}/{agent_name}/tools")
+        data = self._request("GET", f"{base}/{app_name}/tools")
         items = data.get("tools", []) if data else []
         return [
             CxTool(
@@ -285,14 +315,21 @@ class CxClient:
         ]
 
     # ------------------------------------------------------------------
-    # Flows
+    # Flows - DEPRECATED/UNVERIFIED
     # ------------------------------------------------------------------
 
-    def list_flows(self, agent_name: str) -> list[CxFlow]:
-        """List all flows for a CX agent."""
-        location = self._location_from_name(agent_name)
+    def list_flows(self, app_name: str) -> list[CxFlow]:
+        """UNVERIFIED: CX Agent Studio may not have flows.
+
+        This method is a placeholder for backward compatibility.
+        The real CX Agent Studio API may use different orchestration primitives.
+
+        TODO: Verify if flows exist in CX Agent Studio or replace with correct resource.
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        data = self._request("GET", f"{base}/{agent_name}/flows")
+        # This endpoint may not exist in the real API
+        data = self._request("GET", f"{base}/{app_name}/flows")
         items = data.get("flows", []) if data else []
         return [
             CxFlow(
@@ -306,14 +343,21 @@ class CxClient:
         ]
 
     # ------------------------------------------------------------------
-    # Intents
+    # Intents - DEPRECATED/UNVERIFIED
     # ------------------------------------------------------------------
 
-    def list_intents(self, agent_name: str) -> list[CxIntent]:
-        """List all intents for a CX agent."""
-        location = self._location_from_name(agent_name)
+    def list_intents(self, app_name: str) -> list[CxIntent]:
+        """UNVERIFIED: CX Agent Studio may not have intents.
+
+        This method is a placeholder for backward compatibility.
+        CX Agent Studio uses examples instead of training phrases.
+
+        TODO: Replace with list_examples or verify intent endpoint exists.
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        data = self._request("GET", f"{base}/{agent_name}/intents")
+        # This endpoint may not exist in the real API
+        data = self._request("GET", f"{base}/{app_name}/intents")
         items = data.get("intents", []) if data else []
         return [
             CxIntent(
@@ -325,51 +369,69 @@ class CxClient:
         ]
 
     # ------------------------------------------------------------------
-    # Test Cases
+    # Examples (replaces test cases in CX Agent Studio)
     # ------------------------------------------------------------------
 
-    def list_test_cases(self, agent_name: str) -> list[CxTestCase]:
-        """List all test cases for a CX agent."""
-        location = self._location_from_name(agent_name)
+    def list_test_cases(self, app_name: str) -> list[CxTestCase]:
+        """DEPRECATED: Use list_examples instead.
+
+        CX Agent Studio uses 'examples' (few-shot learning) instead of test cases.
+        This method is kept for backward compatibility.
+
+        TODO: Migrate callers to use examples resource.
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        data = self._request("GET", f"{base}/{agent_name}/testCases")
-        items = data.get("testCases", []) if data else []
+        # Try examples endpoint instead
+        data = self._request("GET", f"{base}/{app_name}/examples")
+        items = data.get("examples", data.get("testCases", [])) if data else []
         return [
             CxTestCase(
                 name=tc.get("name", ""),
-                display_name=tc.get("displayName", ""),
+                display_name=tc.get("displayName", tc.get("name", "")),
                 tags=tc.get("tags", []),
-                conversation_turns=tc.get("testCaseConversationTurns", []),
-                expected_output=tc.get("lastTestResult", {}),
+                conversation_turns=tc.get("conversationTurns", tc.get("testCaseConversationTurns", [])),
+                expected_output=tc.get("expectedOutput", tc.get("lastTestResult", {})),
             )
             for tc in items
         ]
 
     # ------------------------------------------------------------------
-    # Environments
+    # Deployments (replaces environments in CX Agent Studio)
     # ------------------------------------------------------------------
 
-    def list_environments(self, agent_name: str) -> list[CxEnvironment]:
-        """List all environments for a CX agent."""
-        location = self._location_from_name(agent_name)
+    def list_environments(self, app_name: str) -> list[CxEnvironment]:
+        """List all deployments (environments) for a CX app.
+
+        Note: CX Agent Studio uses 'deployments' instead of 'environments'.
+        API Reference: projects.locations.apps.deployments
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        data = self._request("GET", f"{base}/{agent_name}/environments")
-        items = data.get("environments", []) if data else []
+        # Try deployments endpoint (the correct one for CX Agent Studio)
+        data = self._request("GET", f"{base}/{app_name}/deployments")
+        items = data.get("deployments", data.get("environments", [])) if data else []
         return [
             CxEnvironment(
                 name=e.get("name", ""),
-                display_name=e.get("displayName", ""),
+                display_name=e.get("displayName", e.get("name", "")),
                 description=e.get("description", ""),
                 version_configs=e.get("versionConfigs", []),
             )
             for e in items
         ]
 
-    def list_data_stores(self, agent_name: str) -> list[CxDataStore]:
-        """List all data stores (knowledge bases) for a CX agent."""
-        location = self._location_from_name(agent_name)
+    def list_data_stores(self, app_name: str) -> list[CxDataStore]:
+        """List all data stores (knowledge bases) for a CX app.
+
+        Note: Data stores are app-level resources in CX Agent Studio.
+        Data stores are configured via tools with dataStoreSpec.
+        """
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
-        data = self._request("GET", f"{base}/{agent_name}/dataStores")
+        # In CX Agent Studio, datastores are likely configured via tools
+        # This endpoint may not exist - data stores might be in tool specs
+        data = self._request("GET", f"{base}/{app_name}/dataStores")
         items = data.get("dataStores", []) if data else []
         return [
             CxDataStore(
@@ -383,7 +445,7 @@ class CxClient:
 
     def create_data_store(
         self,
-        agent_name: str,
+        app_name: str,
         display_name: str,
         content_entries: list[dict[str, Any]],
         data_store_type: str = "unstructured",
@@ -391,22 +453,25 @@ class CxClient:
         """Create a new data store for knowledge base content.
 
         Args:
-            agent_name: Fully-qualified agent resource name.
+            app_name: Fully-qualified app resource name.
             display_name: Human-readable name for the data store.
             content_entries: List of content entries (FAQs, procedures, etc.).
             data_store_type: Type of data store (unstructured, structured, website).
 
         Returns:
             Created CxDataStore instance.
+
+        Note: In CX Agent Studio, data stores may be configured via tools.
+        This method may need to create a tool with dataStoreSpec instead.
         """
-        location = self._location_from_name(agent_name)
+        location = self._location_from_name(app_name)
         base = _build_base_url(location)
         body = {
             "displayName": display_name,
             "dataStoreType": data_store_type,
             "contentEntries": content_entries,
         }
-        data = self._request("POST", f"{base}/{agent_name}/dataStores", json_body=body)
+        data = self._request("POST", f"{base}/{app_name}/dataStores", json_body=body)
         return CxDataStore(
             name=data.get("name", ""),
             display_name=data.get("displayName", ""),
@@ -416,47 +481,63 @@ class CxClient:
 
     def deploy_to_environment(
         self,
-        environment_name: str,
+        deployment_name: str,
         version_configs: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        """Deploy a set of flow versions to an environment.
+        """Deploy app version to a deployment (environment).
 
         Args:
-            environment_name: Fully-qualified environment resource name.
-            version_configs: List of ``{"version": "<flow_version_name>"}``
-                dicts specifying which flow versions to activate.
+            deployment_name: Fully-qualified deployment resource name.
+                e.g., projects/{project}/locations/{location}/apps/{app}/deployments/{deployment}
+            version_configs: List of version configurations to deploy.
 
         Returns:
             Long-running operation response dict.
+
+        Note: CX Agent Studio uses 'deployments' instead of 'environments'.
+        API Reference: projects.locations.apps.deployments
         """
-        location = self._location_from_name(environment_name)
+        location = self._location_from_name(deployment_name)
         base = _build_base_url(location)
         body = {"versionConfigs": version_configs}
         return self._request(  # type: ignore[return-value]
-            "PATCH", f"{base}/{environment_name}", json_body=body
+            "PATCH", f"{base}/{deployment_name}", json_body=body
         )
 
     # ------------------------------------------------------------------
     # Snapshot
     # ------------------------------------------------------------------
 
-    def fetch_snapshot(self, agent_name: str) -> CxAgentSnapshot:
-        """Fetch and assemble a complete snapshot of a CX agent.
+    def fetch_snapshot(self, agent_name: str, app_name: str | None = None) -> CxAgentSnapshot:
+        """Fetch and assemble a complete snapshot of a CX agent and its app.
 
         Calls all list endpoints in sequence and returns a ``CxAgentSnapshot``
         that can be persisted for offline use.
 
         Args:
             agent_name: Fully-qualified agent resource name.
+                e.g., projects/{project}/locations/{location}/apps/{app}/agents/{agent}
+            app_name: Optional app name. If not provided, extracted from agent_name.
+
+        Note: In CX Agent Studio, most resources are at the app level, not agent level.
         """
+        # Extract app name from agent name if not provided
+        if app_name is None:
+            # agent_name format: projects/{project}/locations/{location}/apps/{app}/agents/{agent}
+            parts = agent_name.split("/agents/")
+            if len(parts) >= 1:
+                app_name = parts[0]  # Everything before /agents/
+            else:
+                raise ValueError(f"Invalid agent_name format: {agent_name}")
+
         agent = self.get_agent(agent_name)
-        playbooks = self.list_playbooks(agent_name)
-        tools = self.list_tools(agent_name)
-        flows = self.list_flows(agent_name)
-        intents = self.list_intents(agent_name)
-        test_cases = self.list_test_cases(agent_name)
-        environments = self.list_environments(agent_name)
-        data_stores = self.list_data_stores(agent_name)
+        playbooks = self.list_playbooks(app_name)  # App-level resource
+        tools = self.list_tools(app_name)  # App-level resource
+        flows = self.list_flows(app_name)  # May not exist in CX Agent Studio
+        intents = self.list_intents(app_name)  # May not exist in CX Agent Studio
+        test_cases = self.list_test_cases(app_name)  # Actually examples in CX Agent Studio
+        environments = self.list_environments(app_name)  # Actually deployments
+        data_stores = self.list_data_stores(app_name)  # App-level resource
 
         return CxAgentSnapshot(
             agent=agent,
