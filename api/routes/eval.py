@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 from fastapi import APIRouter, HTTPException, Request
 
+from evals.scorer import composite_breakdown
 from api.models import (
     EvalCaseResult,
     EvalRunRequest,
@@ -43,6 +44,7 @@ def _score_to_response(run_id: str, score: Any, completed_at: datetime | None = 
         "latency": score.latency,
         "cost": score.cost,
         "composite": score.composite,
+        "composite_breakdown": composite_breakdown(score),
         "safety_failures": score.safety_failures,
         "total_cases": score.total_cases,
         "passed_cases": score.passed_cases,

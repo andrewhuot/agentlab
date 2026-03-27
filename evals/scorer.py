@@ -141,6 +141,51 @@ class CompositeScore:
             return True
         return False
 
+    def weighted_breakdown(
+        self,
+        *,
+        quality_weight: float = 0.40,
+        safety_weight: float = 0.25,
+        latency_weight: float = 0.20,
+        cost_weight: float = 0.15,
+    ) -> dict[str, dict[str, float] | float | str]:
+        """Explain how the weighted composite score is assembled.
+
+        WHY: A single score is useful for accept/reject gates, but operators
+        need component-level transparency to understand why a run improved or
+        regressed and to avoid metric gaming.
+        """
+        contributions = {
+            "quality": round(self.quality * quality_weight, 4),
+            "safety": round(self.safety * safety_weight, 4),
+            "latency": round(self.latency * latency_weight, 4),
+            "cost": round(self.cost * cost_weight, 4),
+        }
+        weighted_total = round(sum(contributions.values()), 4)
+        return {
+            "weights": {
+                "quality": quality_weight,
+                "safety": safety_weight,
+                "latency": latency_weight,
+                "cost": cost_weight,
+            },
+            "metrics": {
+                "quality": round(self.quality, 4),
+                "safety": round(self.safety, 4),
+                "latency": round(self.latency, 4),
+                "cost": round(self.cost, 4),
+            },
+            "contributions": contributions,
+            "weighted_total": weighted_total,
+            "reported_composite": round(self.composite, 4),
+            "optimization_mode": self.optimization_mode,
+        }
+
+
+def composite_breakdown(score: CompositeScore) -> dict[str, dict[str, float] | float | str]:
+    """Public helper returning a weighted composite contribution breakdown."""
+    return score.weighted_breakdown()
+
 
 class CompositeScorer:
     """Computes a weighted composite score from individual eval results."""

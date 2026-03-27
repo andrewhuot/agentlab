@@ -21,14 +21,21 @@ class Gates:
         self, candidate: CompositeScore, baseline: CompositeScore
     ) -> tuple[bool, str]:
         """Soft gate: composite score must improve."""
+        delta_summary = self._delta_summary(candidate, baseline)
         if candidate.composite <= baseline.composite:
             return (
                 False,
-                f"No improvement: candidate={candidate.composite:.4f} <= baseline={baseline.composite:.4f}",
+                (
+                    f"No improvement: candidate={candidate.composite:.4f} <= "
+                    f"baseline={baseline.composite:.4f} ({delta_summary})"
+                ),
             )
         return (
             True,
-            f"Improved: {candidate.composite:.4f} > {baseline.composite:.4f} (+{candidate.composite - baseline.composite:.4f})",
+            (
+                f"Improved: {candidate.composite:.4f} > {baseline.composite:.4f} "
+                f"(+{candidate.composite - baseline.composite:.4f}; {delta_summary})"
+            ),
         )
 
     def check_regression(
@@ -97,5 +104,19 @@ class Gates:
         return (
             True,
             "accepted",
-            f"All gates passed. Composite: {baseline.composite:.4f} -> {candidate.composite:.4f}",
+            (
+                "All gates passed. Composite: "
+                f"{baseline.composite:.4f} -> {candidate.composite:.4f} "
+                f"({self._delta_summary(candidate, baseline)})"
+            ),
+        )
+
+    @staticmethod
+    def _delta_summary(candidate: CompositeScore, baseline: CompositeScore) -> str:
+        """Return a compact per-metric delta summary for operator transparency."""
+        return (
+            f"quality {candidate.quality - baseline.quality:+.4f}, "
+            f"safety {candidate.safety - baseline.safety:+.4f}, "
+            f"latency {candidate.latency - baseline.latency:+.4f}, "
+            f"cost {candidate.cost - baseline.cost:+.4f}"
         )

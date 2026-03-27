@@ -34,24 +34,39 @@ class LoopCheckpointStore:
     def __init__(self, path: str) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.backup_path = self.path.with_suffix(self.path.suffix + ".bak")
 
     def load(self) -> LoopCheckpoint | None:
-        """Load checkpoint from disk if one exists."""
-        if not self.path.exists():
-            return None
-        data = json.loads(self.path.read_text(encoding="utf-8"))
-        return LoopCheckpoint(**data)
+        """Load checkpoint from disk if one exists.
+
+        WHY: Long-running loops must survive unexpected process interruption and
+        partial file corruption. We keep a backup file and automatically fall
+        back to it when the primary checkpoint cannot be parsed.
+        """
+        for candidate in (self.path, self.backup_path):
+            if not candidate.exists():
+                continue
+            try:
+                data = json.loads(candidate.read_text(encoding="utf-8"))
+                return LoopCheckpoint(**data)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                continue
+        return None
 
     def save(self, checkpoint: LoopCheckpoint) -> None:
-        """Atomically persist checkpoint state."""
+        """Atomically persist checkpoint state and sync backup copy."""
         tmp = self.path.with_suffix(self.path.suffix + ".tmp")
-        tmp.write_text(json.dumps(asdict(checkpoint), indent=2), encoding="utf-8")
+        payload = json.dumps(asdict(checkpoint), indent=2)
+        tmp.write_text(payload, encoding="utf-8")
         os.replace(tmp, self.path)
+        self.backup_path.write_text(payload, encoding="utf-8")
 
     def clear(self) -> None:
-        """Remove checkpoint file from disk."""
+        """Remove checkpoint and backup files from disk."""
         if self.path.exists():
             self.path.unlink()
+        if self.backup_path.exists():
+            self.backup_path.unlink()
 
 
 class DeadLetterQueue:

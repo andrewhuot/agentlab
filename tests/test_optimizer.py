@@ -6,6 +6,7 @@ from copy import deepcopy
 
 from evals.scorer import CompositeScore, EvalResult
 from observer.metrics import HealthMetrics, HealthReport
+from optimizer.adversarial import AdversarialSimulationResult
 from optimizer.gates import Gates
 from optimizer.loop import Optimizer
 from optimizer.memory import OptimizationMemory
@@ -59,6 +60,37 @@ class CapturingProposer:
     ) -> Proposal:
         self.captured_past_attempts.append(past_attempts)
         return self.proposal
+
+
+class RejectingAdversarialSimulator:
+    """Always fails simulation to test adversarial reject path."""
+
+    def evaluate_candidate(
+        self,
+        *,
+        baseline_config: dict,
+        candidate_config: dict,
+    ) -> AdversarialSimulationResult:
+        del baseline_config, candidate_config
+        return AdversarialSimulationResult(
+            baseline_pass_rate=0.80,
+            candidate_pass_rate=0.60,
+            pass_rate_delta=-0.20,
+            passed=False,
+            conversations=30,
+            details="adversarial_pass_rate 0.800 -> 0.600 (delta=-0.200, allowed_drop=0.050)",
+        )
+
+
+class RecordingAutoLearner:
+    """Record auto-learning calls and return a deterministic draft ID."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    def learn_from_accepted_attempt(self, **kwargs) -> str:
+        self.calls.append(kwargs)
+        return "draft-skill-001"
 
 
 def _health_report() -> HealthReport:
@@ -328,3 +360,56 @@ def test_optimizer_rejects_non_significant_improvement(tmp_path, base_config: di
     attempt = memory.recent(limit=1)[0]
     assert attempt.status == "rejected_not_significant"
     assert attempt.significance_n > 0
+
+
+def test_optimizer_rejects_when_adversarial_simulation_regresses(
+    tmp_path,
+    base_config: dict,
+) -> None:
+    """Adversarial regression should veto an otherwise accepted candidate."""
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer.db"))
+    eval_runner = SequencedEvalRunner(
+        baseline=_score(quality=0.70, safety=1.0, latency=0.70, cost=0.70, composite=0.77),
+        candidate=_score(quality=0.75, safety=1.0, latency=0.73, cost=0.72, composite=0.81),
+    )
+    optimizer = Optimizer(
+        eval_runner=eval_runner,
+        memory=memory,
+        proposer=StubProposer(_proposal_with_prompt_change(base_config)),
+        require_statistical_significance=False,
+        adversarial_simulator=RejectingAdversarialSimulator(),
+    )
+
+    new_config, status = optimizer.optimize(_health_report(), base_config)
+
+    assert new_config is None
+    assert "rejected_adversarial" in status.lower()
+    assert memory.recent(limit=1)[0].status == "rejected_adversarial"
+
+
+def test_optimizer_creates_draft_skill_from_accepted_attempt(
+    tmp_path,
+    base_config: dict,
+) -> None:
+    """Accepted non-skill mutations should feed the auto-learning loop."""
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer.db"))
+    eval_runner = SequencedEvalRunner(
+        baseline=_score(quality=0.70, safety=1.0, latency=0.70, cost=0.70, composite=0.77),
+        candidate=_score(quality=0.78, safety=1.0, latency=0.74, cost=0.74, composite=0.83),
+    )
+    learner = RecordingAutoLearner()
+    optimizer = Optimizer(
+        eval_runner=eval_runner,
+        memory=memory,
+        proposer=StubProposer(_proposal_with_prompt_change(base_config)),
+        require_statistical_significance=False,
+        skill_autolearner=learner,
+        auto_learn_skills=True,
+    )
+
+    new_config, status = optimizer.optimize(_health_report(), base_config)
+
+    assert new_config is not None
+    assert "ACCEPTED" in status
+    assert "draft_skill_created=draft-skill-001" in status
+    assert len(learner.calls) == 1

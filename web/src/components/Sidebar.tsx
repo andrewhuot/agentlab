@@ -153,9 +153,9 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                     onClick={onClose}
                     className={({ isActive }) =>
                       classNames(
-                        'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors',
+                        'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-all duration-150',
                         isActive
-                          ? 'bg-gray-100 font-medium text-gray-900'
+                          ? 'bg-gray-900 font-medium text-white shadow-sm'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       )
                     }
@@ -175,9 +175,9 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             onClick={onClose}
             className={({ isActive }) =>
               classNames(
-                'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors',
+                'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-all duration-150',
                 isActive
-                  ? 'bg-gray-100 font-medium text-gray-900'
+                  ? 'bg-gray-900 font-medium text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               )
             }

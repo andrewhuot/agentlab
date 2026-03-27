@@ -11,6 +11,11 @@ optimizer:
   holdout_rotation_interval: 5
   drift_threshold: 0.12
   max_judge_variance: 0.03
+  adversarial_simulation_enabled: true
+  adversarial_simulation_cases: 30
+  adversarial_simulation_max_drop: 0.05
+  skill_autolearn_enabled: true
+  skill_autolearn_min_improvement: 0.01
   retry:
     max_attempts: 3
     base_delay_seconds: 0.5

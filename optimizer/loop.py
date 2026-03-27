@@ -18,6 +18,7 @@ from observer.metrics import HealthReport
 from observer.opportunities import FailureClusterer, OptimizationOpportunity
 
 from data.event_log import EventLog
+from .adversarial import AdversarialSimulator
 from .cost_tracker import CostTracker
 from .gates import Gates
 from .human_control import HumanControlStore
@@ -35,6 +36,7 @@ from .search import (
     SearchStrategy,
 )
 from .skill_engine import SkillEngine
+from .skill_autolearner import SkillAutoLearner
 
 
 @dataclass
@@ -82,6 +84,9 @@ class Optimizer:
         use_skills: bool = False,
         skill_selection_strategy: str = "auto",
         skill_max_candidates: int = 5,
+        adversarial_simulator: AdversarialSimulator | None = None,
+        skill_autolearner: SkillAutoLearner | None = None,
+        auto_learn_skills: bool = True,
     ) -> None:
         self.eval_runner = eval_runner
         self.memory = memory or OptimizationMemory()
@@ -105,6 +110,9 @@ class Optimizer:
         self.skill_selection_strategy = skill_selection_strategy
         self.skill_max_candidates = skill_max_candidates
         self._current_cycle_skills: list[Any] = []  # Track skills used in current cycle
+        self.adversarial_simulator = adversarial_simulator
+        self.skill_autolearner = skill_autolearner
+        self.auto_learn_skills = auto_learn_skills
 
         try:
             self.search_strategy = SearchStrategy(search_strategy)
@@ -475,6 +483,7 @@ class Optimizer:
         significance_p_value = 1.0
         significance_delta = 0.0
         significance_n = 0
+        adversarial_simulation_details = ""
         if accepted and self.require_statistical_significance:
             baseline_values = [self._case_composite(result) for result in baseline_score.results]
             candidate_values = [self._case_composite(result) for result in candidate_score.results]
@@ -498,6 +507,27 @@ class Optimizer:
                         f"p={significance_p_value:.4f}, n={significance_n}"
                     )
 
+        if accepted and self.adversarial_simulator is not None:
+            simulation = self.adversarial_simulator.evaluate_candidate(
+                baseline_config=baseline_config,
+                candidate_config=candidate_config,
+            )
+            adversarial_simulation_details = simulation.details
+            self._log_event(
+                "adversarial_simulation",
+                {
+                    "passed": simulation.passed,
+                    "baseline_pass_rate": simulation.baseline_pass_rate,
+                    "candidate_pass_rate": simulation.candidate_pass_rate,
+                    "delta": simulation.pass_rate_delta,
+                    "conversations": simulation.conversations,
+                },
+            )
+            if not simulation.passed:
+                accepted = False
+                status = "rejected_adversarial"
+                reason = f"Adversarial simulation failed: {simulation.details}"
+
         # Build skills_applied JSON array from current cycle skills
         skills_applied_json = "[]"
         if self._current_cycle_skills:
@@ -516,10 +546,38 @@ class Optimizer:
             significance_p_value=significance_p_value,
             significance_delta=significance_delta,
             significance_n=significance_n,
-            health_context=json.dumps(health_report.metrics.to_dict()),
+            health_context=json.dumps(
+                {
+                    "metrics": health_report.metrics.to_dict(),
+                    "adversarial_simulation": adversarial_simulation_details,
+                }
+            ),
             skills_applied=skills_applied_json,
         )
         self.memory.log(attempt)
+
+        if accepted and self.auto_learn_skills and self.skill_autolearner is not None:
+            dominant_failure = self._get_dominant_failure_family(health_report.failure_buckets)
+            improvement = candidate_score.composite - baseline_score.composite
+            draft_skill_id = self.skill_autolearner.learn_from_accepted_attempt(
+                attempt_id=attempt.attempt_id,
+                change_description=change_description,
+                config_section=config_section,
+                config_diff=diff_str,
+                improvement=improvement,
+                failure_family=dominant_failure,
+            )
+            if draft_skill_id:
+                reason = f"{reason}; draft_skill_created={draft_skill_id}"
+                self._log_event(
+                    "skill_draft_created",
+                    {
+                        "attempt_id": attempt.attempt_id,
+                        "draft_skill_id": draft_skill_id,
+                        "config_section": config_section,
+                        "improvement": improvement,
+                    },
+                )
 
         if accepted:
             return candidate_config, f"ACCEPTED: {reason}"

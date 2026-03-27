@@ -90,7 +90,6 @@ export function AgentStudio() {
       <PageHeader
         title="Agent Studio"
         description="Update an agent in natural language and watch the draft mutate live."
-        icon={Sparkles}
       />
       <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         Agent Studio is a rapid draft sandbox. For the full production journey (build to eval to optimize to deploy),

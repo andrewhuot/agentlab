@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import random
 import time
 import uuid
@@ -69,6 +71,7 @@ class SimulationSandbox:
         agent_fn: Callable[[str], dict] | None = None,
         intents: list[str] | None = None,
         tools: list[str] | None = None,
+        rng_seed: int | None = None,
     ) -> None:
         """
         Initialize simulation sandbox.
@@ -77,8 +80,10 @@ class SimulationSandbox:
             agent_fn: Function that takes user message and returns agent response
             intents: List of intents the agent can handle
             tools: List of tools the agent has access to
+            rng_seed: Optional deterministic seed for reproducible simulation runs
         """
         self.agent_fn = agent_fn
+        self._rng = random.Random(rng_seed)
         self.intents = intents or [
             "billing_inquiry",
             "order_status",
@@ -134,13 +139,13 @@ class SimulationSandbox:
         for _ in range(adversarial_count):
             conversations.append(self._generate_conversation(domain, "adversarial"))
 
-        random.shuffle(conversations)
+        self._rng.shuffle(conversations)
         return conversations
 
     def _generate_conversation(self, domain: str, difficulty: str) -> SyntheticConversation:
         """Generate a single synthetic conversation."""
-        persona = random.choice(PERSONAS)
-        intent = random.choice(self.intents)
+        persona = self._rng.choice(PERSONAS)
+        intent = self._rng.choice(self.intents)
 
         # Generate user message based on persona and difficulty
         user_message = self._generate_user_message(domain, intent, persona, difficulty)
@@ -171,7 +176,7 @@ class SimulationSandbox:
     ) -> str:
         """Generate a user message based on context."""
         templates = self._get_message_templates(domain, intent, difficulty)
-        template = random.choice(templates)
+        template = self._rng.choice(templates)
 
         # Apply persona modifications
         message = template
@@ -305,8 +310,8 @@ class SimulationSandbox:
                     success = False
                     response = {"error": str(e)}
             else:
-                # Mock evaluation for testing
-                success = random.random() > 0.3  # 70% pass rate
+                # Deterministic mock evaluation for reproducible tests.
+                success = self._mock_success(conversation=conv, config=config)
                 response = {"mock": True}
 
             latency_ms = (time.time() - start_time) * 1000
@@ -345,6 +350,34 @@ class SimulationSandbox:
             avg_latency_ms=avg_latency,
             timestamp=time.time(),
         )
+
+    @staticmethod
+    def _mock_success(
+        *,
+        conversation: SyntheticConversation,
+        config: dict[str, Any],
+    ) -> bool:
+        """Return deterministic mock success result keyed by input and config.
+
+        WHY: The simulator is used inside optimization gates. Non-deterministic
+        pass/fail outcomes create flaky accept/reject behavior and unstable tests.
+        """
+        config_key = json.dumps(config, sort_keys=True, separators=(",", ":"))
+        seed_material = (
+            f"{conversation.conversation_id}|{conversation.difficulty}|"
+            f"{conversation.user_message}|{config_key}"
+        )
+        digest = hashlib.sha256(seed_material.encode("utf-8")).hexdigest()
+        normalized = int(digest[:8], 16) / 0xFFFFFFFF
+
+        # Harder conversations have a stricter pass threshold.
+        failure_rate_by_difficulty = {
+            "normal": 0.25,
+            "edge_case": 0.35,
+            "adversarial": 0.45,
+        }
+        failure_rate = failure_rate_by_difficulty.get(conversation.difficulty, 0.30)
+        return normalized > failure_rate
 
     def _evaluate_response(
         self, conversation: SyntheticConversation, response: dict[str, Any]

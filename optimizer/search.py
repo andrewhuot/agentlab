@@ -445,7 +445,13 @@ class SearchEngine:
             rollback_handle=operator.rollback_strategy,
             total_experiment_cost=operator.estimated_eval_cost,
             status=status,
-            result_summary=f"delta={delta:+.4f} (baseline={baseline_composite:.4f}, candidate={candidate_composite:.4f})",
+            result_summary=self._build_result_summary(
+                accepted=accepted,
+                baseline_scores=baseline_scores,
+                candidate_scores=candidate_scores,
+                baseline_composite=baseline_composite,
+                candidate_composite=candidate_composite,
+            ),
             operator_name=candidate.operator_name,
             baseline_scores=baseline_scores,
             candidate_scores=candidate_scores,
@@ -544,6 +550,68 @@ class SearchEngine:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _build_result_summary(
+        *,
+        accepted: bool,
+        baseline_scores: dict[str, float],
+        candidate_scores: dict[str, float],
+        baseline_composite: float,
+        candidate_composite: float,
+    ) -> str:
+        """Build an experiment narrative with explicit 'what we learned' text."""
+        delta = candidate_composite - baseline_composite
+        deltas = SearchEngine._core_metric_deltas(baseline_scores, candidate_scores)
+        strongest_gain = SearchEngine._best_dimension(deltas)
+        strongest_loss = SearchEngine._worst_dimension(deltas)
+
+        decision = "Accepted" if accepted else "Rejected"
+        learned = f"largest gain in {strongest_gain}" if strongest_gain else "no clear gain"
+        if strongest_loss and deltas.get(strongest_loss, 0.0) < 0:
+            learned += f"; main regression in {strongest_loss}"
+
+        return (
+            f"{decision}. composite {baseline_composite:.4f} -> {candidate_composite:.4f} "
+            f"(delta={delta:+.4f}; {SearchEngine._format_deltas(deltas)}). "
+            f"What we learned: {learned}."
+        )
+
+    @staticmethod
+    def _core_metric_deltas(
+        baseline_scores: dict[str, float],
+        candidate_scores: dict[str, float],
+    ) -> dict[str, float]:
+        """Compute metric deltas over the primary optimization dimensions."""
+        metrics = ("quality", "safety", "latency", "cost", "composite")
+        result: dict[str, float] = {}
+        for metric in metrics:
+            result[metric] = float(candidate_scores.get(metric, 0.0)) - float(
+                baseline_scores.get(metric, 0.0)
+            )
+        return result
+
+    @staticmethod
+    def _format_deltas(deltas: dict[str, float]) -> str:
+        """Render deltas as a compact, stable summary string."""
+        keys = ("quality", "safety", "latency", "cost")
+        return ", ".join(f"{key} {deltas.get(key, 0.0):+.4f}" for key in keys)
+
+    @staticmethod
+    def _best_dimension(deltas: dict[str, float]) -> str:
+        """Return dimension with the largest positive delta."""
+        positive = {k: v for k, v in deltas.items() if v > 0 and k != "composite"}
+        if not positive:
+            return ""
+        return max(positive.items(), key=lambda kv: kv[1])[0]
+
+    @staticmethod
+    def _worst_dimension(deltas: dict[str, float]) -> str:
+        """Return dimension with the largest negative delta."""
+        negative = {k: v for k, v in deltas.items() if v < 0 and k != "composite"}
+        if not negative:
+            return ""
+        return min(negative.items(), key=lambda kv: kv[1])[0]
 
     def _past_change_descriptions(self) -> set[str]:
         """Load recent change descriptions from memory for deduplication."""

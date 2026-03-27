@@ -33,6 +33,36 @@ def test_checkpoint_store_round_trip(tmp_path) -> None:
     assert loaded.plateau_count == 2
 
 
+def test_checkpoint_store_recovers_from_corrupt_primary(tmp_path) -> None:
+    """Corrupt primary checkpoint should fall back to the synced backup copy."""
+    path = tmp_path / "checkpoint.json"
+    store = LoopCheckpointStore(str(path))
+    expected = LoopCheckpoint(next_cycle=4, completed_cycles=3, last_status="running")
+    store.save(expected)
+
+    # Simulate partial/corrupt write after crash.
+    path.write_text("{not-valid-json", encoding="utf-8")
+
+    loaded = store.load()
+    assert loaded is not None
+    assert loaded.next_cycle == 4
+    assert loaded.completed_cycles == 3
+
+
+def test_checkpoint_store_clear_removes_backup(tmp_path) -> None:
+    """Clearing checkpoint state should remove both primary and backup files."""
+    path = tmp_path / "checkpoint.json"
+    store = LoopCheckpointStore(str(path))
+    store.save(LoopCheckpoint(next_cycle=2))
+
+    assert path.exists()
+    assert (tmp_path / "checkpoint.json.bak").exists()
+
+    store.clear()
+    assert not path.exists()
+    assert not (tmp_path / "checkpoint.json.bak").exists()
+
+
 def test_dead_letter_queue_persists_failures(tmp_path) -> None:
     """Failed loop/eval events should be retained in dead-letter storage."""
     dlq = DeadLetterQueue(str(tmp_path / "dead_letters.db"))

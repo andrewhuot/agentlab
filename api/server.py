@@ -105,6 +105,7 @@ async def lifespan(app: FastAPI):
     from logger.store import ConversationStore
     from observer import Observer
     from optimizer import Optimizer
+    from optimizer.adversarial import AdversarialSimulationConfig, AdversarialSimulator
     from optimizer.memory import OptimizationMemory
     from optimizer.proposer import Proposer
     from optimizer.providers import build_router_from_runtime_config
@@ -116,6 +117,7 @@ async def lifespan(app: FastAPI):
     )
     from core.skills import SkillStore
     from optimizer.skill_engine import SkillEngine
+    from optimizer.skill_autolearner import SkillAutoLearner
 
     runtime = load_runtime_config()
     startup_epoch = time.time()
@@ -145,6 +147,21 @@ async def lifespan(app: FastAPI):
     # Initialize skills system
     skill_store = SkillStore(db_path=".autoagent/core_skills.db")
     skill_engine = SkillEngine(store=skill_store)
+    adversarial_simulator = None
+    if runtime.optimizer.adversarial_simulation_enabled:
+        adversarial_simulator = AdversarialSimulator(
+            AdversarialSimulationConfig(
+                enabled=True,
+                conversations=runtime.optimizer.adversarial_simulation_cases,
+                max_allowed_drop=runtime.optimizer.adversarial_simulation_max_drop,
+            )
+        )
+    skill_autolearner = None
+    if runtime.optimizer.skill_autolearn_enabled:
+        skill_autolearner = SkillAutoLearner(
+            store=skill_store,
+            min_improvement=runtime.optimizer.skill_autolearn_min_improvement,
+        )
 
     optimizer = Optimizer(
         eval_runner=eval_runner,
@@ -157,6 +174,9 @@ async def lifespan(app: FastAPI):
         use_skills=True,
         skill_selection_strategy="auto",
         skill_max_candidates=5,
+        adversarial_simulator=adversarial_simulator,
+        skill_autolearner=skill_autolearner,
+        auto_learn_skills=runtime.optimizer.skill_autolearn_enabled,
     )
     deployer = Deployer(configs_dir=CONFIGS_DIR, store=conversation_store)
 

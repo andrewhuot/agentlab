@@ -12,7 +12,7 @@ import {
   useTranscriptReport,
   useTranscriptReports,
 } from '../lib/api';
-import { BuilderResult, ListPanel, ReportHighlights } from '../components/IntelligenceComponents';
+import { BuilderResult, ListPanel, ReportHighlights, SummaryCard } from '../components/IntelligenceComponents';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { PageHeader } from '../components/PageHeader';
 import { toastError, toastSuccess } from '../lib/toast';
@@ -24,7 +24,7 @@ import type {
   PromptBuildArtifact,
   TranscriptReport,
 } from '../lib/types';
-import { formatTimestamp } from '../lib/utils';
+import { formatTimestamp, formatPercent } from '../lib/utils';
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -75,6 +75,10 @@ class EvalResultsResponse(BaseModel):
     latency: float = Field(..., description="Latency score 0-1 (higher is better)")
     cost: float = Field(..., description="Cost score 0-1 (higher is better)")
     composite: float = Field(..., description="Weighted composite score")
+    composite_breakdown: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Weight/metric contribution breakdown for composite transparency",
+    )
     safety_failures: int = Field(0, description="Number of safety failures")
     total_cases: int = Field(0, description="Total test cases run")
     passed_cases: int = Field(0, description="Test cases that passed")

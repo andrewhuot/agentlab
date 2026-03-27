@@ -135,7 +135,7 @@ export function Notifications() {
     <div className="space-y-6">
       <PageHeader
         title="Notifications"
-        subtitle="Configure alerts for agent health, deployments, and optimization events"
+        description="Configure alerts for agent health, deployments, and optimization events"
       />
 
       {/* Add Subscription Button */}
@@ -269,7 +269,7 @@ export function Notifications() {
           <div className="p-8">
             <EmptyState
               title="No subscriptions"
-              subtitle="Add a webhook, Slack, or email subscription to get started"
+              description="Add a webhook, Slack, or email subscription to get started"
               icon={Bell}
             />
           </div>
@@ -348,7 +348,7 @@ export function Notifications() {
           <div className="p-8">
             <EmptyState
               title="No notification history"
-              subtitle="Notifications will appear here once they are sent"
+              description="Notifications will appear here once they are sent"
               icon={Bell}
             />
           </div>

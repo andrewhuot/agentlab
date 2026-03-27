@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from evals.scorer import CompositeScorer, ConstrainedScorer, EvalResult
+from evals.scorer import CompositeScorer, ConstrainedScorer, EvalResult, composite_breakdown
 
 
 def _result(
@@ -116,3 +116,20 @@ def test_constraint_check_regression_cases() -> None:
     violations_text = " ".join(score.constraint_violations)
     assert "regression" in violations_text.lower()
     assert "reg1" in violations_text
+
+
+def test_composite_breakdown_matches_weighted_total() -> None:
+    """Composite breakdown should expose stable per-dimension contributions."""
+    scorer = CompositeScorer()
+    results = [
+        _result(case_id="c1", quality_score=0.8, safety_passed=True, latency_ms=100.0, token_count=200),
+        _result(case_id="c2", quality_score=0.6, safety_passed=True, latency_ms=300.0, token_count=400),
+    ]
+    score = scorer.score(results)
+
+    breakdown = composite_breakdown(score)
+    assert breakdown["optimization_mode"] == "weighted"
+    assert breakdown["reported_composite"] == score.composite
+    assert breakdown["weighted_total"] == score.composite
+    contributions = breakdown["contributions"]
+    assert set(contributions.keys()) == {"quality", "safety", "latency", "cost"}

@@ -70,6 +70,11 @@ class OptimizerRuntimeConfig(BaseModel):
     holdout_rotation_interval: int = Field(5, ge=1, le=1000)
     drift_threshold: float = Field(0.12, ge=0.0, le=1.0)
     max_judge_variance: float = Field(0.03, ge=0.0, le=1.0)
+    adversarial_simulation_enabled: bool = True
+    adversarial_simulation_cases: int = Field(30, ge=5, le=500)
+    adversarial_simulation_max_drop: float = Field(0.05, ge=0.0, le=1.0)
+    skill_autolearn_enabled: bool = True
+    skill_autolearn_min_improvement: float = Field(0.01, ge=0.0, le=1.0)
     models: list[RuntimeModelConfig] = Field(
         default_factory=lambda: [RuntimeModelConfig(provider="mock", model="mock-proposer")]
     )

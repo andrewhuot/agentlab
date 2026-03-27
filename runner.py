@@ -61,6 +61,7 @@ from logger import ConversationStore
 from logger.structured import configure_structured_logging
 from observer import Observer
 from optimizer import Optimizer
+from optimizer.adversarial import AdversarialSimulationConfig, AdversarialSimulator
 from optimizer.memory import OptimizationMemory
 from optimizer.proposer import Proposer
 from optimizer.providers import build_router_from_runtime_config
@@ -75,6 +76,7 @@ from optimizer.reliability import (
 )
 from core.skills import SkillStore
 from optimizer.skill_engine import SkillEngine
+from optimizer.skill_autolearner import SkillAutoLearner
 
 
 # ---------------------------------------------------------------------------
@@ -386,14 +388,39 @@ def _build_skill_components() -> tuple[SkillStore, SkillEngine]:
     return skill_store, skill_engine
 
 
-def _build_runtime_components() -> tuple[object, EvalRunner, Proposer, SkillEngine]:
-    """Create runtime-configured eval runner, multi-model proposer, and skill engine."""
+def _build_runtime_components() -> tuple[
+    object,
+    EvalRunner,
+    Proposer,
+    SkillEngine,
+    AdversarialSimulator | None,
+    SkillAutoLearner | None,
+]:
+    """Create runtime-configured optimizer dependencies."""
     runtime = load_runtime_config()
     eval_runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
     router = build_router_from_runtime_config(runtime.optimizer)
     proposer = Proposer(use_mock=runtime.optimizer.use_mock, llm_router=router)
     _, skill_engine = _build_skill_components()
-    return runtime, eval_runner, proposer, skill_engine
+
+    adversarial_simulator = None
+    if runtime.optimizer.adversarial_simulation_enabled:
+        adversarial_simulator = AdversarialSimulator(
+            AdversarialSimulationConfig(
+                enabled=True,
+                conversations=runtime.optimizer.adversarial_simulation_cases,
+                max_allowed_drop=runtime.optimizer.adversarial_simulation_max_drop,
+            )
+        )
+
+    skill_autolearner = None
+    if runtime.optimizer.skill_autolearn_enabled:
+        skill_autolearner = SkillAutoLearner(
+            store=skill_engine.store,
+            min_improvement=runtime.optimizer.skill_autolearn_min_improvement,
+        )
+
+    return runtime, eval_runner, proposer, skill_engine, adversarial_simulator, skill_autolearner
 
 
 def _sleep_interruptibly(seconds: float, shutdown: GracefulShutdown) -> None:
@@ -1016,7 +1043,14 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
         click.echo(f"Mode: {mode} (strategy={resolved.search_strategy.value}, "
                    f"candidates={resolved.max_candidates})")
 
-    runtime, eval_runner, proposer, skill_engine = _build_runtime_components()
+    (
+        runtime,
+        eval_runner,
+        proposer,
+        skill_engine,
+        adversarial_simulator,
+        skill_autolearner,
+    ) = _build_runtime_components()
     store = ConversationStore(db_path=db)
     observer = Observer(store)
     deployer = Deployer(configs_dir=configs_dir, store=store)
@@ -1032,6 +1066,9 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
         use_skills=True,
         skill_selection_strategy="auto",
         skill_max_candidates=5,
+        adversarial_simulator=adversarial_simulator,
+        skill_autolearner=skill_autolearner,
+        auto_learn_skills=runtime.optimizer.skill_autolearn_enabled,
     )
 
     # Track all-time best score
@@ -1490,7 +1527,14 @@ def loop(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode: st
       autoagent loop
       autoagent loop --max-cycles 100 --stop-on-plateau
     """
-    runtime, eval_runner, proposer, skill_engine = _build_runtime_components()
+    (
+        runtime,
+        eval_runner,
+        proposer,
+        skill_engine,
+        adversarial_simulator,
+        skill_autolearner,
+    ) = _build_runtime_components()
     store = ConversationStore(db_path=db)
     observer = Observer(store)
     deployer = Deployer(configs_dir=configs_dir, store=store)
@@ -1506,6 +1550,9 @@ def loop(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode: st
         use_skills=True,
         skill_selection_strategy="auto",
         skill_max_candidates=5,
+        adversarial_simulator=adversarial_simulator,
+        skill_autolearner=skill_autolearner,
+        auto_learn_skills=runtime.optimizer.skill_autolearn_enabled,
     )
 
     effective_schedule = schedule_mode or runtime.loop.schedule_mode
@@ -2996,7 +3043,14 @@ def run_observe(db: str, window: int) -> None:
 @click.option("--memory-db", default=MEMORY_DB, show_default=True)
 def run_optimize(db: str, configs_dir: str, memory_db: str) -> None:
     """Run optimize (legacy). Use: autoagent optimize"""
-    runtime, eval_runner, proposer, skill_engine = _build_runtime_components()
+    (
+        runtime,
+        eval_runner,
+        proposer,
+        skill_engine,
+        adversarial_simulator,
+        skill_autolearner,
+    ) = _build_runtime_components()
     store = ConversationStore(db_path=db)
     observer = Observer(store)
     deployer = Deployer(configs_dir=configs_dir, store=store)
@@ -3012,6 +3066,9 @@ def run_optimize(db: str, configs_dir: str, memory_db: str) -> None:
         use_skills=True,
         skill_selection_strategy="auto",
         skill_max_candidates=5,
+        adversarial_simulator=adversarial_simulator,
+        skill_autolearner=skill_autolearner,
+        auto_learn_skills=runtime.optimizer.skill_autolearn_enabled,
     )
     report = observer.observe()
     click.echo(f"Observed success={report.metrics.success_rate:.2%} error={report.metrics.error_rate:.2%}")
@@ -3036,7 +3093,14 @@ def run_optimize(db: str, configs_dir: str, memory_db: str) -> None:
 @click.option("--delay", default=1.0, show_default=True, type=float)
 def run_loop(cycles: int, db: str, configs_dir: str, memory_db: str, delay: float) -> None:
     """Run loop (legacy). Use: autoagent loop"""
-    runtime, eval_runner, proposer, skill_engine = _build_runtime_components()
+    (
+        runtime,
+        eval_runner,
+        proposer,
+        skill_engine,
+        adversarial_simulator,
+        skill_autolearner,
+    ) = _build_runtime_components()
     store = ConversationStore(db_path=db)
     observer = Observer(store)
     deployer = Deployer(configs_dir=configs_dir, store=store)
@@ -3052,6 +3116,9 @@ def run_loop(cycles: int, db: str, configs_dir: str, memory_db: str, delay: floa
         use_skills=True,
         skill_selection_strategy="auto",
         skill_max_candidates=5,
+        adversarial_simulator=adversarial_simulator,
+        skill_autolearner=skill_autolearner,
+        auto_learn_skills=runtime.optimizer.skill_autolearn_enabled,
     )
     click.echo(f"Starting optimization loop ({cycles} cycles)")
     for cycle_num in range(1, cycles + 1):
