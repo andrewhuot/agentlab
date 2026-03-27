@@ -158,8 +158,19 @@ class TranscriptIntelligenceService:
         return self._knowledge_assets.get(asset_id)
 
     def import_archive(self, archive_name: str, archive_base64: str) -> TranscriptReport:
-        archive_bytes = base64.b64decode(archive_base64.encode("ascii"))
+        """Import transcript archive from base64-encoded zip file.
+
+        Raises:
+            ValueError: If archive format is invalid or cannot be parsed.
+        """
+        try:
+            archive_bytes = base64.b64decode(archive_base64.encode("ascii"))
+        except Exception as exc:
+            raise ValueError(f"Invalid base64 encoding: {exc}") from exc
+
         conversations = self._parse_archive(archive_bytes)
+        if not conversations:
+            raise ValueError("Archive contains no parseable conversations")
         languages = sorted({conversation.language for conversation in conversations})
         missing_intents = self._mine_missing_intents(conversations)
         procedure_summaries = self._extract_procedures(conversations)
@@ -252,6 +263,15 @@ class TranscriptIntelligenceService:
         }
 
     def build_agent_artifact(self, prompt: str, connectors: list[str]) -> dict[str, Any]:
+        """Build agent configuration artifact from natural language prompt.
+
+        Args:
+            prompt: Natural language description of desired agent behavior.
+            connectors: List of connector names (e.g., ["Shopify", "Zendesk"]).
+
+        Returns:
+            Complete agent artifact with intents, tools, journeys, and integration templates.
+        """
         lower = prompt.lower()
         intents: list[dict[str, str]] = []
         if "order tracking" in lower or "track" in lower:
@@ -394,13 +414,21 @@ class TranscriptIntelligenceService:
         return report
 
     def _parse_archive(self, archive_bytes: bytes) -> list[TranscriptConversation]:
+        """Parse zip archive containing conversations in various formats.
+
+        Raises:
+            ValueError: If archive is not a valid zip file.
+        """
         parsed: list[TranscriptConversation] = []
-        with zipfile.ZipFile(io.BytesIO(archive_bytes), mode="r") as archive:
-            members = {
-                name: archive.read(name)
-                for name in sorted(archive.namelist())
-                if not name.endswith("/")
-            }
+        try:
+            with zipfile.ZipFile(io.BytesIO(archive_bytes), mode="r") as archive:
+                members = {
+                    name: archive.read(name)
+                    for name in sorted(archive.namelist())
+                    if not name.endswith("/")
+                }
+        except (zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
+            raise ValueError(f"Invalid or corrupt zip archive: {exc}") from exc
 
         for name, raw in members.items():
             suffix = Path(name).suffix.lower()
@@ -416,9 +444,10 @@ class TranscriptIntelligenceService:
                 parsed.extend(self._parse_text_file(text, name))
                 continue
             if suffix in IMAGE_EXTENSIONS:
+                # For images, create placeholder conversation - actual OCR would go here
                 parsed.extend(
                     self._synthesize_artifact_conversations(
-                        text=raw.decode("utf-8", errors="ignore"),
+                        text=f"Whiteboard image uploaded: {Path(name).stem.replace('_', ' ')}",
                         source_file=name,
                         modality="whiteboard",
                     )
@@ -438,20 +467,35 @@ class TranscriptIntelligenceService:
         return parsed
 
     def _parse_json_file(self, raw: bytes, source_file: str) -> list[TranscriptConversation]:
-        payload = json.loads(raw.decode("utf-8"))
+        """Parse JSON file containing conversation records.
+
+        Returns empty list if file is malformed or contains no valid conversations.
+        """
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return []
+
         if isinstance(payload, dict):
             if isinstance(payload.get("conversations"), list):
                 items = payload["conversations"]
             else:
                 items = [payload]
         else:
-            items = payload
+            items = payload if isinstance(payload, list) else []
         return [self._normalize_record(item, source_file) for item in items if isinstance(item, dict)]
 
     def _parse_csv_file(self, raw: bytes, source_file: str) -> list[TranscriptConversation]:
-        text = raw.decode("utf-8")
-        reader = csv.DictReader(io.StringIO(text))
-        return [self._normalize_record(dict(row), source_file) for row in reader]
+        """Parse CSV file containing conversation records.
+
+        Returns empty list if file is malformed.
+        """
+        try:
+            text = raw.decode("utf-8")
+            reader = csv.DictReader(io.StringIO(text))
+            return [self._normalize_record(dict(row), source_file) for row in reader]
+        except (UnicodeDecodeError, csv.Error):
+            return []
 
     def _parse_text_file(self, text: str, source_file: str) -> list[TranscriptConversation]:
         chunks = [chunk.strip() for chunk in re.split(r"\n\s*\n", text) if chunk.strip()]
@@ -956,9 +1000,16 @@ class TranscriptIntelligenceService:
         }
 
     def deep_research(self, report_id: str, question: str) -> dict[str, Any]:
-        """Produce a quantified deep-research report over imported conversations."""
+        """Produce a quantified deep-research report over imported conversations.
+
+        Raises:
+            KeyError: If report_id not found.
+            ValueError: If report has no conversations.
+        """
         report = self._require_report(report_id)
-        total = max(len(report.conversations), 1)
+        if not report.conversations:
+            raise ValueError("Cannot perform deep research on empty report")
+        total = len(report.conversations)
 
         buckets: dict[str, list[TranscriptConversation]] = {}
         for conversation in report.conversations:
@@ -1000,62 +1051,127 @@ class TranscriptIntelligenceService:
         current_config: dict[str, Any],
         auto_ship: bool = False,
         deployer: Any | None = None,
+        cx_studio_deployer: Any | None = None,
+        cx_agent_ref: Any | None = None,
+        max_cycles: int = 1,
     ) -> dict[str, Any]:
-        """Run a closed-loop Analyze -> Improve -> Test -> Ship recommendation cycle."""
+        """Run a closed-loop Analyze -> Improve -> Test -> Ship recommendation cycle.
+
+        Args:
+            report_id: Report ID to analyze.
+            eval_runner: Evaluation runner instance.
+            change_card_store: Change card store instance.
+            current_config: Current agent configuration.
+            auto_ship: Whether to auto-deploy when tests pass.
+            deployer: Internal deployer for canary deployment.
+            cx_studio_deployer: CX Studio deployer instance (optional).
+            cx_agent_ref: CX Agent reference for CX Studio deployment (optional).
+            max_cycles: Maximum number of optimization iterations (default 1).
+
+        Returns:
+            Dict with pipeline status and all cycle results.
+        """
         report = self._require_report(report_id)
         if not report.insights:
             report.insights = self._generate_insights(report.conversations)
 
-        if not report.insights:
-            synthetic = InsightRecord(
-                insight_id=str(uuid.uuid4())[:8],
-                title="General escalation reduction opportunity",
-                summary="No dominant insight found; applying baseline self-service hardening.",
-                recommendation="Add fallback self-service before escalation.",
-                drafted_change_prompt="Add a fallback self-service workflow before escalation.",
-                metric_name="transfer_reason",
-                share=0.0,
-                count=0,
-                total=max(1, len(report.conversations)),
-                evidence=[],
-            )
-            report.insights = [synthetic]
+        cycles: list[dict[str, Any]] = []
+        working_config = current_config.copy()
 
-        top_insight = report.insights[0]
-        card, drafted_change_prompt, auto_simulation = self.create_change_card_from_insight(
-            report_id=report_id,
-            insight_id=top_insight.insight_id,
-            current_config=current_config,
-            eval_runner=eval_runner,
-            change_card_store=change_card_store,
-        )
+        for cycle_idx in range(max_cycles):
+            # Re-generate insights on subsequent cycles
+            if cycle_idx > 0:
+                report.insights = self._generate_insights(report.conversations)
 
-        pass_rate = auto_simulation["sandbox_validation"]["pass_rate"]
-        ship_status = "recommended" if pass_rate >= 0.6 else "ready_for_review"
-
-        deployment_result = None
-        if auto_ship and deployer is not None and ship_status == "recommended":
-            try:
-                deployment_result = deployer.deploy(
-                    current_config,
-                    scores={"composite": max(card.metrics_after.get("composite", 0.0), 0.0)},
+            if not report.insights:
+                synthetic = InsightRecord(
+                    insight_id=str(uuid.uuid4())[:8],
+                    title="General escalation reduction opportunity",
+                    summary="No dominant insight found; applying baseline self-service hardening.",
+                    recommendation="Add fallback self-service before escalation.",
+                    drafted_change_prompt="Add a fallback self-service workflow before escalation.",
+                    metric_name="transfer_reason",
+                    share=0.0,
+                    count=0,
+                    total=max(1, len(report.conversations)),
+                    evidence=[],
                 )
-                ship_status = "deployed_to_canary"
-            except Exception as exc:  # pragma: no cover - defensive fallback
-                deployment_result = f"deployment_failed: {exc}"
-                ship_status = "ready_for_review"
+                report.insights = [synthetic]
 
+            top_insight = report.insights[0]
+            card, drafted_change_prompt, auto_simulation = self.create_change_card_from_insight(
+                report_id=report_id,
+                insight_id=top_insight.insight_id,
+                current_config=working_config,
+                eval_runner=eval_runner,
+                change_card_store=change_card_store,
+            )
+
+            pass_rate = auto_simulation["sandbox_validation"]["pass_rate"]
+            ship_status = "recommended" if pass_rate >= 0.6 else "ready_for_review"
+
+            deployment_result = None
+            cx_deployment_result = None
+
+            # Deploy to internal canary if configured
+            if auto_ship and deployer is not None and ship_status == "recommended":
+                try:
+                    deployment_result = deployer.deploy(
+                        working_config,
+                        scores={"composite": max(card.metrics_after.get("composite", 0.0), 0.0)},
+                    )
+                    ship_status = "deployed_to_canary"
+                except Exception as exc:  # pragma: no cover - defensive fallback
+                    deployment_result = f"deployment_failed: {exc}"
+                    ship_status = "ready_for_review"
+
+            # Deploy to CX Studio if configured
+            if auto_ship and cx_studio_deployer is not None and cx_agent_ref is not None and ship_status == "recommended":
+                try:
+                    artifact = self.build_agent_artifact(
+                        prompt=drafted_change_prompt,
+                        connectors=working_config.get("connectors", []),
+                    )
+                    cx_deployment_result = cx_studio_deployer.deploy_artifact_to_cx_studio(
+                        ref=cx_agent_ref,
+                        artifact=artifact,
+                    )
+                    ship_status = "deployed_to_cx_studio"
+                except Exception as exc:  # pragma: no cover
+                    cx_deployment_result = f"cx_deployment_failed: {exc}"
+
+            cycles.append({
+                "cycle": cycle_idx + 1,
+                "insight_id": top_insight.insight_id,
+                "change_card_id": card.card_id,
+                "pass_rate": pass_rate,
+                "ship_status": ship_status,
+                "deployment_result": deployment_result,
+                "cx_deployment_result": cx_deployment_result,
+            })
+
+            # Update working config for next cycle if changes passed
+            if pass_rate >= 0.6 and hasattr(card, 'config_after'):
+                # Merge changes into working config
+                working_config = card.config_after or working_config
+
+            # Stop early if we can't improve further
+            if pass_rate < 0.4 or ship_status == "ready_for_review":
+                break
+
+        # Return summary with all cycles
+        final_cycle = cycles[-1] if cycles else {}
         return {
             "report_id": report_id,
-            "change_card_id": card.card_id,
-            "drafted_change_prompt": drafted_change_prompt,
-            "auto_simulation": auto_simulation,
-            "deployment_result": deployment_result,
+            "cycles_run": len(cycles),
+            "max_cycles": max_cycles,
+            "final_cycle": final_cycle,
+            "all_cycles": cycles,
             "pipeline": {
-                "analyze": {"status": "completed", "insight_id": top_insight.insight_id},
-                "improve": {"status": "completed", "change_card_id": card.card_id},
-                "test": {"status": "completed", "pass_rate": pass_rate},
-                "ship": {"status": ship_status},
+                "analyze": {"status": "completed", "insight_id": final_cycle.get("insight_id")},
+                "improve": {"status": "completed", "change_card_id": final_cycle.get("change_card_id")},
+                "test": {"status": "completed", "pass_rate": final_cycle.get("pass_rate", 0.0)},
+                "ship": {"status": final_cycle.get("ship_status", "pending")},
             },
         }
 

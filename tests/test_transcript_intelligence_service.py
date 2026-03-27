@@ -118,8 +118,10 @@ def test_autonomous_cycle_runs_closed_loop(tmp_path) -> None:
         auto_ship=False,
     )
 
+    assert result["cycles_run"] >= 1
+    assert result["max_cycles"] == 1
+    assert result["final_cycle"]["change_card_id"]
     assert result["pipeline"]["analyze"]["status"] == "completed"
     assert result["pipeline"]["improve"]["status"] == "completed"
     assert result["pipeline"]["test"]["status"] == "completed"
     assert result["pipeline"]["ship"]["status"] in {"recommended", "ready_for_review"}
-    assert result["change_card_id"]

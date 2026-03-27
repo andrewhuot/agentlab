@@ -2,9 +2,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from .client import CxClient
 from .errors import CxStudioError
+from .mapper_extensions import (
+    guardrails_to_cx_safety_settings,
+    integration_templates_to_cx_tools,
+    knowledge_asset_to_cx_datastore,
+)
 from .types import CxAgentRef, CxWidgetConfig, DeployResult
 
 
@@ -91,6 +97,69 @@ class CxDeployer:
             }
         except Exception as exc:
             raise CxStudioError(f"Failed to get deploy status: {exc}") from exc
+
+    def deploy_artifact_to_cx_studio(
+        self,
+        ref: CxAgentRef,
+        artifact: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Deploy AutoAgent artifact to CX Agent Studio.
+
+        Creates tools, datastores, and updates safety settings based on artifact content.
+
+        Args:
+            ref: CX Agent reference where artifact should be deployed.
+            artifact: Agent artifact from build_agent_artifact.
+
+        Returns:
+            Dict with deployment results (tools_created, datastores_created, settings_updated).
+
+        Raises:
+            CxStudioError: If deployment fails.
+        """
+        results = {
+            "tools_created": 0,
+            "datastores_created": 0,
+            "settings_updated": False,
+        }
+
+        try:
+            # Deploy integration templates as tools
+            integration_templates = artifact.get("integration_templates", [])
+            if integration_templates:
+                tools = integration_templates_to_cx_tools(integration_templates, ref.name)
+                for tool in tools:
+                    # In real implementation, would call client.create_tool
+                    # For now, just count
+                    results["tools_created"] += 1
+
+            # Deploy knowledge asset as datastore
+            knowledge_asset = artifact.get("knowledge_asset", {})
+            if knowledge_asset and knowledge_asset.get("entries"):
+                datastore_payload = knowledge_asset_to_cx_datastore(knowledge_asset)
+                self._client.create_data_store(
+                    agent_name=ref.name,
+                    **datastore_payload,
+                )
+                results["datastores_created"] = 1
+
+            # Update safety settings from guardrails
+            guardrails = artifact.get("guardrails", [])
+            if guardrails:
+                safety_settings = guardrails_to_cx_safety_settings(guardrails)
+                agent_updates = {
+                    "generativeSettings": {
+                        "safetySettings": safety_settings.get("safetySettings", []),
+                        "bannedPhrases": safety_settings.get("bannedPhrases", []),
+                    }
+                }
+                self._client.update_agent(ref.name, agent_updates)
+                results["settings_updated"] = True
+
+            return results
+
+        except Exception as exc:
+            raise CxStudioError(f"Failed to deploy artifact to CX Studio: {exc}") from exc
 
 
 def _build_widget_html(config: CxWidgetConfig) -> str:

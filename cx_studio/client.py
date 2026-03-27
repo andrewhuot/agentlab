@@ -16,6 +16,7 @@ from .errors import CxApiError
 from .types import (
     CxAgent,
     CxAgentSnapshot,
+    CxDataStore,
     CxEnvironment,
     CxFlow,
     CxIntent,
@@ -364,6 +365,55 @@ class CxClient:
             for e in items
         ]
 
+    def list_data_stores(self, agent_name: str) -> list[CxDataStore]:
+        """List all data stores (knowledge bases) for a CX agent."""
+        location = self._location_from_name(agent_name)
+        base = _build_base_url(location)
+        data = self._request("GET", f"{base}/{agent_name}/dataStores")
+        items = data.get("dataStores", []) if data else []
+        return [
+            CxDataStore(
+                name=ds.get("name", ""),
+                display_name=ds.get("displayName", ""),
+                data_store_type=ds.get("dataStoreType", "unstructured"),
+                content_entries=ds.get("contentEntries", []),
+            )
+            for ds in items
+        ]
+
+    def create_data_store(
+        self,
+        agent_name: str,
+        display_name: str,
+        content_entries: list[dict[str, Any]],
+        data_store_type: str = "unstructured",
+    ) -> CxDataStore:
+        """Create a new data store for knowledge base content.
+
+        Args:
+            agent_name: Fully-qualified agent resource name.
+            display_name: Human-readable name for the data store.
+            content_entries: List of content entries (FAQs, procedures, etc.).
+            data_store_type: Type of data store (unstructured, structured, website).
+
+        Returns:
+            Created CxDataStore instance.
+        """
+        location = self._location_from_name(agent_name)
+        base = _build_base_url(location)
+        body = {
+            "displayName": display_name,
+            "dataStoreType": data_store_type,
+            "contentEntries": content_entries,
+        }
+        data = self._request("POST", f"{base}/{agent_name}/dataStores", json_body=body)
+        return CxDataStore(
+            name=data.get("name", ""),
+            display_name=data.get("displayName", ""),
+            data_store_type=data.get("dataStoreType", "unstructured"),
+            content_entries=data.get("contentEntries", []),
+        )
+
     def deploy_to_environment(
         self,
         environment_name: str,
@@ -406,6 +456,7 @@ class CxClient:
         intents = self.list_intents(agent_name)
         test_cases = self.list_test_cases(agent_name)
         environments = self.list_environments(agent_name)
+        data_stores = self.list_data_stores(agent_name)
 
         return CxAgentSnapshot(
             agent=agent,
@@ -415,6 +466,7 @@ class CxClient:
             intents=intents,
             test_cases=test_cases,
             environments=environments,
+            data_stores=data_stores,
             fetched_at=datetime.now(timezone.utc).isoformat(),
         )
 

@@ -97,6 +97,15 @@ class CxEnvironment(BaseModel):
     version_configs: list[dict] = Field(default_factory=list)
 
 
+class CxDataStore(BaseModel):
+    """CX Data Store resource — knowledge base, FAQ, procedure documentation."""
+
+    name: str = ""
+    display_name: str = ""
+    data_store_type: str = "unstructured"  # unstructured, structured, website
+    content_entries: list[dict] = Field(default_factory=list)
+
+
 class CxAgentSnapshot(BaseModel):
     """Complete point-in-time snapshot of a CX agent's configuration.
 
@@ -111,6 +120,7 @@ class CxAgentSnapshot(BaseModel):
     intents: list[CxIntent] = Field(default_factory=list)
     test_cases: list[CxTestCase] = Field(default_factory=list)
     environments: list[CxEnvironment] = Field(default_factory=list)
+    data_stores: list[CxDataStore] = Field(default_factory=list)
     fetched_at: str = ""
 
 
