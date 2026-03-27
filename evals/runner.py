@@ -13,6 +13,7 @@ from typing import Any, Callable
 
 import yaml
 
+from .cache import EvalCacheStore
 from .fixtures.mock_data import mock_agent_response
 from .history import EvalHistoryStore
 from .scorer import CompositeScore, CompositeScorer, EvalResult
@@ -34,6 +35,16 @@ class TestCase:
     reference_answer: str = ""
 
 
+@dataclass
+class DatasetIntegrityReport:
+    """Integrity checks for dataset contamination and hygiene."""
+
+    duplicate_case_ids: list[str] = field(default_factory=list)
+    cross_split_duplicates: int = 0
+    has_canary_marker: bool = False
+    warnings: list[str] = field(default_factory=list)
+
+
 class EvalRunner:
     """Loads test cases, runs them against an agent function, and scores results."""
 
@@ -48,11 +59,22 @@ class EvalRunner:
         history_store: EvalHistoryStore | None = None,
         history_db_path: str | None = None,
         eval_mode: str = "single_agent",
+        cache_store: EvalCacheStore | None = None,
+        cache_enabled: bool = True,
+        cache_db_path: str = ".autoagent/eval_cache.db",
+        dataset_strict_integrity: bool = False,
+        random_seed: int = 7,
+        token_cost_per_1k: float = 0.0,
     ) -> None:
         self.cases_dir = Path(cases_dir) if cases_dir else Path(__file__).parent / "cases"
         self.agent_fn = agent_fn or mock_agent_response
         self.scorer = CompositeScorer()
         self._custom_evaluators: dict[str, Callable[[TestCase, dict, EvalResult], float]] = {}
+        self.cache_enabled = cache_enabled
+        self.dataset_strict_integrity = dataset_strict_integrity
+        self.random_seed = int(random_seed)
+        self.token_cost_per_1k = max(0.0, float(token_cost_per_1k))
+        self._last_dataset_integrity = DatasetIntegrityReport()
 
         self.eval_mode = eval_mode
         history_path = history_db_path if history_db_path is not None else os.environ.get("AUTOAGENT_EVAL_HISTORY_DB")
@@ -62,6 +84,13 @@ class EvalRunner:
             self.history_store = EvalHistoryStore(db_path=history_path)
         else:
             self.history_store = None
+
+        if cache_store is not None:
+            self.cache_store = cache_store
+        elif cache_enabled:
+            self.cache_store = EvalCacheStore(db_path=cache_db_path)
+        else:
+            self.cache_store = None
 
     def register_evaluator(
         self,
@@ -113,20 +142,11 @@ class EvalRunner:
         if not path.exists():
             raise FileNotFoundError(f"Dataset file not found: {dataset_path}")
 
-        rows: list[dict[str, Any]]
-        if path.suffix.lower() == ".jsonl":
-            rows = []
-            with path.open("r", encoding="utf-8") as handle:
-                for line in handle:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    rows.append(json.loads(line))
-        elif path.suffix.lower() == ".csv":
-            with path.open("r", encoding="utf-8", newline="") as handle:
-                rows = list(csv.DictReader(handle))
-        else:
-            raise ValueError("Dataset format must be .jsonl or .csv")
+        rows = self._read_dataset_rows(path)
+        integrity = self._analyze_dataset_rows(rows, train_ratio=train_ratio)
+        self._last_dataset_integrity = integrity
+        if self.dataset_strict_integrity and integrity.warnings:
+            raise ValueError("; ".join(integrity.warnings))
 
         normalized_split = split.lower().strip()
         cases: list[TestCase] = []
@@ -178,6 +198,78 @@ class EvalRunner:
         digest = hashlib.sha256(case_id.encode("utf-8")).hexdigest()
         bucket = int(digest[:8], 16) / 0xFFFFFFFF
         return "train" if bucket < ratio else "test"
+
+    @staticmethod
+    def _read_dataset_rows(path: Path) -> list[dict[str, Any]]:
+        """Read dataset rows from JSONL or CSV."""
+        if path.suffix.lower() == ".jsonl":
+            rows: list[dict[str, Any]] = []
+            with path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    rows.append(json.loads(line))
+            return rows
+        if path.suffix.lower() == ".csv":
+            with path.open("r", encoding="utf-8", newline="") as handle:
+                return list(csv.DictReader(handle))
+        raise ValueError("Dataset format must be .jsonl or .csv")
+
+    def _analyze_dataset_rows(
+        self,
+        rows: list[dict[str, Any]],
+        *,
+        train_ratio: float,
+    ) -> DatasetIntegrityReport:
+        """Detect simple dataset contamination and integrity issues."""
+        duplicate_case_ids: list[str] = []
+        id_counts: dict[str, int] = {}
+        prompt_splits: dict[str, set[str]] = {}
+        has_canary_marker = False
+
+        for index, row in enumerate(rows):
+            case_id = str(row.get("id") or row.get("case_id") or f"dataset_{index:05d}")
+            id_counts[case_id] = id_counts.get(case_id, 0) + 1
+
+            explicit_split = (row.get("split") or "").strip().lower()
+            if explicit_split not in {"train", "test"}:
+                explicit_split = self._deterministic_split(case_id, train_ratio)
+
+            prompt = str(row.get("user_message") or row.get("prompt") or "").strip().lower()
+            if prompt:
+                prompt_splits.setdefault(prompt, set()).add(explicit_split)
+
+            serialized = json.dumps(row, sort_keys=True, default=str)
+            if "CANARY_DATASET_" in serialized:
+                has_canary_marker = True
+
+        for case_id, count in sorted(id_counts.items()):
+            if count > 1:
+                duplicate_case_ids.append(case_id)
+
+        cross_split_duplicates = sum(
+            1
+            for splits in prompt_splits.values()
+            if "train" in splits and "test" in splits
+        )
+
+        warnings: list[str] = []
+        if duplicate_case_ids:
+            warnings.append(
+                "Duplicate case IDs detected: " + ", ".join(duplicate_case_ids[:10])
+            )
+        if cross_split_duplicates > 0:
+            warnings.append(
+                f"Cross-split contamination detected: {cross_split_duplicates} duplicate train/test prompt(s)"
+            )
+
+        return DatasetIntegrityReport(
+            duplicate_case_ids=duplicate_case_ids,
+            cross_split_duplicates=cross_split_duplicates,
+            has_canary_marker=has_canary_marker,
+            warnings=warnings,
+        )
 
     def evaluate_case(self, case: TestCase, config: dict | None = None) -> EvalResult:
         """Run a single test case and score it.
@@ -287,10 +379,14 @@ class EvalRunner:
             cases = self.load_dataset_cases(dataset_path, split=split)
         else:
             cases = self.load_cases()
-        results = [self.evaluate_case(case, config) for case in cases]
-        score = self.scorer.score(results)
-        self._persist_history(score, dataset_path=dataset_path, split=split)
-        return score
+            self._last_dataset_integrity = DatasetIntegrityReport()
+        return self._run_cases_with_harness(
+            cases,
+            config,
+            dataset_path=dataset_path,
+            split=split,
+            category=None,
+        )
 
     def run_category(
         self,
@@ -305,11 +401,15 @@ class EvalRunner:
             source_cases = self.load_dataset_cases(dataset_path, split=split)
         else:
             source_cases = self.load_cases()
+            self._last_dataset_integrity = DatasetIntegrityReport()
         cases = [case for case in source_cases if case.category == category]
-        results = [self.evaluate_case(case, config) for case in cases]
-        score = self.scorer.score(results)
-        self._persist_history(score, dataset_path=dataset_path, split=split, category=category)
-        return score
+        return self._run_cases_with_harness(
+            cases,
+            config,
+            dataset_path=dataset_path,
+            split=split,
+            category=category,
+        )
 
     def run_cases(
         self,
@@ -321,7 +421,107 @@ class EvalRunner:
     ) -> CompositeScore:
         """Run an explicit list of test cases and return composite score."""
         results = [self.evaluate_case(case, config) for case in cases]
-        return self.scorer.score(results)
+        score = self.scorer.score(results)
+        score.estimated_cost_usd = round((score.total_tokens / 1000.0) * self.token_cost_per_1k, 6)
+        return score
+
+    def _run_cases_with_harness(
+        self,
+        cases: list[TestCase],
+        config: dict | None,
+        *,
+        dataset_path: str | None,
+        split: str,
+        category: str | None,
+    ) -> CompositeScore:
+        """Run cases with reproducibility metadata and cache support."""
+        config_payload = config or {}
+        config_fingerprint = self._fingerprint_payload(config_payload)
+        case_fingerprint = self._fingerprint_cases(cases)
+        dataset_fingerprint = self._fingerprint_dataset(dataset_path, cases)
+        agent_fingerprint = getattr(self.agent_fn, "__name__", self.agent_fn.__class__.__name__)
+        custom_evaluator_signature = ",".join(sorted(self._custom_evaluators.keys()))
+        eval_fingerprint = self._fingerprint_payload(
+            {
+                "eval_mode": self.eval_mode,
+                "dataset_fingerprint": dataset_fingerprint,
+                "case_fingerprint": case_fingerprint,
+                "config_fingerprint": config_fingerprint,
+                "category": category or "all",
+                "split": split,
+                "agent_fingerprint": agent_fingerprint,
+                "seed": self.random_seed,
+                "custom_evaluators": custom_evaluator_signature,
+            }
+        )
+        cache_allowed = self.cache_enabled and self.cache_store is not None and not self._custom_evaluators
+        base_provenance: dict[str, str] = {
+            "dataset_path": dataset_path or "evals/cases/*.yaml",
+            "split": split,
+            "category": category or "all",
+            "agent_fn": agent_fingerprint,
+            "eval_mode": self.eval_mode,
+            "config_fingerprint": config_fingerprint,
+            "dataset_fingerprint": dataset_fingerprint,
+            "case_fingerprint": case_fingerprint,
+            "eval_fingerprint": eval_fingerprint,
+            "seed": str(self.random_seed),
+            "dataset_cross_split_duplicates": str(self._last_dataset_integrity.cross_split_duplicates),
+            "dataset_duplicate_case_ids": str(len(self._last_dataset_integrity.duplicate_case_ids)),
+            "dataset_has_canary_marker": "true" if self._last_dataset_integrity.has_canary_marker else "false",
+            "custom_evaluators": custom_evaluator_signature,
+            "cache_eligible": "true" if cache_allowed else "false",
+        }
+
+        if cache_allowed:
+            cached = self.cache_store.get(eval_fingerprint)
+            if cached is not None:
+                score = self._score_from_cache_payload(cached)
+                score.estimated_cost_usd = round((score.total_tokens / 1000.0) * self.token_cost_per_1k, 6)
+                score.provenance = {
+                    **base_provenance,
+                    "cache_hit": "true",
+                    "cache_key": eval_fingerprint,
+                }
+                score.warnings = list(dict.fromkeys(score.warnings + self._last_dataset_integrity.warnings))
+                self._persist_history(
+                    score,
+                    dataset_path=dataset_path,
+                    split=split,
+                    category=category,
+                    extra_provenance=score.provenance,
+                )
+                return score
+
+        results = [self.evaluate_case(case, config) for case in cases]
+        score = self.scorer.score(results)
+        score.estimated_cost_usd = round((score.total_tokens / 1000.0) * self.token_cost_per_1k, 6)
+        score.provenance = {
+            **base_provenance,
+            "cache_hit": "false",
+            "cache_key": eval_fingerprint,
+        }
+        score.warnings = list(self._last_dataset_integrity.warnings)
+
+        if cache_allowed:
+            self.cache_store.put(
+                cache_key=eval_fingerprint,
+                summary=self._score_summary(score),
+                case_payloads=self._case_payloads(score),
+                metadata={
+                    "eval_fingerprint": eval_fingerprint,
+                    "created_by": "eval_runner",
+                },
+            )
+
+        self._persist_history(
+            score,
+            dataset_path=dataset_path,
+            split=split,
+            category=category,
+            extra_provenance=score.provenance,
+        )
+        return score
 
     def _persist_history(
         self,
@@ -330,34 +530,70 @@ class EvalRunner:
         dataset_path: str | None,
         split: str,
         category: str | None = None,
+        extra_provenance: dict[str, Any] | None = None,
     ) -> None:
         """Persist run summary and case provenance when history storage is enabled."""
         run_id = str(uuid.uuid4())[:12]
         score.run_id = run_id
-        provenance = {
+        provenance: dict[str, Any] = {
             "dataset_path": dataset_path or "evals/cases/*.yaml",
             "split": split,
             "category": category or "all",
             "agent_fn": getattr(self.agent_fn, "__name__", self.agent_fn.__class__.__name__),
         }
-        score.provenance = provenance
+        if extra_provenance:
+            provenance.update(extra_provenance)
+        score.provenance = {str(key): str(value) for key, value in provenance.items()}
 
         if self.history_store is None:
             return
 
-        summary = {
-            "quality": score.quality,
-            "safety": score.safety,
-            "tool_use_accuracy": score.tool_use_accuracy,
-            "latency": score.latency,
-            "cost": score.cost,
-            "composite": score.composite,
-            "total_cases": score.total_cases,
-            "passed_cases": score.passed_cases,
-            "safety_failures": score.safety_failures,
-            "custom_metrics": score.custom_metrics,
-        }
-        case_payloads = [
+        summary = self._score_summary(score)
+        case_payloads = self._case_payloads(score)
+        self.history_store.log_run(
+            run_id=run_id,
+            summary=summary,
+            case_payloads=case_payloads,
+            provenance=provenance,
+        )
+
+    @staticmethod
+    def _fingerprint_payload(payload: Any) -> str:
+        """Stable SHA256 fingerprint for arbitrary JSON-serializable payloads."""
+        serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    def _fingerprint_cases(self, cases: list[TestCase]) -> str:
+        """Fingerprint a case list for reproducible cache keys."""
+        payload = [
+            {
+                "id": case.id,
+                "category": case.category,
+                "user_message": case.user_message,
+                "expected_specialist": case.expected_specialist,
+                "expected_behavior": case.expected_behavior,
+                "safety_probe": case.safety_probe,
+                "expected_keywords": case.expected_keywords,
+                "expected_tool": case.expected_tool,
+                "split": case.split,
+                "reference_answer": case.reference_answer,
+            }
+            for case in cases
+        ]
+        return self._fingerprint_payload(payload)
+
+    def _fingerprint_dataset(self, dataset_path: str | None, cases: list[TestCase]) -> str:
+        """Fingerprint the dataset file if available, else derive from cases."""
+        if dataset_path:
+            path = Path(dataset_path)
+            if path.exists():
+                return hashlib.sha256(path.read_bytes()).hexdigest()
+        return self._fingerprint_cases(cases)
+
+    @staticmethod
+    def _case_payloads(score: CompositeScore) -> list[dict[str, Any]]:
+        """Serialize per-case score details."""
+        return [
             {
                 "case_id": result.case_id,
                 "category": result.category,
@@ -372,11 +608,72 @@ class EvalRunner:
             }
             for result in score.results
         ]
-        self.history_store.log_run(
-            run_id=run_id,
-            summary=summary,
-            case_payloads=case_payloads,
-            provenance=provenance,
+
+    @staticmethod
+    def _score_summary(score: CompositeScore) -> dict[str, Any]:
+        """Serialize aggregate score details."""
+        return {
+            "quality": score.quality,
+            "safety": score.safety,
+            "tool_use_accuracy": score.tool_use_accuracy,
+            "latency": score.latency,
+            "cost": score.cost,
+            "composite": score.composite,
+            "total_cases": score.total_cases,
+            "passed_cases": score.passed_cases,
+            "safety_failures": score.safety_failures,
+            "custom_metrics": score.custom_metrics,
+            "confidence_intervals": score.confidence_intervals,
+            "total_tokens": score.total_tokens,
+            "estimated_cost_usd": score.estimated_cost_usd,
+            "warnings": score.warnings,
+            "optimization_mode": score.optimization_mode,
+        }
+
+    def _score_from_cache_payload(self, payload: dict[str, Any]) -> CompositeScore:
+        """Rebuild CompositeScore from cached payload."""
+        summary = payload.get("summary", {})
+        case_payloads = payload.get("case_payloads", [])
+        confidence_intervals = {}
+        raw_ci = summary.get("confidence_intervals", {})
+        if isinstance(raw_ci, dict):
+            for name, bounds in raw_ci.items():
+                if isinstance(bounds, (list, tuple)) and len(bounds) == 2:
+                    confidence_intervals[name] = (float(bounds[0]), float(bounds[1]))
+
+        results = [
+            EvalResult(
+                case_id=str(item.get("case_id", "")),
+                category=str(item.get("category", "unknown")),
+                passed=bool(item.get("passed", False)),
+                quality_score=float(item.get("quality_score", 0.0)),
+                safety_passed=bool(item.get("safety_passed", False)),
+                tool_use_accuracy=float(item.get("tool_use_accuracy", 1.0)),
+                latency_ms=float(item.get("latency_ms", 0.0)),
+                token_count=int(item.get("token_count", 0)),
+                custom_scores=item.get("custom_scores", {}) or {},
+                details=str(item.get("details", "")),
+            )
+            for item in case_payloads
+        ]
+
+        return CompositeScore(
+            quality=float(summary.get("quality", 0.0)),
+            safety=float(summary.get("safety", 0.0)),
+            tool_use_accuracy=float(summary.get("tool_use_accuracy", 0.0)),
+            latency=float(summary.get("latency", 0.0)),
+            cost=float(summary.get("cost", 0.0)),
+            composite=float(summary.get("composite", 0.0)),
+            custom_metrics=summary.get("custom_metrics", {}) or {},
+            safety_failures=int(summary.get("safety_failures", 0)),
+            total_cases=int(summary.get("total_cases", 0)),
+            passed_cases=int(summary.get("passed_cases", 0)),
+            results=results,
+            confidence_intervals=confidence_intervals,
+            total_tokens=int(summary.get("total_tokens", 0)),
+            estimated_cost_usd=float(summary.get("estimated_cost_usd", 0.0)),
+            warnings=list(summary.get("warnings", []) or []),
+            optimization_mode=str(summary.get("optimization_mode", "weighted")),
         )
 
     def _run_pipeline_agent(self, user_message: str, config: dict | None = None) -> dict:

@@ -139,7 +139,14 @@ async def lifespan(app: FastAPI):
 
     # High-level components
     observer = Observer(conversation_store)
-    eval_runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
+    eval_runner = EvalRunner(
+        history_db_path=runtime.eval.history_db_path,
+        cache_enabled=runtime.eval.cache_enabled,
+        cache_db_path=runtime.eval.cache_db_path,
+        dataset_strict_integrity=runtime.eval.dataset_strict_integrity,
+        random_seed=runtime.eval.random_seed,
+        token_cost_per_1k=runtime.eval.token_cost_per_1k,
+    )
     proposer = Proposer(
         use_mock=runtime.optimizer.use_mock,
         llm_router=build_router_from_runtime_config(runtime.optimizer),

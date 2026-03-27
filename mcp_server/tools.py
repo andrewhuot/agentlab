@@ -138,7 +138,14 @@ def autoagent_eval(config_path: str | None = None, **kwargs: Any) -> dict[str, A
     from evals.runner import EvalRunner
     from agent.config.runtime import load_runtime_config
     runtime = load_runtime_config()
-    runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
+    runner = EvalRunner(
+        history_db_path=runtime.eval.history_db_path,
+        cache_enabled=runtime.eval.cache_enabled,
+        cache_db_path=runtime.eval.cache_db_path,
+        dataset_strict_integrity=runtime.eval.dataset_strict_integrity,
+        random_seed=runtime.eval.random_seed,
+        token_cost_per_1k=runtime.eval.token_cost_per_1k,
+    )
     config = None
     if config_path:
         import yaml
@@ -162,7 +169,14 @@ def autoagent_eval_compare(config_a: str = "", config_b: str = "", **kwargs: Any
     from agent.config.runtime import load_runtime_config
     import yaml
     runtime = load_runtime_config()
-    runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
+    runner = EvalRunner(
+        history_db_path=runtime.eval.history_db_path,
+        cache_enabled=runtime.eval.cache_enabled,
+        cache_db_path=runtime.eval.cache_db_path,
+        dataset_strict_integrity=runtime.eval.dataset_strict_integrity,
+        random_seed=runtime.eval.random_seed,
+        token_cost_per_1k=runtime.eval.token_cost_per_1k,
+    )
 
     with open(config_a) as f:
         ca = yaml.safe_load(f)

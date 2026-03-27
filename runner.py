@@ -111,11 +111,28 @@ def _print_score(score, heading: str) -> None:
     """Print a consistent score summary for eval output."""
     click.echo(f"\n{heading}")
     click.echo(f"  Cases: {score.passed_cases}/{score.total_cases} passed")
-    click.echo(f"  Quality:   {score.quality:.4f}")
-    click.echo(f"  Safety:    {score.safety:.4f} ({score.safety_failures} failures)")
-    click.echo(f"  Latency:   {score.latency:.4f}")
-    click.echo(f"  Cost:      {score.cost:.4f}")
-    click.echo(f"  Composite: {score.composite:.4f}")
+    quality_ci = score.confidence_intervals.get("quality")
+    safety_ci = score.confidence_intervals.get("safety")
+    latency_ci = score.confidence_intervals.get("latency")
+    cost_ci = score.confidence_intervals.get("cost")
+    composite_ci = score.confidence_intervals.get("composite")
+
+    def _fmt_ci(ci: tuple[float, float] | None) -> str:
+        if ci is None:
+            return ""
+        return f"  (95% CI {ci[0]:.4f}..{ci[1]:.4f})"
+
+    click.echo(f"  Quality:   {score.quality:.4f}{_fmt_ci(quality_ci)}")
+    click.echo(f"  Safety:    {score.safety:.4f} ({score.safety_failures} failures){_fmt_ci(safety_ci)}")
+    click.echo(f"  Latency:   {score.latency:.4f}{_fmt_ci(latency_ci)}")
+    click.echo(f"  Cost:      {score.cost:.4f}{_fmt_ci(cost_ci)}")
+    click.echo(f"  Composite: {score.composite:.4f}{_fmt_ci(composite_ci)}")
+    click.echo(
+        f"  Tokens:    {getattr(score, 'total_tokens', 0)}"
+        f"  |  Est. USD: ${getattr(score, 'estimated_cost_usd', 0.0):.6f}"
+    )
+    for warning in getattr(score, "warnings", []):
+        click.echo(click.style(f"  Warning:   {warning}", fg="yellow"))
 
 
 def _score_to_dict(score) -> dict:
@@ -127,6 +144,10 @@ def _score_to_dict(score) -> dict:
         "latency": score.latency,
         "cost": score.cost,
         "composite": score.composite,
+        "confidence_intervals": getattr(score, "confidence_intervals", {}),
+        "total_tokens": getattr(score, "total_tokens", 0),
+        "estimated_cost_usd": getattr(score, "estimated_cost_usd", 0.0),
+        "warnings": getattr(score, "warnings", []),
     }
 
 
@@ -388,6 +409,19 @@ def _build_skill_components() -> tuple[SkillStore, SkillEngine]:
     return skill_store, skill_engine
 
 
+def _build_eval_runner(runtime, *, cases_dir: str | None = None) -> EvalRunner:
+    """Build an EvalRunner from runtime config with harness defaults wired in."""
+    return EvalRunner(
+        cases_dir=cases_dir,
+        history_db_path=runtime.eval.history_db_path,
+        cache_enabled=runtime.eval.cache_enabled,
+        cache_db_path=runtime.eval.cache_db_path,
+        dataset_strict_integrity=runtime.eval.dataset_strict_integrity,
+        random_seed=runtime.eval.random_seed,
+        token_cost_per_1k=runtime.eval.token_cost_per_1k,
+    )
+
+
 def _build_runtime_components() -> tuple[
     object,
     EvalRunner,
@@ -398,7 +432,7 @@ def _build_runtime_components() -> tuple[
 ]:
     """Create runtime-configured optimizer dependencies."""
     runtime = load_runtime_config()
-    eval_runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
+    eval_runner = _build_eval_runner(runtime)
     router = build_router_from_runtime_config(runtime.optimizer)
     proposer = Proposer(use_mock=runtime.optimizer.use_mock, llm_router=router)
     _, skill_engine = _build_skill_components()
@@ -873,10 +907,7 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         if not json_output:
             click.echo("Evaluating with default config")
 
-    runner = EvalRunner(
-        cases_dir=suite,
-        history_db_path=runtime.eval.history_db_path,
-    )
+    runner = _build_eval_runner(runtime, cases_dir=suite)
 
     if category:
         score = runner.run_category(category, config=config, dataset_path=dataset, split=dataset_split)
@@ -3011,7 +3042,7 @@ def run_eval(config_path: str | None, category: str | None) -> None:
     if config_path:
         config = _load_config_dict(config_path)
     runtime = load_runtime_config()
-    runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
+    runner = _build_eval_runner(runtime)
     if category:
         score = runner.run_category(category, config=config)
         _print_score(score, f"Category: {category}")
@@ -3902,7 +3933,7 @@ def quickstart(ctx: click.Context, agent_name: str, verbose: bool, target_dir: s
             "  ⚠ Running with mock provider. Results are simulated.",
             fg="yellow",
         ))
-    eval_runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
+    eval_runner = _build_eval_runner(runtime)
     baseline_score = eval_runner.run()
     click.echo(click.style("  ✓ ", fg="green") + f"Baseline composite: {baseline_score.composite:.4f}")
     click.echo(f"    Cases: {baseline_score.passed_cases}/{baseline_score.total_cases} passed")
@@ -4052,7 +4083,7 @@ def demo_quickstart(ctx: click.Context, target_dir: str, auto_open: bool) -> Non
     # Single eval
     click.echo(click.style("\n▸ Running evaluation...", fg="white", bold=True))
     runtime = load_runtime_config()
-    eval_runner = EvalRunner(history_db_path=runtime.eval.history_db_path)
+    eval_runner = _build_eval_runner(runtime)
     score = eval_runner.run()
     click.echo(f"  Score: {score.composite:.4f}  |  "
                f"Passed: {score.passed_cases}/{score.total_cases}  |  "

@@ -75,6 +75,10 @@ class EvalResultsResponse(BaseModel):
     latency: float = Field(..., description="Latency score 0-1 (higher is better)")
     cost: float = Field(..., description="Cost score 0-1 (higher is better)")
     composite: float = Field(..., description="Weighted composite score")
+    confidence_intervals: dict[str, tuple[float, float]] = Field(
+        default_factory=dict,
+        description="95% bootstrap confidence intervals for headline metrics",
+    )
     composite_breakdown: dict[str, Any] = Field(
         default_factory=dict,
         description="Weight/metric contribution breakdown for composite transparency",
@@ -82,6 +86,9 @@ class EvalResultsResponse(BaseModel):
     safety_failures: int = Field(0, description="Number of safety failures")
     total_cases: int = Field(0, description="Total test cases run")
     passed_cases: int = Field(0, description="Test cases that passed")
+    total_tokens: int = Field(0, description="Total output tokens consumed by the run")
+    estimated_cost_usd: float = Field(0.0, description="Estimated eval cost in USD")
+    warnings: list[str] = Field(default_factory=list, description="Non-fatal eval warnings")
     cases: list[EvalCaseResult] = Field(default_factory=list, description="Per-case results")
     completed_at: Optional[datetime] = Field(None, description="Completion timestamp")
 

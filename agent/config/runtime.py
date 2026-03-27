@@ -101,8 +101,13 @@ class EvalRuntimeConfig(BaseModel):
     """Runtime settings for eval pipeline and significance gating."""
 
     history_db_path: str = "eval_history.db"
+    cache_enabled: bool = True
+    cache_db_path: str = ".autoagent/eval_cache.db"
     dataset_path: str | None = None
     dataset_split: Literal["train", "test", "all"] = "test"
+    dataset_strict_integrity: bool = False
+    random_seed: int = Field(7, ge=0, le=2_147_483_647)
+    token_cost_per_1k: float = Field(0.0, ge=0.0, le=10_000.0)
     significance_alpha: float = Field(0.05, ge=0.0001, le=0.5)
     significance_min_effect_size: float = Field(0.005, ge=0.0, le=1.0)
     significance_iterations: int = Field(2000, ge=100, le=50000)
