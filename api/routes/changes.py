@@ -110,3 +110,151 @@ async def export_change_card(card_id: str, request: Request) -> dict[str, Any]:
     if card is None:
         raise HTTPException(status_code=404, detail=f"Change card not found: {card_id}")
     return {"card_id": card_id, "markdown": card.to_markdown()}
+
+
+# ---------------------------------------------------------------------------
+# Audit trail endpoints (Feature 3)
+# ---------------------------------------------------------------------------
+
+@router.get("/{card_id}/audit")
+async def get_change_audit(card_id: str, request: Request) -> dict[str, Any]:
+    """Get full audit trail for a change card.
+
+    Returns comprehensive accept/reject decision details:
+    - Per-dimension score deltas (safety: +0.05, quality: +0.12, latency: -0.3s)
+    - Gate decisions with reasons (which gates passed/failed and why)
+    - Adversarial simulation results (if run)
+    - Composite score breakdown (weighted contributions)
+    - Timeline of the optimization attempt
+
+    Returns:
+        {
+            "card_id": str,
+            "status": str,  # "pending", "applied", "rejected"
+            "dimension_breakdown": {
+                "safety": {"before": 0.85, "after": 0.90, "delta": +0.05},
+                "quality": {"before": 0.75, "after": 0.87, "delta": +0.12},
+                ...
+            },
+            "gate_results": [
+                {"gate": "significance", "passed": true, "reason": "p=0.01 < 0.05"},
+                {"gate": "safety", "passed": true, "reason": "No safety regression"},
+                ...
+            ],
+            "adversarial_results": {
+                "passed": true,
+                "score_drop": 0.02,
+                "num_cases": 20
+            },
+            "composite_breakdown": {
+                "weights": {"safety": 0.4, "quality": 0.4, "latency": 0.2},
+                "components": {"safety": 0.90, "quality": 0.87, "latency": 0.75},
+                "contributions": {"safety": 0.36, "quality": 0.348, "latency": 0.15}
+            },
+            "timeline": [
+                {"phase": "proposed", "timestamp": 123456.0, "status": "pending"},
+                {"phase": "evaluated", "timestamp": 123457.0, "status": "in_progress"},
+                {"phase": "gated", "timestamp": 123458.0, "status": "passed"},
+                {"phase": "accepted", "timestamp": 123459.0, "status": "applied"}
+            ]
+        }
+    """
+    store = _get_store(request)
+    card = store.get(card_id)
+    if card is None:
+        raise HTTPException(status_code=404, detail=f"Change card not found: {card_id}")
+
+    return {
+        "card_id": card_id,
+        "status": card.status,
+        "dimension_breakdown": card.dimension_breakdown,
+        "gate_results": card.gate_results,
+        "adversarial_results": card.adversarial_results,
+        "composite_breakdown": card.composite_breakdown,
+        "timeline": card.timeline,
+        "rejection_reason": card.rejection_reason if card.status == "rejected" else None,
+    }
+
+
+@router.get("/audit-summary")
+async def get_audit_summary(request: Request, limit: int = 100) -> dict[str, Any]:
+    """Get aggregated accept/reject statistics.
+
+    Returns:
+        {
+            "total_changes": int,
+            "accepted": int,
+            "rejected": int,
+            "pending": int,
+            "accept_rate": float,
+            "top_rejection_reasons": [
+                {"reason": "safety_regression", "count": 5},
+                {"reason": "insufficient_significance", "count": 3},
+                ...
+            ],
+            "avg_improvement_accepted": float,
+            "gates_failure_breakdown": {
+                "significance": 3,
+                "safety": 2,
+                "adversarial": 1
+            }
+        }
+    """
+    store = _get_store(request)
+    all_cards = store.list_all(limit=limit)
+
+    total = len(all_cards)
+    accepted = len([c for c in all_cards if c.status == "applied"])
+    rejected = len([c for c in all_cards if c.status == "rejected"])
+    pending = len([c for c in all_cards if c.status == "pending"])
+
+    accept_rate = accepted / total if total > 0 else 0.0
+
+    # Analyze rejection reasons
+    rejection_reasons: dict[str, int] = {}
+    for card in all_cards:
+        if card.status == "rejected" and card.rejection_reason:
+            reason = card.rejection_reason
+            rejection_reasons[reason] = rejection_reasons.get(reason, 0) + 1
+
+    top_rejection_reasons = [
+        {"reason": reason, "count": count}
+        for reason, count in sorted(rejection_reasons.items(), key=lambda x: x[1], reverse=True)[:5]
+    ]
+
+    # Calculate average improvement for accepted changes
+    accepted_cards = [c for c in all_cards if c.status == "applied"]
+    avg_improvement = 0.0
+    if accepted_cards:
+        improvements = []
+        for card in accepted_cards:
+            # Try to get composite score delta
+            if card.composite_breakdown:
+                composite_before = sum(card.composite_breakdown.get("components", {}).values())
+                composite_after = composite_before + sum(
+                    card.dimension_breakdown.get(dim, {}).get("delta", 0)
+                    for dim in card.dimension_breakdown
+                )
+                improvements.append(composite_after - composite_before)
+        if improvements:
+            avg_improvement = sum(improvements) / len(improvements)
+
+    # Analyze gate failures
+    gates_failure_breakdown: dict[str, int] = {}
+    for card in all_cards:
+        if card.status == "rejected":
+            for gate_result in card.gate_results:
+                if not gate_result.get("passed", True):
+                    gate_name = gate_result.get("gate", "unknown")
+                    gates_failure_breakdown[gate_name] = gates_failure_breakdown.get(gate_name, 0) + 1
+
+    return {
+        "total_changes": total,
+        "accepted": accepted,
+        "rejected": rejected,
+        "pending": pending,
+        "accept_rate": accept_rate,
+        "top_rejection_reasons": top_rejection_reasons,
+        "avg_improvement_accepted": avg_improvement,
+        "gates_failure_breakdown": gates_failure_breakdown,
+    }

@@ -3352,6 +3352,183 @@ register_skill_commands(skill_group)
 
 
 # ---------------------------------------------------------------------------
+# autoagent curriculum ... (self-play curriculum generator)
+# ---------------------------------------------------------------------------
+
+@cli.group("curriculum")
+def curriculum_group() -> None:
+    """Self-play curriculum generator for adversarial eval prompts."""
+
+
+@curriculum_group.command("generate")
+@click.option("--limit", default=10, show_default=True, help="Max failure clusters to process")
+@click.option("--prompts-per-cluster", default=3, show_default=True, help="Prompts to generate per cluster")
+@click.option("--adversarial-ratio", default=0.2, show_default=True, help="Ratio of adversarial variants")
+@click.option("--db", default=DB_PATH, show_default=True, help="Conversation database path")
+@click.option("--output-dir", default=".autoagent/curriculum", show_default=True, help="Output directory")
+def curriculum_generate(
+    limit: int,
+    prompts_per_cluster: int,
+    adversarial_ratio: float,
+    db: str,
+    output_dir: str,
+) -> None:
+    """Generate a new curriculum batch from recent failures.
+
+    Examples:
+      autoagent curriculum generate
+      autoagent curriculum generate --limit 20 --prompts-per-cluster 5
+    """
+    from optimizer.curriculum_generator import CurriculumGenerator, CurriculumStore, FailureCluster
+    from observer.classifier import FailureClassifier
+
+    click.echo(click.style("\n⚡ Curriculum Generator", fg="cyan", bold=True))
+    click.echo("")
+
+    # Load recent failures from conversation store
+    store = ConversationStore(db_path=db)
+    recent_failures = store.list_failed(limit=limit * 10)  # Get more to cluster
+
+    if not recent_failures:
+        click.echo(click.style("  ✗ ", fg="red") + "No recent failures found")
+        return
+
+    click.echo(click.style("  ✓ ", fg="green") + f"Found {len(recent_failures)} recent failures")
+
+    # Classify failures into clusters
+    classifier = FailureClassifier()
+    clusters_map: dict[str, list] = {}
+    for record in recent_failures:
+        categories = classifier.classify(record)
+        for cat in categories:
+            if cat not in clusters_map:
+                clusters_map[cat] = []
+            clusters_map[cat].append({
+                "user_message": record.user_message,
+                "specialist_used": record.specialist_used,
+                "error": record.error_type or "",
+            })
+
+    # Convert to FailureCluster objects
+    failure_clusters = []
+    for family, examples in list(clusters_map.items())[:limit]:
+        cluster = FailureCluster(
+            failure_family=family,
+            count=len(examples),
+            examples=examples,
+            categories=[family],
+            pass_rate=0.5,  # TODO: fetch from eval history
+        )
+        failure_clusters.append(cluster)
+
+    click.echo(click.style("  ✓ ", fg="green") + f"Identified {len(failure_clusters)} failure clusters")
+
+    # Generate curriculum
+    generator = CurriculumGenerator(
+        prompts_per_cluster=prompts_per_cluster,
+        adversarial_ratio=adversarial_ratio,
+    )
+    batch = generator.generate_curriculum(failure_clusters)
+
+    # Save batch
+    curriculum_store = CurriculumStore(store_dir=output_dir)
+    filepath = curriculum_store.save_batch(batch)
+
+    click.echo(click.style("  ✓ ", fg="green") + f"Generated {len(batch.prompts)} prompts")
+    click.echo("")
+    click.echo(f"  Batch ID: {click.style(batch.batch_id, fg='cyan')}")
+    click.echo(f"  Saved to: {click.style(filepath, fg='cyan')}")
+    click.echo("")
+    click.echo("  Difficulty distribution:")
+    for tier, count in batch.tier_distribution.items():
+        click.echo(f"    {tier:<12} {count:>3} prompts")
+    click.echo("")
+
+
+@curriculum_group.command("list")
+@click.option("--limit", default=20, show_default=True, help="Max batches to list")
+@click.option("--output-dir", default=".autoagent/curriculum", show_default=True, help="Curriculum directory")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+def curriculum_list(limit: int, output_dir: str, json_output: bool) -> None:
+    """List generated curriculum batches.
+
+    Examples:
+      autoagent curriculum list
+      autoagent curriculum list --json
+    """
+    from optimizer.curriculum_generator import CurriculumStore
+
+    curriculum_store = CurriculumStore(store_dir=output_dir)
+    batches = curriculum_store.list_batches(limit=limit)
+
+    if not batches:
+        if json_output:
+            click.echo(json.dumps([], indent=2))
+        else:
+            click.echo("No curriculum batches found.")
+        return
+
+    if json_output:
+        data = [
+            {
+                "batch_id": b.batch_id,
+                "generated_at": b.generated_at,
+                "num_prompts": len(b.prompts),
+                "tier_distribution": b.tier_distribution,
+                "source_clusters": b.source_clusters,
+            }
+            for b in batches
+        ]
+        click.echo(json.dumps(data, indent=2))
+        return
+
+    # Table output
+    click.echo(f"\nCurriculum Batches ({len(batches)} found)\n")
+    click.echo(f"{'Batch ID':<25} {'Generated':<20} {'Prompts':<8} {'Easy':<6} {'Medium':<6} {'Hard':<6} {'Adv':<6}")
+    click.echo("─" * 85)
+
+    for batch in batches:
+        generated_time = datetime.fromtimestamp(batch.generated_at, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        dist = batch.tier_distribution
+        click.echo(
+            f"{batch.batch_id:<25} {generated_time:<20} {len(batch.prompts):<8} "
+            f"{dist.get('easy', 0):<6} {dist.get('medium', 0):<6} {dist.get('hard', 0):<6} {dist.get('adversarial', 0):<6}"
+        )
+
+
+@curriculum_group.command("apply")
+@click.argument("batch_id")
+@click.option("--output-dir", default=".autoagent/curriculum", show_default=True, help="Curriculum directory")
+@click.option("--eval-cases-dir", default="evals/cases", show_default=True, help="Eval cases directory")
+def curriculum_apply(batch_id: str, output_dir: str, eval_cases_dir: str) -> None:
+    """Apply a curriculum batch to the active eval set.
+
+    Examples:
+      autoagent curriculum apply curriculum_abc123
+    """
+    from optimizer.curriculum_generator import CurriculumStore
+
+    click.echo(click.style("\n⚡ Applying Curriculum Batch", fg="cyan", bold=True))
+    click.echo("")
+
+    curriculum_store = CurriculumStore(store_dir=output_dir)
+    batch = curriculum_store.load_batch(batch_id)
+
+    if not batch:
+        click.echo(click.style("  ✗ ", fg="red") + f"Batch not found: {batch_id}")
+        return
+
+    try:
+        eval_file = curriculum_store.apply_batch_to_eval_set(batch_id, eval_cases_dir)
+        click.echo(click.style("  ✓ ", fg="green") + f"Applied {len(batch.prompts)} prompts to eval set")
+        click.echo("")
+        click.echo(f"  Eval file: {click.style(eval_file, fg='cyan')}")
+        click.echo("")
+    except Exception as e:
+        click.echo(click.style("  ✗ ", fg="red") + f"Failed to apply batch: {e}")
+
+
+# ---------------------------------------------------------------------------
 # autoagent trace ...
 # ---------------------------------------------------------------------------
 

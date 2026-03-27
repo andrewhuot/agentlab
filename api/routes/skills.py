@@ -516,6 +516,155 @@ async def extract_from_optimization(
     )
 
 
+# ---------------------------------------------------------------------------
+# Skill promotion workflow (draft → active)
+# ---------------------------------------------------------------------------
+
+@router.get("/drafts")
+async def list_draft_skills(
+    request: Request,
+    min_effectiveness: float | None = Query(None, description="Minimum success rate filter"),
+) -> dict[str, Any]:
+    """List all draft skills awaiting review.
+
+    Returns draft skills with source information and effectiveness metrics.
+
+    Returns:
+        {
+            "drafts": [
+                {
+                    "skill": Skill dict,
+                    "source": str,  # source optimization attempt ID
+                    "source_improvement": float,
+                    "times_applied": int,
+                    "success_rate": float,
+                    "avg_improvement": float,
+                    "total_improvement": float
+                },
+                ...
+            ],
+            "count": int
+        }
+    """
+    from core.skills.promotion import SkillPromotionWorkflow
+
+    store = _get_skill_store(request)
+    workflow = SkillPromotionWorkflow(store=store)
+
+    drafts = workflow.list_draft_skills(min_effectiveness=min_effectiveness)
+
+    return {
+        "drafts": [
+            {
+                "skill": d["skill"].to_dict(),
+                "source": d["source"],
+                "source_improvement": d["source_improvement"],
+                "times_applied": d["times_applied"],
+                "success_rate": d["success_rate"],
+                "avg_improvement": d["avg_improvement"],
+                "total_improvement": d["total_improvement"],
+                "last_applied": d["last_applied"],
+            }
+            for d in drafts
+        ],
+        "count": len(drafts),
+    }
+
+
+@router.post("/{skill_id}/promote")
+async def promote_skill(
+    request: Request,
+    skill_id: str,
+) -> dict[str, Any]:
+    """Promote a draft skill to active status.
+
+    Request body (optional):
+        {
+            "reason": "Proven effective in optimization cycles"
+        }
+
+    Returns:
+        {
+            "skill_id": str,
+            "status": "active",
+            "promoted_at": float
+        }
+    """
+    from core.skills.promotion import SkillPromotionWorkflow
+
+    body = await request.json() if request.headers.get("content-length", "0") != "0" else {}
+    reason = body.get("reason", "")
+
+    store = _get_skill_store(request)
+    workflow = SkillPromotionWorkflow(store=store)
+
+    success = workflow.promote_skill(skill_id, reason=reason)
+
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Failed to promote skill: {skill_id}. Skill may not exist or is not a draft."
+        )
+
+    return {
+        "skill_id": skill_id,
+        "status": "active",
+        "promoted_at": time.time(),
+        "reason": reason,
+    }
+
+
+@router.post("/{skill_id}/archive")
+async def archive_skill(
+    request: Request,
+    skill_id: str,
+) -> dict[str, Any]:
+    """Archive (reject) a draft skill.
+
+    Request body (required):
+        {
+            "reason": "Not effective enough" or "Conflicts with existing skills"
+        }
+
+    Returns:
+        {
+            "skill_id": str,
+            "status": "archived",
+            "archived_at": float,
+            "reason": str
+        }
+    """
+    from core.skills.promotion import SkillPromotionWorkflow
+    import time
+
+    body = await request.json()
+    reason = body.get("reason", "")
+
+    if not reason:
+        raise HTTPException(
+            status_code=400,
+            detail="Reason is required for archiving a skill"
+        )
+
+    store = _get_skill_store(request)
+    workflow = SkillPromotionWorkflow(store=store)
+
+    success = workflow.archive_skill(skill_id, reason=reason)
+
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Failed to archive skill: {skill_id}. Skill may not exist or is not a draft."
+        )
+
+    return {
+        "skill_id": skill_id,
+        "status": "archived",
+        "archived_at": time.time(),
+        "reason": reason,
+    }
+
+
 @router.get("/{skill_id}")
 async def get_skill(
     request: Request,

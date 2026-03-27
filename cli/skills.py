@@ -737,6 +737,163 @@ def skill_recommend(
 
 
 # ---------------------------------------------------------------------------
+# skill review (draft skill promotion)
+# ---------------------------------------------------------------------------
+
+@click.command("review")
+@click.option("--db", default=DEFAULT_SKILLS_DB, show_default=True, help="Skills database path.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.option("--min-effectiveness", type=float, help="Filter by minimum success rate.")
+def skill_review(db: str, json_output: bool, min_effectiveness: float | None) -> None:
+    """Interactive review of draft skills for promotion.
+
+    Examples:
+      autoagent skill review
+      autoagent skill review --min-effectiveness 0.5
+      autoagent skill review --json
+    """
+    from core.skills.promotion import SkillPromotionWorkflow
+
+    store = _get_store(db)
+    workflow = SkillPromotionWorkflow(store=store)
+
+    try:
+        drafts = workflow.list_draft_skills(min_effectiveness=min_effectiveness)
+
+        if not drafts:
+            if json_output:
+                click.echo(json.dumps([], indent=2))
+            else:
+                click.echo("No draft skills found for review.")
+            return
+
+        if json_output:
+            data = [
+                {
+                    "skill_id": d["skill"].id,
+                    "name": d["skill"].name,
+                    "source": d["source"],
+                    "source_improvement": d["source_improvement"],
+                    "times_applied": d["times_applied"],
+                    "success_rate": d["success_rate"],
+                    "avg_improvement": d["avg_improvement"],
+                }
+                for d in drafts
+            ]
+            click.echo(json.dumps(data, indent=2))
+            return
+
+        # Table output
+        click.echo(click.style("\n📋 Draft Skills for Review", fg="cyan", bold=True))
+        click.echo(f"\nFound {len(drafts)} draft skills\n")
+        click.echo(f"{'Name':<30} {'Source':<20} {'Applied':<8} {'Success':<10} {'Avg Δ':<10}")
+        click.echo("─" * 85)
+
+        for draft in drafts:
+            skill = draft["skill"]
+            source = draft["source"][:17] + "..." if len(draft["source"]) > 20 else draft["source"]
+            success_rate = f"{draft['success_rate']:.1%}" if draft["times_applied"] > 0 else "—"
+            avg_improvement = f"+{draft['avg_improvement']:.3f}" if draft["avg_improvement"] > 0 else f"{draft['avg_improvement']:.3f}"
+
+            click.echo(
+                f"{skill.name:<30} {source:<20} {draft['times_applied']:<8} "
+                f"{success_rate:<10} {avg_improvement:<10}"
+            )
+
+        click.echo("\nUse 'autoagent skill promote <id>' to promote a draft to active.")
+        click.echo("Use 'autoagent skill archive <id>' to archive (reject) a draft.")
+
+    finally:
+        store.close()
+
+
+@click.command("promote")
+@click.argument("skill_id")
+@click.option("--reason", default="", help="Reason for promotion.")
+@click.option("--db", default=DEFAULT_SKILLS_DB, show_default=True, help="Skills database path.")
+def skill_promote(skill_id: str, reason: str, db: str) -> None:
+    """Promote a draft skill to active status.
+
+    Examples:
+      autoagent skill promote autolearn-abc123
+      autoagent skill promote autolearn-abc123 --reason "Proven effective"
+    """
+    from core.skills.promotion import SkillPromotionWorkflow
+
+    store = _get_store(db)
+    workflow = SkillPromotionWorkflow(store=store)
+
+    try:
+        # Get draft details first
+        details = workflow.get_draft_details(skill_id)
+        if not details:
+            click.echo(click.style("✗ ", fg="red") + f"Draft skill not found: {skill_id}")
+            return
+
+        skill = details["skill"]
+        click.echo(click.style("\n⚡ Promoting Skill", fg="cyan", bold=True))
+        click.echo(f"\nSkill: {click.style(skill.name, fg='cyan')}")
+        click.echo(f"ID: {skill_id}")
+        click.echo(f"Source: {details['source']}")
+        click.echo(f"Success rate: {details['effectiveness']['success_rate']:.1%}")
+        click.echo("")
+
+        # Promote
+        success = workflow.promote_skill(skill_id, reason=reason)
+
+        if success:
+            click.echo(click.style("✓ ", fg="green") + "Successfully promoted to active")
+            if reason:
+                click.echo(f"Reason: {reason}")
+        else:
+            click.echo(click.style("✗ ", fg="red") + "Failed to promote skill")
+
+    finally:
+        store.close()
+
+
+@click.command("archive")
+@click.argument("skill_id")
+@click.option("--reason", required=True, help="Reason for archiving (required).")
+@click.option("--db", default=DEFAULT_SKILLS_DB, show_default=True, help="Skills database path.")
+def skill_archive(skill_id: str, reason: str, db: str) -> None:
+    """Archive (reject) a draft skill.
+
+    Examples:
+      autoagent skill archive autolearn-abc123 --reason "Not effective enough"
+    """
+    from core.skills.promotion import SkillPromotionWorkflow
+
+    store = _get_store(db)
+    workflow = SkillPromotionWorkflow(store=store)
+
+    try:
+        # Get draft details first
+        details = workflow.get_draft_details(skill_id)
+        if not details:
+            click.echo(click.style("✗ ", fg="red") + f"Draft skill not found: {skill_id}")
+            return
+
+        skill = details["skill"]
+        click.echo(click.style("\n🗄️  Archiving Skill", fg="yellow", bold=True))
+        click.echo(f"\nSkill: {click.style(skill.name, fg='yellow')}")
+        click.echo(f"ID: {skill_id}")
+        click.echo(f"Reason: {reason}")
+        click.echo("")
+
+        # Archive
+        success = workflow.archive_skill(skill_id, reason=reason)
+
+        if success:
+            click.echo(click.style("✓ ", fg="green") + "Successfully archived")
+        else:
+            click.echo(click.style("✗ ", fg="red") + "Failed to archive skill")
+
+    finally:
+        store.close()
+
+
+# ---------------------------------------------------------------------------
 # Command registration helper
 # ---------------------------------------------------------------------------
 
@@ -757,6 +914,9 @@ def register_skill_commands(cli_group: click.Group) -> None:
         skill_effectiveness,
         skill_search,
         skill_recommend,
+        skill_review,
+        skill_promote,
+        skill_archive,
     ]
 
     for cmd in commands:

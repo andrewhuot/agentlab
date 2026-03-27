@@ -77,6 +77,13 @@ class ProposedChangeCard:
     created_at: float = field(default_factory=time.time)
     rejection_reason: str = ""
 
+    # Audit trail fields (Feature 3)
+    dimension_breakdown: dict[str, dict[str, float]] = field(default_factory=dict)  # {dimension: {before, after, delta}}
+    gate_results: list[dict[str, Any]] = field(default_factory=list)  # [{gate, passed, reason}, ...]
+    adversarial_results: dict[str, Any] | None = None  # {passed, score_drop, num_cases}
+    composite_breakdown: dict[str, Any] | None = None  # {weights, components, contributions}
+    timeline: list[dict[str, Any]] = field(default_factory=list)  # [{phase, timestamp, status}, ...]
+
     def __post_init__(self) -> None:
         if not self.card_id:
             self.card_id = str(uuid.uuid4())[:8]
@@ -106,6 +113,11 @@ class ProposedChangeCard:
             "status": self.status,
             "created_at": self.created_at,
             "rejection_reason": self.rejection_reason,
+            "dimension_breakdown": self.dimension_breakdown,
+            "gate_results": self.gate_results,
+            "adversarial_results": self.adversarial_results,
+            "composite_breakdown": self.composite_breakdown,
+            "timeline": self.timeline,
         }
 
     @classmethod
@@ -135,6 +147,11 @@ class ProposedChangeCard:
             status=data.get("status", "pending"),
             created_at=data.get("created_at", 0.0),
             rejection_reason=data.get("rejection_reason", ""),
+            dimension_breakdown=data.get("dimension_breakdown", {}),
+            gate_results=data.get("gate_results", []),
+            adversarial_results=data.get("adversarial_results"),
+            composite_breakdown=data.get("composite_breakdown"),
+            timeline=data.get("timeline", []),
         )
 
     @classmethod
