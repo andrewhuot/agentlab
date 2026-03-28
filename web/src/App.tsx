@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
+import { BuilderWorkspace } from './pages/BuilderWorkspace';
 import { Demo } from './pages/Demo';
 import { EvalRuns } from './pages/EvalRuns';
 import { EvalDetail } from './pages/EvalDetail';
@@ -59,7 +60,16 @@ export default function App() {
       <BrowserRouter>
         <Layout>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            {/* Builder Workspace — primary authoring surface */}
+            <Route path="/" element={<BuilderWorkspace />} />
+            <Route path="/builder" element={<BuilderWorkspace />} />
+            <Route path="/builder/*" element={<BuilderWorkspace />} />
+            <Route path="/builder/:projectId" element={<BuilderWorkspace />} />
+            <Route path="/builder/:projectId/:sessionId" element={<BuilderWorkspace />} />
+
+            {/* Dashboard moved to /dashboard */}
+            <Route path="/dashboard" element={<Dashboard />} />
+
             <Route path="/demo" element={<Demo />} />
             <Route path="/evals" element={<EvalRuns />} />
             <Route path="/evals/:id" element={<EvalDetail />} />

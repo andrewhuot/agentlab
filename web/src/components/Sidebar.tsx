@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   type LucideIcon,
+  Hammer,
   LayoutDashboard,
   FlaskConical,
   Zap,
@@ -48,9 +49,15 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
+    title: 'Build',
+    items: [
+      { to: '/builder', label: 'Builder Workspace', icon: Hammer },
+    ],
+  },
+  {
     title: 'Operate',
     items: [
-      { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/demo', label: 'Demo', icon: Sparkles },
       { to: '/assistant', label: 'Assistant Chat', icon: Bot },
       { to: '/evals', label: 'Eval Runs', icon: FlaskConical },
@@ -162,7 +169,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                   <NavLink
                     key={to}
                     to={to}
-                    end={to === '/'}
+                    end={to === '/dashboard' || to === '/builder'}
                     onClick={onClose}
                     className={({ isActive }) =>
                       classNames(

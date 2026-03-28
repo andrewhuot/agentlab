@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.routes import (
+    builder as builder_routes,
     datasets as datasets_routes,
     outcomes as outcomes_routes,
     a2a as a2a_routes,
@@ -198,6 +199,34 @@ async def lifespan(app: FastAPI):
     task_manager = TaskManager()
     ws_manager = ConnectionManager()
 
+    # Builder workspace services
+    from builder import (
+        ArtifactCardFactory,
+        BuilderExecutionEngine,
+        BuilderMetricsService,
+        BuilderOrchestrator,
+        BuilderProjectManager,
+        BuilderStore,
+        EventBroker,
+        PermissionManager,
+    )
+
+    builder_store = BuilderStore(
+        db_path=os.environ.get("AUTOAGENT_BUILDER_DB", ".autoagent/builder.db"),
+    )
+    builder_project_manager = BuilderProjectManager(builder_store)
+    builder_orchestrator = BuilderOrchestrator(builder_store)
+    builder_events = EventBroker()
+    builder_permissions = PermissionManager(builder_store)
+    builder_execution = BuilderExecutionEngine(
+        store=builder_store,
+        orchestrator=builder_orchestrator,
+        permissions=builder_permissions,
+        events=builder_events,
+    )
+    builder_metrics = BuilderMetricsService(builder_store, builder_permissions)
+    builder_artifacts = ArtifactCardFactory()
+
     # Attach to app.state so route handlers can access them
     app.state.conversation_store = conversation_store
     app.state.optimization_memory = optimization_memory
@@ -208,6 +237,14 @@ async def lifespan(app: FastAPI):
     app.state.deployer = deployer
     app.state.task_manager = task_manager
     app.state.ws_manager = ws_manager
+    app.state.builder_store = builder_store
+    app.state.builder_project_manager = builder_project_manager
+    app.state.builder_orchestrator = builder_orchestrator
+    app.state.builder_events = builder_events
+    app.state.builder_permissions = builder_permissions
+    app.state.builder_execution = builder_execution
+    app.state.builder_metrics = builder_metrics
+    app.state.builder_artifacts = builder_artifacts
     app.state.runtime_config = runtime
     app.state.dead_letter_queue = dead_letter_queue
     app.state.checkpoint_store = checkpoint_store
@@ -358,6 +395,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # API routes
 # ---------------------------------------------------------------------------
+app.include_router(builder_routes.router)
 app.include_router(demo_routes.router)
 app.include_router(eval_routes.router)
 app.include_router(optimize_routes.router)
