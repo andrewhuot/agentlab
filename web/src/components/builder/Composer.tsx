@@ -17,7 +17,7 @@ export function Composer({ mode, value, disabled = false, onModeChange, onChange
   const [slashVisible, setSlashVisible] = useState(false);
 
   const slashQuery = useMemo(() => {
-    const trimmed = value.trim();
+    const trimmed = value.trimStart();
     if (!trimmed.startsWith('/')) return '';
     return trimmed;
   }, [value]);
@@ -82,10 +82,9 @@ export function Composer({ mode, value, disabled = false, onModeChange, onChange
           disabled={disabled}
           onKeyDown={onKeyDown}
           onChange={(event) => {
-            onChange(event.target.value);
-            if (!event.target.value.startsWith('/')) {
-              setSlashVisible(false);
-            }
+            const nextValue = event.target.value;
+            onChange(nextValue);
+            setSlashVisible(nextValue.trimStart().startsWith('/'));
           }}
           placeholder="Ask for a plan, run traces, or apply a patch…"
           className="min-h-[70px] flex-1 resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-sky-500"

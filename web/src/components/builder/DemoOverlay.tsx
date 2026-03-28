@@ -131,7 +131,6 @@ export function DemoOverlay({
   onClose,
 }: DemoOverlayProps) {
   const [cutout, setCutout] = useState<Cutout | null>(null);
-  const [tooltipSide, setTooltipSide] = useState<TooltipSide>('bottom');
   const [tooltipPos, setTooltipPos] = useState<TooltipPos>({});
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -150,7 +149,6 @@ export function DemoOverlay({
     const c = rectToCutout(rect);
     const side = chooseTooltipSide(c);
     setCutout(c);
-    setTooltipSide(side);
     setTooltipPos(computeTooltipPos(c, side));
   }, [step]);
 

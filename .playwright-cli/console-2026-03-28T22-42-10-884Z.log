@@ -1,0 +1,5 @@
+[  398133ms] [ERROR] WebSocket connection to 'ws://localhost:5173/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/lib/websocket.ts:20
+[  400285ms] [ERROR] WebSocket connection to 'ws://localhost:5173/ws' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/src/lib/websocket.ts:20
+[  401090ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/api/eval/runs:0
+[  402231ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/api/eval/runs:0
+[  404360ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/api/eval/runs:0

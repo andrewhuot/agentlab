@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import Counter
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Query, Request, HTTPException
 
@@ -111,6 +111,63 @@ async def get_archive(request: Request) -> dict:
         },
     ]
     return {"entries": mock_entries, "source": "mock", "message": "Archive store not configured, returning mock data"}
+
+
+@router.get("/pareto")
+async def get_pareto_frontier(request: Request) -> dict[str, Any]:
+    """Return a UI-friendly Pareto frontier payload.
+
+    WHY: The web UI consumes `ParetoFrontier` with `candidates`, `recommended`,
+    `frontier_size`, and `infeasible_count`. The optimizer snapshot endpoint uses a
+    different shape, so we normalize it here for `/api/experiments/pareto`.
+    """
+    optimizer = getattr(request.app.state, "optimizer", None)
+    if optimizer is None:
+        return {
+            "candidates": [],
+            "recommended": None,
+            "frontier_size": 0,
+            "infeasible_count": 0,
+        }
+
+    snapshot = optimizer.get_pareto_snapshot()
+    objective_keys = list((snapshot.get("objective_directions") or {}).keys()) or [
+        "quality",
+        "safety",
+        "latency",
+        "cost",
+    ]
+    recommended_id = snapshot.get("recommended_candidate_id")
+
+    def _to_candidate(item: dict[str, Any], constraints_passed: bool) -> dict[str, Any]:
+        objectives = item.get("objectives", {})
+        return {
+            "candidate_id": item.get("candidate_id"),
+            "objective_vector": [float(objectives.get(key, 0.0)) for key in objective_keys],
+            "constraints_passed": constraints_passed,
+            "constraint_violations": item.get("constraint_violations", []),
+            "config_hash": item.get("config_hash"),
+            "experiment_id": item.get("experiment_id"),
+            "created_at": float(item.get("created_at", 0.0)),
+            "dominated": bool(item.get("dominated", False)),
+            "is_recommended": item.get("candidate_id") == recommended_id,
+        }
+
+    frontier_items = snapshot.get("frontier", [])
+    infeasible_items = snapshot.get("infeasible", [])
+
+    candidates = [
+        *[_to_candidate(item, constraints_passed=True) for item in frontier_items],
+        *[_to_candidate(item, constraints_passed=False) for item in infeasible_items],
+    ]
+    recommended = next((candidate for candidate in candidates if candidate["is_recommended"]), None)
+
+    return {
+        "candidates": candidates,
+        "recommended": recommended,
+        "frontier_size": len(frontier_items),
+        "infeasible_count": len(infeasible_items),
+    }
 
 
 @router.get("/judge-calibration")

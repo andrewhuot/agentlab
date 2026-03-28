@@ -32,6 +32,8 @@ const DEFAULT_MODEL_OPTIONS = [
   'claude-sonnet-4-6',
 ];
 
+const COMPACT_LAYOUT_BREAKPOINT = 1100;
+
 function toEventEntry(event: BuilderEvent): ConversationEntry {
   const payload = event.payload as Record<string, unknown>;
   const step = typeof payload.current_step === 'string' ? payload.current_step : '';
@@ -70,6 +72,9 @@ export function BuilderWorkspace() {
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window === 'undefined' ? 1440 : window.innerWidth
+  );
 
   const [mode, setMode] = useState<ExecutionMode>('draft');
   const [environment, setEnvironment] = useState<BuilderEnvironment>('dev');
@@ -170,6 +175,17 @@ export function BuilderWorkspace() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const initialize = async () => {
@@ -200,6 +216,10 @@ export function BuilderWorkspace() {
       cancelled = true;
     };
   }, [loadProjectContext, loadProjects]);
+
+  const compactLayout = viewportWidth <= COMPACT_LAYOUT_BREAKPOINT;
+  const resolvedLeftCollapsed = compactLayout ? true : leftCollapsed;
+  const resolvedInspectorCollapsed = compactLayout ? true : inspectorCollapsed;
 
   useEffect(() => {
     if (!selectedProjectId) return;
@@ -530,11 +550,11 @@ export function BuilderWorkspace() {
       <div
         className="grid min-h-0 flex-1"
         style={{
-          gridTemplateColumns: `${leftCollapsed ? 56 : 260}px minmax(0,1fr) ${inspectorCollapsed ? 48 : 380}px`,
+          gridTemplateColumns: `${resolvedLeftCollapsed ? 56 : 260}px minmax(0,1fr) ${resolvedInspectorCollapsed ? 48 : 380}px`,
         }}
       >
         <LeftRail
-          collapsed={leftCollapsed}
+          collapsed={resolvedLeftCollapsed}
           projects={projects}
           sessions={sessions}
           tasks={tasks}
@@ -543,7 +563,10 @@ export function BuilderWorkspace() {
           selectedTaskId={selectedTaskId}
           favorites={favorites}
           notifications={notifications}
-          onToggle={() => setLeftCollapsed((current) => !current)}
+          onToggle={() => {
+            if (compactLayout) return;
+            setLeftCollapsed((current) => !current);
+          }}
           onSelectProject={(projectId) => {
             setSelectedProjectId(projectId);
             setSelectedSessionId(null);
@@ -643,8 +666,11 @@ export function BuilderWorkspace() {
         </div>
 
         <Inspector
-          collapsed={inspectorCollapsed}
-          onToggle={() => setInspectorCollapsed((current) => !current)}
+          collapsed={resolvedInspectorCollapsed}
+          onToggle={() => {
+            if (compactLayout) return;
+            setInspectorCollapsed((current) => !current);
+          }}
           project={selectedProject}
           selectedArtifact={selectedArtifact}
           evalBundle={evalBundle}
