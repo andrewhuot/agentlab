@@ -1,0 +1,11 @@
+[  229797ms] [ERROR] WebSocket connection to 'ws://localhost:5173/ws' failed: Connection closed before receiving a handshake response @ http://localhost:5173/src/lib/websocket.ts:20
+[  230222ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/builder/events/stream?session_id=bcda7e6f-3957-4507-82f3-5917193377c7:0
+[  230475ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/eval/runs:0
+[  231628ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/eval/runs:0
+[  231872ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/builder/events/stream?session_id=bcda7e6f-3957-4507-82f3-5917193377c7:0
+[  231873ms] [ERROR] WebSocket connection to 'ws://localhost:5173/ws' failed: Connection closed before receiving a handshake response @ http://localhost:5173/src/lib/websocket.ts:20
+[  233381ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/builder/events/stream?session_id=bcda7e6f-3957-4507-82f3-5917193377c7:0
+[  233667ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/eval/runs:0
+[  234910ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/builder/events/stream?session_id=bcda7e6f-3957-4507-82f3-5917193377c7:0
+[  236002ms] [ERROR] WebSocket connection to 'ws://localhost:5173/ws' failed: Connection closed before receiving a handshake response @ http://localhost:5173/src/lib/websocket.ts:20
+[  236540ms] [ERROR] Failed to load resource: the server responded with a status of 502 (Bad Gateway) @ http://localhost:5173/api/builder/events/stream?session_id=bcda7e6f-3957-4507-82f3-5917193377c7:0

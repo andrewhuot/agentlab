@@ -831,6 +831,53 @@ def test_database_path_creation(tmp_path):
     store.close()
 
 
+def test_migrates_legacy_skill_outcomes_schema(temp_db):
+    """Initialize successfully when legacy skill_outcomes columns are present."""
+    conn = sqlite3.connect(temp_db)
+    try:
+        conn.executescript(
+            """
+            CREATE TABLE executable_skills (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                version TEXT NOT NULL,
+                data TEXT NOT NULL,
+                domain TEXT NOT NULL DEFAULT 'general',
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            );
+
+            CREATE TABLE skill_outcomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                skill_name TEXT NOT NULL,
+                improvement REAL NOT NULL,
+                success INTEGER NOT NULL,
+                recorded_at TEXT NOT NULL
+            );
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    store = SkillStore(db_path=temp_db)
+    try:
+        conn = sqlite3.connect(temp_db)
+        try:
+            outcome_columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(skill_outcomes)").fetchall()
+            }
+        finally:
+            conn.close()
+
+        assert "skill_id" in outcome_columns
+        assert "skill_name" not in outcome_columns
+    finally:
+        store.close()
+
+
 def test_skill_with_all_fields(store):
     """Test creating and retrieving a skill with all fields populated."""
     skill = Skill(

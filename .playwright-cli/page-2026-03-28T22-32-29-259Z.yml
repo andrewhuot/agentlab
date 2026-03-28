@@ -1,0 +1,397 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: AutoAgent
+        - generic [ref=e7]: VNextCC
+      - navigation [ref=e8]:
+        - generic [ref=e9]:
+          - heading "Build" [level=3] [ref=e10]
+          - link "Builder Workspace" [ref=e12] [cursor=pointer]:
+            - /url: /builder
+            - img [ref=e13]
+            - generic [ref=e17]: Builder Workspace
+        - generic [ref=e18]:
+          - heading "Operate" [level=3] [ref=e19]
+          - generic [ref=e20]:
+            - link "Dashboard" [ref=e21] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e22]
+              - generic [ref=e27]: Dashboard
+            - link "Demo" [ref=e28] [cursor=pointer]:
+              - /url: /demo
+              - img [ref=e29]
+              - generic [ref=e32]: Demo
+            - link "Assistant Chat" [ref=e33] [cursor=pointer]:
+              - /url: /assistant
+              - img [ref=e34]
+              - generic [ref=e37]: Assistant Chat
+            - link "Eval Runs" [ref=e38] [cursor=pointer]:
+              - /url: /evals
+              - img [ref=e39]
+              - generic [ref=e41]: Eval Runs
+            - link "Conversations" [ref=e42] [cursor=pointer]:
+              - /url: /conversations
+              - img [ref=e43]
+              - generic [ref=e45]: Conversations
+            - link "Loop Monitor" [ref=e46] [cursor=pointer]:
+              - /url: /loop
+              - img [ref=e47]
+              - generic [ref=e52]: Loop Monitor
+            - link "Deploy" [ref=e53] [cursor=pointer]:
+              - /url: /deploy
+              - img [ref=e54]
+              - generic [ref=e59]: Deploy
+            - link "Traces" [ref=e60] [cursor=pointer]:
+              - /url: /traces
+              - img [ref=e61]
+              - generic [ref=e63]: Traces
+            - link "Event Log" [ref=e64] [cursor=pointer]:
+              - /url: /events
+              - img [ref=e65]
+              - generic [ref=e68]: Event Log
+        - generic [ref=e69]:
+          - heading "Improve" [level=3] [ref=e70]
+          - generic [ref=e71]:
+            - link "Optimize" [ref=e72] [cursor=pointer]:
+              - /url: /optimize
+              - img [ref=e73]
+              - generic [ref=e75]: Optimize
+            - link "Live Optimize" [ref=e76] [cursor=pointer]:
+              - /url: /live-optimize
+              - img [ref=e77]
+              - generic [ref=e80]: Live Optimize
+            - link "Agent Studio Draft" [ref=e81] [cursor=pointer]:
+              - /url: /agent-studio
+              - img [ref=e82]
+              - generic [ref=e85]: Agent Studio Draft
+            - link "Opportunities" [ref=e86] [cursor=pointer]:
+              - /url: /opportunities
+              - img [ref=e87]
+              - generic [ref=e89]: Opportunities
+            - link "Changes" [ref=e90] [cursor=pointer]:
+              - /url: /changes
+              - img [ref=e91]
+              - generic [ref=e95]: Changes
+            - link "Experiments" [ref=e96] [cursor=pointer]:
+              - /url: /experiments
+              - img [ref=e97]
+              - generic [ref=e100]: Experiments
+            - link "AutoFix" [ref=e101] [cursor=pointer]:
+              - /url: /autofix
+              - img [ref=e102]
+              - generic [ref=e104]: AutoFix
+        - generic [ref=e105]:
+          - heading "Integrations" [level=3] [ref=e106]
+          - generic [ref=e107]:
+            - link "ADK Import" [ref=e108] [cursor=pointer]:
+              - /url: /adk/import
+              - img [ref=e109]
+              - generic [ref=e112]: ADK Import
+            - link "ADK Deploy" [ref=e113] [cursor=pointer]:
+              - /url: /adk/deploy
+              - img [ref=e114]
+              - generic [ref=e117]: ADK Deploy
+            - link "CX Import" [ref=e118] [cursor=pointer]:
+              - /url: /cx/import
+              - img [ref=e119]
+              - generic [ref=e122]: CX Import
+            - link "CX Deploy" [ref=e123] [cursor=pointer]:
+              - /url: /cx/deploy
+              - img [ref=e124]
+              - generic [ref=e127]: CX Deploy
+        - generic [ref=e128]:
+          - heading "Governance" [level=3] [ref=e129]
+          - generic [ref=e130]:
+            - link "Judge Ops" [ref=e131] [cursor=pointer]:
+              - /url: /judge-ops
+              - img [ref=e132]
+              - generic [ref=e136]: Judge Ops
+            - link "Configs" [ref=e137] [cursor=pointer]:
+              - /url: /configs
+              - img [ref=e138]
+              - generic [ref=e141]: Configs
+            - link "Memory" [ref=e142] [cursor=pointer]:
+              - /url: /memory
+              - img [ref=e143]
+              - generic [ref=e151]: Memory
+            - link "Runbooks" [ref=e152] [cursor=pointer]:
+              - /url: /runbooks
+              - img [ref=e153]
+              - generic [ref=e155]: Runbooks
+            - link "Scorer Studio" [ref=e156] [cursor=pointer]:
+              - /url: /scorer-studio
+              - img [ref=e157]
+              - generic [ref=e160]: Scorer Studio
+            - link "Notifications" [ref=e161] [cursor=pointer]:
+              - /url: /notifications
+              - img [ref=e162]
+              - generic [ref=e165]: Notifications
+        - generic [ref=e166]:
+          - heading "Analysis" [level=3] [ref=e167]
+          - generic [ref=e168]:
+            - link "Context Workbench" [ref=e169] [cursor=pointer]:
+              - /url: /context
+              - img [ref=e170]
+              - generic [ref=e174]: Context Workbench
+            - link "Build Agent" [ref=e175] [cursor=pointer]:
+              - /url: /intelligence
+              - img [ref=e176]
+              - generic [ref=e188]: Build Agent
+            - link "Skills" [ref=e189] [cursor=pointer]:
+              - /url: /skills
+              - img [ref=e190]
+              - generic [ref=e192]: Skills
+            - link "Registry" [ref=e193] [cursor=pointer]:
+              - /url: /registry
+              - img [ref=e194]
+              - generic [ref=e196]: Registry
+            - link "Agent Skills" [ref=e197] [cursor=pointer]:
+              - /url: /agent-skills
+              - img [ref=e198]
+              - generic [ref=e201]: Agent Skills
+            - link "Blame Map" [ref=e202] [cursor=pointer]:
+              - /url: /blame
+              - img [ref=e203]
+              - generic [ref=e206]: Blame Map
+        - generic [ref=e207]:
+          - heading "Policy Optimization" [level=3] [ref=e208]
+          - generic [ref=e209]:
+            - link "Reward Studio" [ref=e210] [cursor=pointer]:
+              - /url: /reward-studio
+              - img [ref=e211]
+              - generic [ref=e214]: Reward Studio
+            - link "Preference Inbox" [ref=e215] [cursor=pointer]:
+              - /url: /preference-inbox
+              - img [ref=e216]
+              - generic [ref=e219]: Preference Inbox
+            - link "Policy Candidates" [ref=e220] [cursor=pointer]:
+              - /url: /policy-candidates
+              - img [ref=e221]
+              - generic [ref=e225]: Policy Candidates
+            - link "Reward Audit" [ref=e226] [cursor=pointer]:
+              - /url: /reward-audit
+              - img [ref=e227]
+              - generic [ref=e230]: Reward Audit
+      - link "Settings" [ref=e232] [cursor=pointer]:
+        - /url: /settings
+        - img [ref=e233]
+        - generic [ref=e236]: Settings
+      - generic [ref=e237]: ⌘KCommand palette
+    - generic [ref=e238]:
+      - banner [ref=e239]:
+        - heading "Dashboard" [level=1] [ref=e242]
+        - button "Search... ⌘K" [ref=e243]:
+          - img [ref=e244]
+          - text: Search...
+          - generic [ref=e247]: ⌘K
+      - main [ref=e248]:
+        - generic [ref=e250]:
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - img [ref=e255]
+              - generic [ref=e258]:
+                - paragraph [ref=e259]: Demo scenario available
+                - paragraph [ref=e260]: "Explore the VP demo: E-commerce bot optimization from 0.62 → 0.87 health"
+            - button "Explore Demo" [ref=e261]:
+              - text: Explore Demo
+              - img [ref=e262]
+          - generic [ref=e264]:
+            - generic [ref=e265]:
+              - heading "Karpathy Loop Scorecard" [level=2] [ref=e266]
+              - paragraph [ref=e267]: "Simplicity-first: 2 hard gates + 4 primary metrics. Diagnostics in collapsible panel. Human overrides always visible."
+            - generic [ref=e268]:
+              - generic [ref=e269]:
+                - button "Simple" [ref=e270]
+                - button "Advanced" [ref=e271]
+              - button "Build Agent" [ref=e272]
+              - button "Run Eval" [ref=e273]
+              - button "Refresh" [ref=e274]
+          - generic [ref=e275]:
+            - generic [ref=e276]:
+              - generic [ref=e279]:
+                - img [ref=e280]:
+                  - generic [ref=e283]: "28"
+                - generic [ref=e284]:
+                  - paragraph [ref=e285]: Agent Health
+                  - paragraph [ref=e286]: Needs Attention
+              - generic [ref=e287]:
+                - generic [ref=e288]:
+                  - img [ref=e289]
+                  - heading "Hard Gates" [level=3] [ref=e292]
+                - generic [ref=e293]:
+                  - generic [ref=e294]:
+                    - paragraph [ref=e295]: Safety Gate
+                    - generic [ref=e297]: Fail
+                    - paragraph [ref=e299]: "Violation rate: 36.0%"
+                  - generic [ref=e300]:
+                    - paragraph [ref=e301]: Regression Gate
+                    - generic [ref=e303]: Fail
+                    - paragraph [ref=e305]: "Latest: rejected constraints"
+            - generic [ref=e306]:
+              - generic [ref=e309]:
+                - paragraph [ref=e310]: Task Success
+                - paragraph [ref=e311]: 28.0%
+                - generic [ref=e313]: primary outcome
+              - generic [ref=e316]:
+                - paragraph [ref=e317]: Error Rate
+                - paragraph [ref=e318]: 72.0%
+                - generic [ref=e320]: failure frequency
+              - generic [ref=e323]:
+                - paragraph [ref=e324]: Latency p95
+                - paragraph [ref=e325]: 3.5s
+                - generic [ref=e327]: single p95 target
+              - generic [ref=e330]:
+                - paragraph [ref=e331]: Cost / Conversation
+                - paragraph [ref=e332]: $0.4643
+                - generic [ref=e334]: token-normalized spend
+          - generic [ref=e335]:
+            - generic [ref=e336]:
+              - heading "Optimization Journey" [level=3] [ref=e337]
+              - button "View full history" [ref=e338]:
+                - text: View full history
+                - img [ref=e339]
+            - generic [ref=e343]:
+              - img [ref=e344]
+              - generic:
+                - generic [ref=e345]:
+                  - generic [ref=e346]: Added quality_boost ...
+                  - button "v1" [ref=e348]:
+                    - generic [ref=e349]: v1
+                  - generic [ref=e350]: "94.8700"
+                - generic [ref=e351]:
+                  - generic [ref=e352]: Added quality_boost ...
+                  - button "v2" [ref=e354]:
+                    - generic [ref=e355]: v2
+                  - generic [ref=e356]: "94.8700"
+                - generic [ref=e357]:
+                  - generic [ref=e358]: Added quality_boost ...
+                  - button "v3" [ref=e360]:
+                    - generic [ref=e361]: v3
+                  - generic [ref=e362]: "94.8700"
+                - generic [ref=e363]:
+                  - generic [ref=e364]: Added quality_boost ...
+                  - button "v4" [ref=e366]:
+                    - generic [ref=e367]: v4
+                  - generic [ref=e368]: "94.8700"
+                - generic [ref=e369]:
+                  - generic [ref=e370]: Added quality_boost ...
+                  - button "v5" [ref=e372]:
+                    - generic [ref=e373]: v5
+                  - generic [ref=e374]: "94.8700"
+                - generic [ref=e375]:
+                  - generic [ref=e376]: Added quality_boost ...
+                  - button "v6" [ref=e378]:
+                    - generic [ref=e379]: v6
+                  - generic [ref=e380]: "94.8700"
+                - generic [ref=e381]:
+                  - generic [ref=e382]: Added quality_boost ...
+                  - button "v7" [ref=e384]:
+                    - generic [ref=e385]: v7
+                  - generic [ref=e386]: "94.8700"
+                - generic [ref=e387]:
+                  - generic [ref=e388]: Added quality_boost ...
+                  - button "v8" [ref=e390]:
+                    - generic [ref=e391]: v8
+                  - generic [ref=e392]: "94.8700"
+                - generic [ref=e393]:
+                  - generic [ref=e394]: Added quality_boost ...
+                  - button "v9" [ref=e396]:
+                    - generic [ref=e397]: v9
+                  - generic [ref=e398]: "94.8700"
+                - generic [ref=e399]:
+                  - generic [ref=e400]: Added quality_boost ...
+                  - button "v10" [ref=e402]:
+                    - generic [ref=e403]: v10
+                  - generic [ref=e404]: "94.8700"
+          - generic [ref=e405]:
+            - generic [ref=e406]:
+              - heading "Score Trajectory" [level=3] [ref=e407]
+              - button "View optimize history" [ref=e408]:
+                - text: View optimize history
+                - img [ref=e409]
+            - application [ref=e484]:
+              - generic [ref=e511]:
+                - generic [ref=e512]:
+                  - generic [ref=e514]: "#1"
+                  - generic [ref=e516]: "#2"
+                  - generic [ref=e518]: "#3"
+                  - generic [ref=e520]: "#4"
+                  - generic [ref=e522]: "#5"
+                  - generic [ref=e524]: "#6"
+                  - generic [ref=e526]: "#7"
+                  - generic [ref=e528]: "#8"
+                  - generic [ref=e530]: "#9"
+                  - generic [ref=e532]: "#10"
+                  - generic [ref=e534]: "#11"
+                  - generic [ref=e536]: "#12"
+                  - generic [ref=e538]: "#13"
+                  - generic [ref=e540]: "#14"
+                  - generic [ref=e542]: "#15"
+                  - generic [ref=e544]: "#16"
+                  - generic [ref=e546]: "#17"
+                  - generic [ref=e548]: "#18"
+                  - generic [ref=e550]: "#19"
+                  - generic [ref=e552]: "#20"
+                - generic [ref=e553]:
+                  - generic [ref=e555]: "0"
+                  - generic [ref=e557]: "25"
+                  - generic [ref=e559]: "50"
+                  - generic [ref=e561]: "75"
+                  - generic [ref=e563]: "100"
+          - generic [ref=e413]:
+            - generic [ref=e414]:
+              - heading "Event Timeline" [level=3] [ref=e415]
+              - button "Open full log" [ref=e416]:
+                - text: Open full log
+                - img [ref=e417]
+            - generic [ref=e419]:
+              - generic [ref=e421]:
+                - paragraph [ref=e422]: human_reject
+                - paragraph [ref=e423]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e425]:
+                - paragraph [ref=e426]: human_pause
+                - paragraph [ref=e427]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e429]:
+                - paragraph [ref=e430]: human_pause
+                - paragraph [ref=e431]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e433]:
+                - paragraph [ref=e434]: human_reject
+                - paragraph [ref=e435]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e437]:
+                - paragraph [ref=e438]: human_reject
+                - paragraph [ref=e439]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e441]:
+                - paragraph [ref=e442]: human_reject
+                - paragraph [ref=e443]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e445]:
+                - paragraph [ref=e446]: human_reject
+                - paragraph [ref=e447]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e449]:
+                - paragraph [ref=e450]: human_reject
+                - paragraph [ref=e451]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e453]:
+                - paragraph [ref=e454]: human_reject
+                - paragraph [ref=e455]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e457]:
+                - paragraph [ref=e458]: human_pause
+                - paragraph [ref=e459]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e461]:
+                - paragraph [ref=e462]: human_pause
+                - paragraph [ref=e463]: Mar 26, 2026, 05:32 PM
+              - generic [ref=e465]:
+                - paragraph [ref=e466]: human_pause
+                - paragraph [ref=e467]: Mar 26, 2026, 05:32 PM
+          - generic [ref=e468]:
+            - heading "Anomalies Detected" [level=3] [ref=e469]
+            - list [ref=e470]:
+              - listitem [ref=e471]: success_rate=0.280 below threshold 0.373
+              - listitem [ref=e472]: avg_latency_ms=3498.2 above threshold 2594.8
+              - listitem [ref=e473]: error_rate=0.720 above threshold 0.583
+              - listitem [ref=e474]: safety_violation_rate=0.360 above threshold 0.265
+              - listitem [ref=e475]: avg_cost=0.464 above threshold 0.446
+          - button "Diagnose Agent" [ref=e477]:
+            - img [ref=e478]
+            - text: Diagnose Agent
+            - img [ref=e480]
+  - generic [ref=e564]: "0"

@@ -1,0 +1,265 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: AutoAgent
+      - generic [ref=e7]: VNextCC
+    - navigation [ref=e8]:
+      - generic [ref=e9]:
+        - heading "Build" [level=3] [ref=e10]
+        - link "Builder Workspace" [ref=e12] [cursor=pointer]:
+          - /url: /builder
+          - img [ref=e13]
+          - generic [ref=e17]: Builder Workspace
+      - generic [ref=e18]:
+        - heading "Operate" [level=3] [ref=e19]
+        - generic [ref=e20]:
+          - link "Dashboard" [ref=e21] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e22]
+            - generic [ref=e27]: Dashboard
+          - link "Demo" [ref=e28] [cursor=pointer]:
+            - /url: /demo
+            - img [ref=e29]
+            - generic [ref=e32]: Demo
+          - link "Assistant Chat" [ref=e33] [cursor=pointer]:
+            - /url: /assistant
+            - img [ref=e34]
+            - generic [ref=e37]: Assistant Chat
+          - link "Eval Runs" [ref=e38] [cursor=pointer]:
+            - /url: /evals
+            - img [ref=e39]
+            - generic [ref=e41]: Eval Runs
+          - link "Conversations" [ref=e42] [cursor=pointer]:
+            - /url: /conversations
+            - img [ref=e43]
+            - generic [ref=e45]: Conversations
+          - link "Loop Monitor" [ref=e46] [cursor=pointer]:
+            - /url: /loop
+            - img [ref=e47]
+            - generic [ref=e52]: Loop Monitor
+          - link "Deploy" [ref=e53] [cursor=pointer]:
+            - /url: /deploy
+            - img [ref=e54]
+            - generic [ref=e59]: Deploy
+          - link "Traces" [ref=e60] [cursor=pointer]:
+            - /url: /traces
+            - img [ref=e61]
+            - generic [ref=e63]: Traces
+          - link "Event Log" [ref=e64] [cursor=pointer]:
+            - /url: /events
+            - img [ref=e65]
+            - generic [ref=e68]: Event Log
+      - generic [ref=e69]:
+        - heading "Improve" [level=3] [ref=e70]
+        - generic [ref=e71]:
+          - link "Optimize" [ref=e72] [cursor=pointer]:
+            - /url: /optimize
+            - img [ref=e73]
+            - generic [ref=e75]: Optimize
+          - link "Live Optimize" [ref=e76] [cursor=pointer]:
+            - /url: /live-optimize
+            - img [ref=e77]
+            - generic [ref=e80]: Live Optimize
+          - link "Agent Studio Draft" [ref=e81] [cursor=pointer]:
+            - /url: /agent-studio
+            - img [ref=e82]
+            - generic [ref=e85]: Agent Studio Draft
+          - link "Opportunities" [ref=e86] [cursor=pointer]:
+            - /url: /opportunities
+            - img [ref=e87]
+            - generic [ref=e89]: Opportunities
+          - link "Changes" [ref=e90] [cursor=pointer]:
+            - /url: /changes
+            - img [ref=e91]
+            - generic [ref=e95]: Changes
+          - link "Experiments" [ref=e96] [cursor=pointer]:
+            - /url: /experiments
+            - img [ref=e97]
+            - generic [ref=e100]: Experiments
+          - link "AutoFix" [ref=e101] [cursor=pointer]:
+            - /url: /autofix
+            - img [ref=e102]
+            - generic [ref=e104]: AutoFix
+      - generic [ref=e105]:
+        - heading "Integrations" [level=3] [ref=e106]
+        - generic [ref=e107]:
+          - link "ADK Import" [ref=e108] [cursor=pointer]:
+            - /url: /adk/import
+            - img [ref=e109]
+            - generic [ref=e112]: ADK Import
+          - link "ADK Deploy" [ref=e113] [cursor=pointer]:
+            - /url: /adk/deploy
+            - img [ref=e114]
+            - generic [ref=e117]: ADK Deploy
+          - link "CX Import" [ref=e118] [cursor=pointer]:
+            - /url: /cx/import
+            - img [ref=e119]
+            - generic [ref=e122]: CX Import
+          - link "CX Deploy" [ref=e123] [cursor=pointer]:
+            - /url: /cx/deploy
+            - img [ref=e124]
+            - generic [ref=e127]: CX Deploy
+      - generic [ref=e128]:
+        - heading "Governance" [level=3] [ref=e129]
+        - generic [ref=e130]:
+          - link "Judge Ops" [ref=e131] [cursor=pointer]:
+            - /url: /judge-ops
+            - img [ref=e132]
+            - generic [ref=e136]: Judge Ops
+          - link "Configs" [ref=e137] [cursor=pointer]:
+            - /url: /configs
+            - img [ref=e138]
+            - generic [ref=e141]: Configs
+          - link "Memory" [ref=e142] [cursor=pointer]:
+            - /url: /memory
+            - img [ref=e143]
+            - generic [ref=e151]: Memory
+          - link "Runbooks" [ref=e152] [cursor=pointer]:
+            - /url: /runbooks
+            - img [ref=e153]
+            - generic [ref=e155]: Runbooks
+          - link "Scorer Studio" [ref=e156] [cursor=pointer]:
+            - /url: /scorer-studio
+            - img [ref=e157]
+            - generic [ref=e160]: Scorer Studio
+          - link "Notifications" [ref=e161] [cursor=pointer]:
+            - /url: /notifications
+            - img [ref=e162]
+            - generic [ref=e165]: Notifications
+      - generic [ref=e166]:
+        - heading "Analysis" [level=3] [ref=e167]
+        - generic [ref=e168]:
+          - link "Context Workbench" [ref=e169] [cursor=pointer]:
+            - /url: /context
+            - img [ref=e170]
+            - generic [ref=e174]: Context Workbench
+          - link "Build Agent" [ref=e175] [cursor=pointer]:
+            - /url: /intelligence
+            - img [ref=e176]
+            - generic [ref=e188]: Build Agent
+          - link "Skills" [ref=e189] [cursor=pointer]:
+            - /url: /skills
+            - img [ref=e190]
+            - generic [ref=e192]: Skills
+          - link "Registry" [ref=e193] [cursor=pointer]:
+            - /url: /registry
+            - img [ref=e194]
+            - generic [ref=e196]: Registry
+          - link "Agent Skills" [ref=e197] [cursor=pointer]:
+            - /url: /agent-skills
+            - img [ref=e198]
+            - generic [ref=e201]: Agent Skills
+          - link "Blame Map" [ref=e202] [cursor=pointer]:
+            - /url: /blame
+            - img [ref=e203]
+            - generic [ref=e206]: Blame Map
+      - generic [ref=e207]:
+        - heading "Policy Optimization" [level=3] [ref=e208]
+        - generic [ref=e209]:
+          - link "Reward Studio" [ref=e210] [cursor=pointer]:
+            - /url: /reward-studio
+            - img [ref=e211]
+            - generic [ref=e214]: Reward Studio
+          - link "Preference Inbox" [ref=e215] [cursor=pointer]:
+            - /url: /preference-inbox
+            - img [ref=e216]
+            - generic [ref=e219]: Preference Inbox
+          - link "Policy Candidates" [ref=e220] [cursor=pointer]:
+            - /url: /policy-candidates
+            - img [ref=e221]
+            - generic [ref=e225]: Policy Candidates
+          - link "Reward Audit" [ref=e226] [cursor=pointer]:
+            - /url: /reward-audit
+            - img [ref=e227]
+            - generic [ref=e230]: Reward Audit
+    - link "Settings" [ref=e232] [cursor=pointer]:
+      - /url: /settings
+      - img [ref=e233]
+      - generic [ref=e236]: Settings
+    - generic [ref=e237]: ⌘KCommand palette
+  - generic [ref=e238]:
+    - banner [ref=e239]:
+      - heading "Settings" [level=1] [ref=e242]
+      - button "Search... ⌘K" [ref=e243]:
+        - img [ref=e244]
+        - text: Search...
+        - generic [ref=e247]: ⌘K
+    - main [ref=e248]:
+      - generic [ref=e250]:
+        - generic [ref=e252]:
+          - heading "Settings" [level=2] [ref=e253]
+          - paragraph [ref=e254]: Reference paths, quick links, and operator shortcuts for the AutoAgent control plane.
+        - generic [ref=e255]:
+          - generic [ref=e256]:
+            - heading "Agent Configuration" [level=3] [ref=e257]
+            - paragraph [ref=e258]: Core runtime files and prompts used by the evaluator and optimizer.
+            - generic [ref=e259]:
+              - generic [ref=e260]:
+                - generic [ref=e261]: Base Config
+                - generic [ref=e262]: configs/v001_base.yaml
+              - generic [ref=e263]:
+                - generic [ref=e264]: Version Manifest
+                - generic [ref=e265]: configs/manifest.json
+              - generic [ref=e266]:
+                - generic [ref=e267]: Prompt Defaults
+                - generic [ref=e268]: agent/config/base_config.yaml
+          - generic [ref=e269]:
+            - heading "Evaluation Suite" [level=3] [ref=e270]
+            - paragraph [ref=e271]: Case definitions and scoring context used by eval runs.
+            - generic [ref=e272]:
+              - generic [ref=e273]:
+                - generic [ref=e274]: Case Directory
+                - generic [ref=e275]: evals/cases/
+              - generic [ref=e276]:
+                - generic [ref=e277]: Runner Module
+                - generic [ref=e278]: evals/runner.py
+              - generic [ref=e279]:
+                - generic [ref=e280]: Scorer Module
+                - generic [ref=e281]: evals/scorer.py
+          - generic [ref=e282]:
+            - heading "Storage Paths" [level=3] [ref=e283]
+            - paragraph [ref=e284]: Persistence files used by local execution and server runtime.
+            - generic [ref=e285]:
+              - generic [ref=e286]:
+                - generic [ref=e287]: Conversations DB
+                - generic [ref=e288]: conversations.db
+              - generic [ref=e289]:
+                - generic [ref=e290]: Optimizer Memory DB
+                - generic [ref=e291]: optimizer_memory.db
+              - generic [ref=e292]:
+                - generic [ref=e293]: Config Directory
+                - generic [ref=e294]: configs/
+        - generic [ref=e295]:
+          - generic [ref=e296]:
+            - generic [ref=e297]:
+              - img [ref=e298]
+              - heading "Keyboard Shortcuts" [level=3] [ref=e300]
+            - generic [ref=e301]:
+              - generic [ref=e302]:
+                - generic [ref=e303]: Open command palette
+                - generic [ref=e304]: Cmd+K
+              - generic [ref=e305]:
+                - generic [ref=e306]: Open New Evaluation
+                - generic [ref=e307]: "N"
+              - generic [ref=e308]:
+                - generic [ref=e309]: Open Optimize page
+                - generic [ref=e310]: O
+              - generic [ref=e311]:
+                - generic [ref=e312]: Open Deploy page
+                - generic [ref=e313]: D
+          - generic [ref=e314]:
+            - heading "Resources" [level=3] [ref=e315]
+            - generic [ref=e316]:
+              - link "API OpenAPI Docs" [ref=e317] [cursor=pointer]:
+                - /url: http://localhost:8000/docs
+                - text: API OpenAPI Docs
+                - img [ref=e318]
+              - link "ReDoc Reference" [ref=e322] [cursor=pointer]:
+                - /url: http://localhost:8000/redoc
+                - text: ReDoc Reference
+                - img [ref=e323]
+              - link "Repository" [ref=e327] [cursor=pointer]:
+                - /url: https://github.com/andrewhuot/autoagent-vnextcc
+                - text: Repository
+                - img [ref=e328]
+            - paragraph [ref=e332]: "Runtime values can be overridden with environment variables like `AUTOAGENT_DB`, `AUTOAGENT_CONFIGS`, and `AUTOAGENT_MEMORY_DB`."

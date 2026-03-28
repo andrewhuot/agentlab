@@ -64,6 +64,7 @@ from api.routes import (
     rewards as rewards_routes,
     policy_opt as policy_opt_routes,
     preferences as preferences_routes,
+    builder_demo as builder_demo_routes,
 )
 from api.tasks import TaskManager
 from api.websocket import ConnectionManager
@@ -396,6 +397,7 @@ app.add_middleware(
 # API routes
 # ---------------------------------------------------------------------------
 app.include_router(builder_routes.router)
+app.include_router(builder_demo_routes.router)
 app.include_router(demo_routes.router)
 app.include_router(eval_routes.router)
 app.include_router(optimize_routes.router)

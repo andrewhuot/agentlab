@@ -4,6 +4,7 @@ import type {
   AdkDeployResult,
   AdkExportResult,
   AdkImportResult,
+  AutonomousLoopResult,
   ApplyInsightResult,
   ArchiveEntry,
   AutoFixApplyOutcome,
@@ -34,6 +35,7 @@ import type {
   DeployStatus,
   DiagnoseChatResponse,
   DiffLine,
+  DeepResearchReport,
   EvalResult,
   EvalRun,
   ExperimentCard,
@@ -44,6 +46,9 @@ import type {
   JudgeFeedbackRecord,
   JudgeOpsJudgeSummary,
   LoopStatus,
+  KnowledgeAsset,
+  NotificationHistoryEntry,
+  NotificationSubscription,
   OptimizationAttempt,
   OptimizationOpportunity,
   OptimizeResult,
@@ -1692,6 +1697,43 @@ export function useApplyTranscriptInsight() {
   });
 }
 
+export function useKnowledgeAsset(assetId: string | undefined) {
+  return useQuery<KnowledgeAsset>({
+    queryKey: ['intelligence', 'knowledge', assetId],
+    enabled: Boolean(assetId),
+    queryFn: async () => {
+      if (!assetId) {
+        throw new ApiRequestError('Missing knowledge asset ID', 400);
+      }
+      return fetchApi<KnowledgeAsset>(`/intelligence/knowledge/${encodeURIComponent(assetId)}`);
+    },
+  });
+}
+
+export function useDeepResearchReport() {
+  return useMutation<DeepResearchReport, ApiRequestError, { reportId: string; question: string }>({
+    mutationFn: ({ reportId, question }) =>
+      fetchApi(`/intelligence/reports/${encodeURIComponent(reportId)}/deep-research`, {
+        method: 'POST',
+        body: JSON.stringify({ question }),
+      }),
+  });
+}
+
+export function useRunAutonomousLoop() {
+  const queryClient = useQueryClient();
+  return useMutation<AutonomousLoopResult, ApiRequestError, { reportId: string; auto_ship: boolean }>({
+    mutationFn: ({ reportId, auto_ship }) =>
+      fetchApi(`/intelligence/reports/${encodeURIComponent(reportId)}/autonomous-loop`, {
+        method: 'POST',
+        body: JSON.stringify({ auto_ship }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['changes'] });
+    },
+  });
+}
+
 export function useBuildAgentArtifact() {
   return useMutation<PromptBuildArtifact, ApiRequestError, { prompt: string; connectors: string[] }>({
     mutationFn: (body) =>
@@ -2069,6 +2111,100 @@ export function useDiagnoseChat() {
       fetchApi<DiagnoseChatResponse>('/diagnose/chat', {
         method: 'POST',
         body: JSON.stringify(data),
+      }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export function useNotificationSubscriptions() {
+  return useQuery<{ subscriptions: NotificationSubscription[] }>({
+    queryKey: ['notifications', 'subscriptions'],
+    queryFn: () => fetchApi<{ subscriptions: NotificationSubscription[] }>('/notifications/subscriptions'),
+  });
+}
+
+export function useNotificationHistory(limit = 100) {
+  return useQuery<{ history: NotificationHistoryEntry[] }>({
+    queryKey: ['notifications', 'history', limit],
+    queryFn: () => fetchApi<{ history: NotificationHistoryEntry[] }>(`/notifications/history?limit=${limit}`),
+  });
+}
+
+export function useRegisterWebhook() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { subscription_id: string; status: string },
+    ApiRequestError,
+    { url: string; events: string[]; filters?: Record<string, string> }
+  >({
+    mutationFn: (data) =>
+      fetchApi<{ subscription_id: string; status: string }>('/notifications/webhook', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'subscriptions'] });
+    },
+  });
+}
+
+export function useRegisterSlack() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { subscription_id: string; status: string },
+    ApiRequestError,
+    { webhook_url: string; events: string[]; filters?: Record<string, string> }
+  >({
+    mutationFn: (data) =>
+      fetchApi<{ subscription_id: string; status: string }>('/notifications/slack', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'subscriptions'] });
+    },
+  });
+}
+
+export function useRegisterEmail() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    { subscription_id: string; status: string },
+    ApiRequestError,
+    { address: string; events: string[]; filters?: Record<string, string>; smtp_config?: Record<string, string> }
+  >({
+    mutationFn: (data) =>
+      fetchApi<{ subscription_id: string; status: string }>('/notifications/email', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'subscriptions'] });
+    },
+  });
+}
+
+export function useDeleteSubscription() {
+  const queryClient = useQueryClient();
+  return useMutation<{ status: string }, ApiRequestError, string>({
+    mutationFn: (subscriptionId) =>
+      fetchApi<{ status: string }>(`/notifications/subscriptions/${subscriptionId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'subscriptions'] });
+    },
+  });
+}
+
+export function useTestSubscription() {
+  return useMutation<{ status: string; message: string }, ApiRequestError, string>({
+    mutationFn: (subscriptionId) =>
+      fetchApi<{ status: string; message: string }>(`/notifications/test/${subscriptionId}`, {
+        method: 'POST',
       }),
   });
 }

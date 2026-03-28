@@ -100,8 +100,78 @@ class SkillStore:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
+        self._migrate_legacy_skill_outcomes_schema()
         self._conn.executescript(_DDL)
         self._conn.commit()
+
+    def _migrate_legacy_skill_outcomes_schema(self) -> None:
+        """Migrate legacy skill_outcomes schema that used skill_name instead of skill_id.
+
+        WHY: Older registry databases stored outcomes keyed by skill name and text timestamps.
+        The unified store expects `skill_id` + numeric timestamps; if we don't migrate before
+        running DDL/index creation, startup fails with `no such column: skill_id`.
+        """
+        table_exists = self._conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='skill_outcomes' LIMIT 1"
+        ).fetchone()
+        if table_exists is None:
+            return
+
+        columns = {
+            row["name"]
+            for row in self._conn.execute("PRAGMA table_info(skill_outcomes)").fetchall()
+        }
+        if "skill_id" in columns or "skill_name" not in columns:
+            return
+
+        self._conn.execute("BEGIN")
+        try:
+            self._conn.execute("ALTER TABLE skill_outcomes RENAME TO skill_outcomes_legacy")
+            self._conn.execute(
+                """
+                CREATE TABLE skill_outcomes (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    skill_id    TEXT    NOT NULL,
+                    improvement REAL    NOT NULL,
+                    success     INTEGER NOT NULL,
+                    recorded_at REAL    NOT NULL,
+                    FOREIGN KEY (skill_id) REFERENCES executable_skills(id) ON DELETE CASCADE
+                )
+                """
+            )
+
+            # Migrate only rows that can be mapped to a real skill id.
+            self._conn.execute(
+                """
+                INSERT INTO skill_outcomes (skill_id, improvement, success, recorded_at)
+                SELECT mapped_skill_id, improvement, success, recorded_at
+                FROM (
+                    SELECT
+                        (
+                            SELECT id
+                            FROM executable_skills es
+                            WHERE es.name = legacy.skill_name
+                            ORDER BY es.updated_at DESC
+                            LIMIT 1
+                        ) AS mapped_skill_id,
+                        legacy.improvement AS improvement,
+                        legacy.success AS success,
+                        COALESCE(
+                            CAST(legacy.recorded_at AS REAL),
+                            CAST(strftime('%s', legacy.recorded_at) AS REAL),
+                            CAST(strftime('%s', 'now') AS REAL)
+                        ) AS recorded_at
+                    FROM skill_outcomes_legacy legacy
+                ) migrated
+                WHERE mapped_skill_id IS NOT NULL
+                """
+            )
+
+            self._conn.execute("DROP TABLE skill_outcomes_legacy")
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
 
     # ------------------------------------------------------------------
     # Core CRUD

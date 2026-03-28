@@ -44,6 +44,7 @@ import { RewardStudio } from './pages/RewardStudio';
 import { PreferenceInbox } from './pages/PreferenceInbox';
 import { PolicyCandidates } from './pages/PolicyCandidates';
 import { RewardAudit } from './pages/RewardAudit';
+import { BuilderDemo } from './pages/BuilderDemo';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,8 @@ export default function App() {
             {/* Builder Workspace — primary authoring surface */}
             <Route path="/" element={<BuilderWorkspace />} />
             <Route path="/builder" element={<BuilderWorkspace />} />
+            {/* Demo route before dynamic :projectId to avoid shadowing */}
+            <Route path="/builder/demo" element={<BuilderDemo />} />
             <Route path="/builder/*" element={<BuilderWorkspace />} />
             <Route path="/builder/:projectId" element={<BuilderWorkspace />} />
             <Route path="/builder/:projectId/:sessionId" element={<BuilderWorkspace />} />

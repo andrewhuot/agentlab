@@ -52,6 +52,7 @@ const navSections: NavSection[] = [
     title: 'Build',
     items: [
       { to: '/builder', label: 'Builder Workspace', icon: Hammer },
+      { to: '/builder/demo', label: 'Builder Demo', icon: Sparkles },
     ],
   },
   {

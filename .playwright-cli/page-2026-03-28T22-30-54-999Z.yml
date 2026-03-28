@@ -1,0 +1,156 @@
+- main [ref=e5]:
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - combobox "Project selector" [ref=e10]:
+          - option "Select project" [disabled]
+          - option "Builder Workspace" [selected]
+        - combobox "Environment selector" [ref=e11]:
+          - option "dev" [selected]
+          - option "staging"
+          - option "prod"
+      - generic [ref=e12]:
+        - button "Ask" [ref=e13]:
+          - img [ref=e14]
+          - text: Ask
+        - button "Draft" [ref=e17]:
+          - img [ref=e18]
+          - text: Draft
+        - button "Apply" [ref=e22]:
+          - img [ref=e23]
+          - text: Apply
+        - button "Delegate" [ref=e25]:
+          - img [ref=e26]
+          - text: Delegate
+      - combobox "Model selector" [ref=e31]:
+        - option "gpt-5.4" [selected]
+        - option "gpt-5.4-mini"
+        - option "claude-sonnet-4-6"
+      - generic "No pending approvals" [ref=e32]:
+        - img [ref=e33]
+        - text: 0 approvals
+      - button "Pause" [ref=e36]:
+        - img [ref=e37]
+        - text: Pause
+    - generic [ref=e40]:
+      - complementary [ref=e41]:
+        - generic [ref=e42]:
+          - paragraph [ref=e144]: Workspace
+          - button "Collapse panel" [ref=e145]:
+            - img [ref=e146]
+        - generic [ref=e47]:
+          - generic [ref=e148]:
+            - img [ref=e149]
+            - generic [ref=e154]: Projects
+          - button "Builder Workspace" [ref=e155]:
+            - generic [ref=e134]: Builder Workspace
+          - generic [ref=e156]:
+            - img [ref=e157]
+            - generic [ref=e159]: Sessions
+          - button "Session 3/28/2026, 6:30:52 PM open" [ref=e177]:
+            - generic [ref=e178]: Session 3/28/2026, 6:30:52 PM
+            - generic [ref=e179]: open
+          - generic [ref=e160]:
+            - img [ref=e161]
+            - generic [ref=e164]: Tasks
+          - button "Please draft a plan for improving checkout latency. pending" [ref=e180]:
+            - generic [ref=e181]: Please draft a plan for improving checkout latency.
+            - generic [ref=e182]: pending
+          - generic [ref=e165]:
+            - img [ref=e166]
+            - generic [ref=e168]: Favorites
+          - button "Builder Workspace project" [ref=e169]:
+            - generic [ref=e136]: Builder Workspace
+            - generic [ref=e170]: project
+          - button "Active session session" [ref=e183]:
+            - generic [ref=e184]: Active session
+            - generic [ref=e185]: session
+          - button "Focused task task" [ref=e186]:
+            - generic [ref=e187]: Focused task
+            - generic [ref=e188]: task
+          - generic [ref=e171]:
+            - img [ref=e172]
+            - generic [ref=e175]: Notifications
+          - paragraph [ref=e189]: No notifications.
+      - generic [ref=e75]:
+        - generic [ref=e190]:
+          - article [ref=e191]:
+            - generic [ref=e192]:
+              - generic [ref=e194]: user
+              - paragraph [ref=e195]: Please draft a plan for improving checkout latency.
+          - article [ref=e196]:
+            - generic [ref=e197]:
+              - generic [ref=e198]:
+                - generic [ref=e199]: assistant
+                - generic [ref=e200]: · orchestrator
+                - button "507b2469" [ref=e201]
+                - generic [ref=e202]: streaming
+              - paragraph [ref=e204]: Task created in delegate mode. I am generating a plan and initial artifacts.
+          - article [ref=e205]:
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: system
+                - button "507b2469" [ref=e209]
+              - paragraph [ref=e210]: "task.progress: Request routed to specialist"
+          - article [ref=e211]:
+            - generic [ref=e212]:
+              - generic [ref=e213]:
+                - generic [ref=e214]: assistant
+                - generic [ref=e215]: · orchestrator
+                - button "507b2469" [ref=e216]
+              - paragraph [ref=e217]: Please draft a plan for improving checkout latency.
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - button "Ask" [ref=e85]:
+                - img [ref=e86]
+                - text: Ask
+              - button "Draft" [ref=e89]:
+                - img [ref=e90]
+                - text: Draft
+              - button "Apply" [ref=e94]:
+                - img [ref=e95]
+                - text: Apply
+              - button "Delegate" [ref=e97]:
+                - img [ref=e98]
+                - text: Delegate
+            - button "Attach" [ref=e103]:
+              - img [ref=e104]
+              - generic [ref=e106]: Attach
+          - generic [ref=e107]:
+            - textbox "Ask for a plan, run traces, or apply a patch…" [ref=e108]
+            - button [disabled] [ref=e109]:
+              - img [ref=e110]
+        - generic [ref=e218]:
+          - generic [ref=e219]:
+            - paragraph [ref=e220]: Task Drawer
+            - button "Close" [ref=e221]
+          - generic [ref=e222]:
+            - generic [ref=e223]:
+              - paragraph [ref=e224]: Running
+              - paragraph [ref=e226]: None
+            - generic [ref=e227]:
+              - paragraph [ref=e228]: Approvals
+              - paragraph [ref=e230]: None
+            - generic [ref=e231]:
+              - paragraph [ref=e232]: Completed
+              - paragraph [ref=e234]: None
+      - complementary [ref=e112]:
+        - generic [ref=e113]:
+          - paragraph [ref=e114]: Inspector
+          - button "Collapse inspector" [ref=e115]: ⇨
+        - generic [ref=e117]:
+          - button "Overview" [ref=e118]
+          - button "Diff" [ref=e119]
+          - button "ADK Graph" [ref=e120]
+          - button "Evals" [ref=e121]
+          - button "Traces" [ref=e122]
+          - button "Skills" [ref=e123]
+          - button "Guardrails" [ref=e124]
+          - button "Files" [ref=e125]
+          - button "Config" [ref=e126]
+        - generic [ref=e128]:
+          - paragraph [ref=e129]: Project
+          - paragraph [ref=e130]: Builder Workspace
+          - paragraph [ref=e131]: Selected Artifact
+          - paragraph [ref=e132]: None selected
