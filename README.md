@@ -12,6 +12,10 @@ Point it at a broken agent. Get a better one back.
 TRACE → DIAGNOSE → SEARCH → EVAL → GATE → DEPLOY → LEARN → REPEAT
 ```
 
+> **[Platform overview](docs/platform-overview.md)** — Full walkthrough of every subsystem and feature
+>
+> **[Architecture and process diagrams](docs/architecture-diagram.md)** — Visual guide to system design and data flow
+
 ---
 
 ## Quick start
@@ -453,14 +457,18 @@ make fmt
 
 ## Documentation
 
+**Start here:**
+- [Platform Overview](docs/platform-overview.md) — Full walkthrough of every subsystem and feature
+- [Architecture and Process Diagrams](docs/architecture-diagram.md) — Visual guide to system design and data flow
+
+**Guides:**
 - [Getting Started](docs/getting-started.md)
 - [Concepts](docs/concepts.md)
-- [Architecture Overview](ARCHITECTURE_OVERVIEW.md)
 - [CLI Reference](docs/cli-reference.md)
 - [API Reference](docs/api-reference.md)
 - [Deployment Guide](docs/deployment.md)
 
-**Feature guides**: [AutoFix](docs/features/autofix.md) | [Judge Ops](docs/features/judge-ops.md) | [Context Workbench](docs/features/context-workbench.md) | [Prompt Optimization](docs/features/prompt-optimization.md) | [Registry](docs/features/registry.md) | [Trace Grading](docs/features/trace-grading.md) | [NL Scorer](docs/features/nl-scorer.md)
+**Feature deep dives:** [AutoFix](docs/features/autofix.md) | [Judge Ops](docs/features/judge-ops.md) | [Context Workbench](docs/features/context-workbench.md) | [Prompt Optimization](docs/features/prompt-optimization.md) | [Registry](docs/features/registry.md) | [Trace Grading](docs/features/trace-grading.md) | [NL Scorer](docs/features/nl-scorer.md)
 
 ---
 
