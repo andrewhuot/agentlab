@@ -461,31 +461,39 @@ def sync_adk_source(
 ) -> dict[str, Any]:
     """Sync local agent changes back to the ADK source tree."""
     import shutil
+    from pathlib import Path
 
-    src = source_dir or CONFIGS_DIR
-    dst = target_dir or CONFIGS_DIR
+    src = Path(source_dir or CONFIGS_DIR)
+    dst = Path(target_dir or CONFIGS_DIR)
 
-    if src == dst:
+    if src.resolve() == dst.resolve():
         return {"status": "noop", "message": "Source and target directories are the same."}
 
-    if not os.path.isdir(src):
+    if not src.is_dir():
         return {"status": "error", "error": f"Source directory not found: {src}"}
 
     synced: list[str] = []
     errors: list[str] = []
 
-    for fname in os.listdir(src):
-        src_path = os.path.join(src, fname)
-        dst_path = os.path.join(dst, fname)
+    for src_path in src.rglob("*"):
+        rel_path = src_path.relative_to(src)
+        dst_path = dst / rel_path
+        if src_path.is_dir():
+            if not dry_run:
+                try:
+                    dst_path.mkdir(parents=True, exist_ok=True)
+                except Exception as exc:
+                    errors.append(f"{rel_path}: {exc}")
+            continue
         if dry_run:
             synced.append(f"[dry-run] {src_path} -> {dst_path}")
-        else:
-            try:
-                os.makedirs(dst, exist_ok=True)
-                shutil.copy2(src_path, dst_path)
-                synced.append(dst_path)
-            except Exception as exc:
-                errors.append(f"{fname}: {exc}")
+            continue
+        try:
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src_path, dst_path)
+            synced.append(str(dst_path))
+        except Exception as exc:
+            errors.append(f"{rel_path}: {exc}")
 
     return {
         "status": "ok" if not errors else "partial",

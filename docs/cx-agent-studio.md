@@ -16,7 +16,6 @@ Current state:
 Limitations:
 - No automatic conversation sync from CX (manual conversation import required)
 - Limited bidirectional sync (CX UI edits won't auto-merge with AutoAgent changes)
-- HTTP/SSE mode not yet implemented (stdio mode only for some features)
 
 ## Who This Is For
 
@@ -242,4 +241,3 @@ autoagent cx widget --project PROJECT --location LOCATION --agent-id AGENT_ID \
 - cross-region active/active orchestration
 
 Keep initial scope narrow and auditable. Expand after stable production evidence.
-

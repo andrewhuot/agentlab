@@ -315,8 +315,8 @@ class ProjectFileGenerator:
             ],
             "commands": {
                 "Run evals": "python -m autoagent eval",
-                "Start MCP server (stdio)": "python -m autoagent mcp-server",
-                "Start MCP server (HTTP)": "python -m autoagent mcp-server --http --port 3000",
+                "Start MCP server (stdio)": "python -m mcp_server",
+                "Start MCP server (HTTP)": "python -m mcp_server --port 3000",
                 "Run tests": "pytest",
             },
             "conventions": [

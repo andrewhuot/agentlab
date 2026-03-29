@@ -327,26 +327,37 @@ autoagent adk status
 
 ### MCP server
 
-Model Context Protocol integration for AI coding assistants (Claude Code, Cursor, Windsurf):
+Model Context Protocol integration for agentic coding tools like Claude Code, Codex, Cursor, and Windsurf.
 
 ```bash
+# Installed CLI
 autoagent mcp-server
+
+# Repo-local fallback
+python3 -m mcp_server
+
+# Streamable HTTP mode
+python3 -m mcp_server --host 127.0.0.1 --port 8765
 ```
 
-Add to `~/.claude/mcp.json`:
+The live MCP surface now exposes 22 tools, plus prompts and read-only resources. Older docs in this repo that mentioned 10 tools were stale and have been corrected.
+
+Full setup guide:
+
+- [Connecting AutoAgent to Agentic Coding Tools](docs/guides/agentic-coding-tools.md)
+
+Project-scoped Claude Code example (`.mcp.json`):
 
 ```json
 {
   "mcpServers": {
     "autoagent": {
-      "command": "autoagent",
-      "args": ["mcp-server"]
+      "command": "python3",
+      "args": ["-m", "mcp_server"]
     }
   }
 }
 ```
-
-Exposes 10 tools: `status`, `eval_run`, `optimize`, `config_list`, `config_show`, `config_diff`, `deploy`, `conversations_list`, `trace_grade`, `memory_show`.
 
 ### CI/CD
 
@@ -720,6 +731,7 @@ make fmt
 
 **Guides:**
 - [Getting Started](docs/getting-started.md)
+- [Agentic Coding Tools Guide](docs/guides/agentic-coding-tools.md)
 - [Concepts](docs/concepts.md)
 - [CLI Reference](docs/cli-reference.md)
 - [API Reference](docs/api-reference.md)
@@ -727,7 +739,7 @@ make fmt
 
 **Feature deep dives:** [AutoFix](docs/features/autofix.md) | [Judge Ops](docs/features/judge-ops.md) | [Context Workbench](docs/features/context-workbench.md) | [Prompt Optimization](docs/features/prompt-optimization.md) | [Registry](docs/features/registry.md) | [Trace Grading](docs/features/trace-grading.md) | [NL Scorer](docs/features/nl-scorer.md)
 
-**Integrations:** [CX Agent Studio](docs/cx-agent-studio.md) | [MCP Integration](docs/mcp-integration.md)
+**Integrations:** [CX Agent Studio](docs/cx-agent-studio.md) | [MCP Integration](docs/mcp-integration.md) | [Agentic Coding Tools](docs/guides/agentic-coding-tools.md)
 
 ---
 

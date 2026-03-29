@@ -953,16 +953,17 @@ autoagent adk diff --path PATH --snapshot SNAPSHOT
 Start MCP server for AI coding tool integration.
 
 ```bash
-autoagent mcp-server [--port PORT]
+autoagent mcp-server [--host HOST] [--port PORT]
 ```
 
 | Flag | Description |
 |------|-------------|
-| `--port` | HTTP/SSE port (default: stdio mode). Note: HTTP/SSE mode not yet implemented. |
+| `--host` | HTTP bind host when using `--port` (default: `127.0.0.1`). |
+| `--port` | Start streamable HTTP mode on this port. If omitted, stdio mode is used. |
 
-By default runs in stdio mode for Claude Code, Codex, and other AI coding assistants that support the Model Context Protocol.
+By default the command runs in stdio mode for Claude Code, Codex, Cursor, Windsurf, and other AI coding assistants that support MCP.
 
-**Stdio mode only:** The MCP server currently only supports stdio transport. HTTP/SSE mode will be added in a future release.
+For the full client-by-client setup guide, see [guides/agentic-coding-tools.md](guides/agentic-coding-tools.md).
 
 **Example usage with Claude Code:**
 
@@ -972,8 +973,8 @@ Add to your MCP config file:
 {
   "mcpServers": {
     "autoagent": {
-      "command": "autoagent",
-      "args": ["mcp-server"]
+      "command": "python3",
+      "args": ["-m", "mcp_server"]
     }
   }
 }
@@ -990,4 +991,3 @@ Migrate old config format to new schema.
 ```bash
 autoagent config migrate <input_file> [--output FILE]
 ```
-

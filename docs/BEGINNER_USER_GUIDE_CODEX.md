@@ -1022,7 +1022,7 @@ Import ADK agents from Python source via AST parsing. AutoAgent extracts instruc
 
 ####### MCP server
 
-Model Context Protocol integration exposes 10 tools to AI coding assistants (Claude Code, Cursor, Windsurf): status, eval_run, optimize, config_list, config_show, config_diff, deploy, conversations_list, trace_grade, memory_show.
+Model Context Protocol integration exposes AutoAgent's live MCP surface to Claude Code, Codex, Cursor, Windsurf, and other compatible coding tools. The current server supports stdio and streamable HTTP plus 22 tools, prompts, and resources. See `docs/guides/agentic-coding-tools.md` for setup.
 
 ####### CI/CD gates
 
@@ -2957,9 +2957,10 @@ Total commands: **112**
 
 ### `autoagent mcp-server`
 - Purpose: Start MCP server for AI coding tool integration.
-- Handler: `runner.py:2985` (`mcp_server_cmd`)
+- Handler: `runner.py:3238` (`mcp_server_cmd`)
 - Options:
-  - `@click.option("--port", default=None, type=int, help="HTTP/SSE port (NOT YET IMPLEMENTED — stdio mode only).")`
+  - `@click.option("--host", default="127.0.0.1", show_default=True, help="HTTP bind host when using --port.")`
+  - `@click.option("--port", default=None, type=int, help="Start streamable HTTP mode on this port. Defaults to stdio mode.")`
 
 ## memory
 
@@ -4441,4 +4442,3 @@ AutoAgent rewards disciplined operation:
 - Keep evaluation quality high.
 
 When those are in place, continuous optimization becomes a practical reliability advantage rather than a source of instability.
-

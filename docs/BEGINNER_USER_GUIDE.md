@@ -2649,20 +2649,20 @@ autoagent mcp-server
 }
 ```
 
-**Available MCP tools (10):**
+**Available MCP tools:**
 
 | Tool | What it does |
 |------|-------------|
-| `status` | Get agent health metrics |
-| `eval_run` | Trigger an evaluation |
-| `optimize` | Run optimization cycles |
-| `config_list` | List config versions |
-| `config_show` | Show a config version |
-| `config_diff` | Diff two versions |
-| `deploy` | Deploy a version |
-| `conversations_list` | List conversations |
-| `trace_grade` | Grade a trace |
-| `memory_show` | Show project memory |
+| `autoagent_status` | Get current health, scores, and failure summary |
+| `autoagent_explain` | Get a plain-English summary of agent state |
+| `autoagent_diagnose` | Cluster failures and identify likely root causes |
+| `autoagent_eval` | Run the eval suite and return scores |
+| `inspect_trace` | Inspect a specific trace or recent failures |
+| `generate_evals` | Generate eval cases for a capability |
+| `open_pr` | Prepare a PR from pending changes |
+| `run_benchmark` | Benchmark a candidate agent config |
+
+For the full 22-tool catalog and setup instructions for Claude Code, Codex, Cursor, Windsurf, and generic MCP clients, see [docs/guides/agentic-coding-tools.md](guides/agentic-coding-tools.md).
 
 ### 6.19 Building agents from natural language
 

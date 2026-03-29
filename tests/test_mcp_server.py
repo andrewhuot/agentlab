@@ -1,9 +1,104 @@
 """Tests for MCP server — tool schemas, request handling, tool execution."""
 from __future__ import annotations
 import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 from mcp_server.server import handle_request
 from mcp_server.tools import TOOL_REGISTRY
+from mcp_server.tools import sync_adk_source
 from mcp_server.types import MCPToolDef, MCPToolParam
+from click.testing import CliRunner
+
+from runner import cli
+
+
+def test_module_entrypoint_supports_stdio_requests(tmp_path) -> None:
+    """`python -m mcp_server` should start a stdio MCP server that accepts JSON-RPC."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "mcp_server"],
+        cwd=tmp_path,
+        env=env,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert proc.stdin is not None
+        assert proc.stdout is not None
+
+        proc.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}) + "\n")
+        proc.stdin.flush()
+
+        response_line = proc.stdout.readline().strip()
+        response = json.loads(response_line)
+        assert response["id"] == 1
+        assert response["result"]["serverInfo"]["name"] == "autoagent"
+    finally:
+        proc.kill()
+        proc.wait()
+
+
+def test_cli_port_flag_starts_http_transport(monkeypatch) -> None:
+    """`autoagent mcp-server --port` should start the HTTP transport instead of rejecting it."""
+    called: dict[str, object] = {}
+
+    def fake_run_http(*, host: str, port: int) -> None:
+        called["host"] = host
+        called["port"] = port
+
+    monkeypatch.setattr("mcp_server.server.run_http", fake_run_http)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["mcp-server", "--host", "127.0.0.1", "--port", "8765"])
+
+    assert result.exit_code == 0
+    assert called == {"host": "127.0.0.1", "port": 8765}
+
+
+def test_resource_read_rejects_config_path_traversal(tmp_path, monkeypatch) -> None:
+    """Config resources should not be able to escape the configured configs directory."""
+    configs_dir = tmp_path / "configs"
+    configs_dir.mkdir()
+    (configs_dir / "demo.yaml").write_text("name: demo\n", encoding="utf-8")
+    (tmp_path / "secret.txt").write_text("top-secret\n", encoding="utf-8")
+
+    monkeypatch.setattr("mcp_server.resources.ResourceProvider.CONFIGS_DIR", str(configs_dir))
+
+    response = handle_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 99,
+            "method": "resources/read",
+            "params": {"uri": "autoagent://configs/../secret.txt"},
+        }
+    )
+
+    assert response["error"]["code"] == -32603
+    assert "escapes" in response["error"]["message"].lower()
+
+
+def test_sync_adk_source_copies_nested_directories(tmp_path) -> None:
+    """Syncing ADK source should recursively copy nested files, not fail on directories."""
+    source_dir = tmp_path / "src"
+    target_dir = tmp_path / "dst"
+    source_dir.mkdir()
+    target_dir.mkdir()
+    (source_dir / "root.txt").write_text("root\n", encoding="utf-8")
+    nested_dir = source_dir / "nested"
+    nested_dir.mkdir()
+    (nested_dir / "child.txt").write_text("child\n", encoding="utf-8")
+
+    result = sync_adk_source(source_dir=str(source_dir), target_dir=str(target_dir), dry_run=False)
+
+    assert result["status"] == "ok"
+    assert result["errors"] == []
+    assert (target_dir / "root.txt").read_text(encoding="utf-8") == "root\n"
+    assert (target_dir / "nested" / "child.txt").read_text(encoding="utf-8") == "child\n"
 
 
 class TestMCPTypes:

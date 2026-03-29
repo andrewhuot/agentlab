@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 
@@ -212,15 +213,25 @@ class ResourceProvider:
             return {"error": str(exc)}
 
     def _read_config_file(self, fname: str) -> dict[str, Any]:
-        path = os.path.join(self.CONFIGS_DIR, fname)
+        path = self._resolve_config_path(fname)
         try:
-            with open(path) as f:
+            with path.open() as f:
                 if fname.endswith(".json"):
                     return json.load(f)
                 import yaml  # type: ignore[import]
                 return yaml.safe_load(f) or {}
         except Exception as exc:
             return {"error": str(exc)}
+
+    def _resolve_config_path(self, fname: str) -> Path:
+        """Resolve a config resource path and enforce configs-dir containment."""
+        base_dir = Path(self.CONFIGS_DIR).resolve()
+        candidate = (base_dir / fname).resolve()
+        try:
+            candidate.relative_to(base_dir)
+        except ValueError as exc:
+            raise ValueError(f"Config resource path escapes configs directory: {fname}") from exc
+        return candidate
 
     def _read_trace(self, trace_id: str) -> dict[str, Any]:
         if trace_id == "recent":

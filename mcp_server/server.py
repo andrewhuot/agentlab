@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from typing import Any
 
 from mcp_server.tools import TOOL_REGISTRY
@@ -156,3 +157,16 @@ def run_stdio() -> None:
         if response is not None:
             sys.stdout.write(json.dumps(response) + "\n")
             sys.stdout.flush()
+
+
+def run_http(host: str = "127.0.0.1", port: int = 3000) -> None:
+    """Run the MCP server over streamable HTTP until interrupted."""
+    transport = StreamableHttpTransport(host=host, port=port, handler=handle_request)
+    transport.start()
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        transport.stop()
