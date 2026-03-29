@@ -38,3 +38,22 @@ def test_console_script_entrypoint_module_is_packaged() -> None:
 
     assert scripts.get("autoagent") == "runner:cli"
     assert "runner" in (setuptools_config.get("py-modules") or [])
+
+
+def test_pyproject_declares_pep_517_backend_for_editable_installs() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    pyproject = tomllib.loads((project_root / "pyproject.toml").read_text(encoding="utf-8"))
+
+    build_system = pyproject.get("build-system", {})
+
+    assert build_system.get("build-backend") == "setuptools.build_meta"
+    assert "setuptools>=68.0" in (build_system.get("requires") or [])
+
+
+def test_pyproject_includes_fastapi_form_upload_runtime_dependency() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    pyproject = tomllib.loads((project_root / "pyproject.toml").read_text(encoding="utf-8"))
+
+    dependencies = pyproject.get("project", {}).get("dependencies", [])
+
+    assert any(dependency.startswith("python-multipart") for dependency in dependencies)

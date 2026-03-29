@@ -42,11 +42,29 @@ banner() {
 
 # ─── Timer ─────────────────────────────────────────────────────────────────────
 START_TIME=$(date +%s)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/.venv"
+VENV_BIN_DIR="$VENV_DIR/bin"
+VENV_ACTIVATE="$VENV_BIN_DIR/activate"
+VENV_PYTHON="$VENV_BIN_DIR/python"
 
 elapsed() {
   local END_TIME
   END_TIME=$(date +%s)
   echo $(( END_TIME - START_TIME ))
+}
+
+activate_venv() {
+  if [[ ! -f "$VENV_ACTIVATE" ]]; then
+    die "Virtual environment activation script not found at $VENV_ACTIVATE.\n\n  Remove .venv and rerun ./setup.sh"
+  fi
+
+  if [[ ! -x "$VENV_PYTHON" ]]; then
+    die "Virtual environment Python not found at $VENV_PYTHON.\n\n  Remove .venv and rerun ./setup.sh"
+  fi
+
+  # shellcheck source=/dev/null
+  source "$VENV_ACTIVATE"
 }
 
 # ─── Main ──────────────────────────────────────────────────────────────────────
@@ -103,31 +121,38 @@ ok "npm $(npm --version)"
 # ─── Step 3: Python virtual environment ───────────────────────────────────────
 step "Setting up Python virtual environment"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-if [[ -d ".venv" ]]; then
+if [[ -d "$VENV_DIR" ]]; then
   ok "Virtual environment already exists - skipping creation"
 else
-  python3 -m venv .venv
+  python3 -m venv "$VENV_DIR"
   ok "Created .venv"
 fi
 
 # Activate
-# shellcheck source=/dev/null
-source .venv/bin/activate
-ok "Activated .venv (Python $(python3 --version | cut -d' ' -f2))"
+activate_venv
+ok "Activated .venv (Python $("$VENV_PYTHON" --version | cut -d' ' -f2))"
 
 # ─── Step 4: Python dependencies ──────────────────────────────────────────────
 step "Installing Python dependencies"
 info "This may take 30-60 seconds on first run..."
+info "Upgrading pip, setuptools, and wheel inside .venv..."
 
-if pip install -e '.[dev]' --quiet 2>&1 | tail -3; then
+"$VENV_PYTHON" -m pip install --upgrade pip setuptools wheel >/dev/null
+
+if "$VENV_PYTHON" -m pip install -e '.[dev]' --quiet 2>&1 | tail -3; then
   ok "Python dependencies installed"
 else
   # Retry with output visible
-  pip install -e '.[dev]' || die "pip install failed. Check the error above."
+  "$VENV_PYTHON" -m pip install -e '.[dev]' || die "pip install failed. Check the error above."
   ok "Python dependencies installed"
+fi
+
+if "$VENV_PYTHON" -c "import uvicorn" >/dev/null 2>&1; then
+  ok "Verified uvicorn is importable from .venv"
+else
+  die "uvicorn is not importable from .venv after install.\n\n  Re-run ./setup.sh and inspect the pip output above."
 fi
 
 # ─── Step 5: Frontend dependencies ───────────────────────────────────────────
@@ -163,9 +188,9 @@ step "Seeding demo data"
 info "Loading synthetic conversations, traces, and optimization history..."
 
 # Make sure venv is active
-source .venv/bin/activate
+activate_venv
 
-if python3 -c "
+if "$VENV_PYTHON" -c "
 import sys, os
 sys.path.insert(0, '.')
 os.environ.setdefault('AUTOAGENT_USE_MOCK', 'true')

@@ -30,6 +30,10 @@ hr() {
 
 # ─── Globals ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/.venv"
+VENV_BIN_DIR="$VENV_DIR/bin"
+VENV_ACTIVATE="$VENV_BIN_DIR/activate"
+VENV_PYTHON="$VENV_BIN_DIR/python"
 BACKEND_PID_FILE="$SCRIPT_DIR/.autoagent/backend.pid"
 FRONTEND_PID_FILE="$SCRIPT_DIR/.autoagent/frontend.pid"
 BACKEND_LOG="$SCRIPT_DIR/.autoagent/backend.log"
@@ -71,6 +75,19 @@ cleanup() {
 
 trap cleanup INT TERM
 
+activate_venv() {
+  if [[ ! -f "$VENV_ACTIVATE" ]]; then
+    die "Virtual environment activation script not found at $VENV_ACTIVATE.\n\n  Run ./setup.sh again to recreate .venv"
+  fi
+
+  if [[ ! -x "$VENV_PYTHON" ]]; then
+    die "Virtual environment Python not found at $VENV_PYTHON.\n\n  Run ./setup.sh again to recreate .venv"
+  fi
+
+  # shellcheck source=/dev/null
+  source "$VENV_ACTIVATE"
+}
+
 # ─── Checks ────────────────────────────────────────────────────────────────────
 banner() {
   echo ""
@@ -88,7 +105,7 @@ cd "$SCRIPT_DIR"
 banner
 
 # Guard: setup must have been run
-if [[ ! -d ".venv" ]]; then
+if [[ ! -d "$VENV_DIR" ]]; then
   die "Setup hasn't been run yet.\n\n  Run first:  ./setup.sh\n"
 fi
 
@@ -126,8 +143,13 @@ ensure_port_available $BACKEND_PORT "Backend"
 ensure_port_available $FRONTEND_PORT "Frontend"
 
 # ─── Activate venv ─────────────────────────────────────────────────────────────
-# shellcheck source=/dev/null
-source .venv/bin/activate
+activate_venv
+
+if "$VENV_PYTHON" -c "import uvicorn" >/dev/null 2>&1; then
+  ok "Activated .venv (Python $("$VENV_PYTHON" --version | cut -d' ' -f2))"
+else
+  die "uvicorn is not installed in .venv.\n\n  Run ./setup.sh again to install backend dependencies"
+fi
 
 # ─── Start backend ─────────────────────────────────────────────────────────────
 step "Starting backend"
@@ -140,7 +162,7 @@ if [[ -f ".env" ]]; then
   set +o allexport
 fi
 
-uvicorn api.server:app \
+"$VENV_PYTHON" -m uvicorn api.server:app \
   --host 127.0.0.1 \
   --port "$BACKEND_PORT" \
   --log-level warning \
