@@ -37,6 +37,29 @@ interface OPEReport {
   coverage: number;
 }
 
+interface RawPolicyArtifact {
+  policy_id?: string;
+  name?: string;
+  version?: number;
+  status?: PolicyArtifact['status'];
+  trainer_backend?: string;
+  training_dataset_version?: string;
+  created_at?: string;
+  ope_report?: {
+    candidate_estimated_uplift?: number;
+  };
+}
+
+interface RawTrainingJob {
+  job_id?: string;
+  mode?: string;
+  backend?: string;
+  dataset_path?: string;
+  status?: TrainingJob['status'];
+  created_at?: string;
+  policy_id?: string;
+}
+
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -54,10 +77,70 @@ const statusColors: Record<PolicyArtifact['status'], string> = {
 };
 
 const defaultTrainForm = {
-  mode: 'ppo',
-  backend: 'local',
+  mode: 'control',
+  backend: 'vertex_sft',
   dataset_path: '',
 };
+
+const trainingModes = ['control', 'verifier', 'preference'] as const;
+const backendsByMode = {
+  control: ['vertex_sft', 'vertex_continuous'],
+  verifier: ['openai_rft', 'vertex_sft', 'vertex_continuous'],
+  preference: ['openai_dpo', 'vertex_preference', 'vertex_continuous'],
+} as const;
+
+function normalizePolicyArtifact(raw: RawPolicyArtifact): PolicyArtifact {
+  return {
+    id: raw.policy_id ?? 'unknown',
+    name: raw.name ?? 'unnamed',
+    version: String(raw.version ?? 1),
+    status: raw.status ?? 'candidate',
+    backend: raw.trainer_backend ?? 'unknown',
+    dataset_path: raw.training_dataset_version ?? '',
+    created_at: raw.created_at ?? new Date().toISOString(),
+    ope_score: raw.ope_report?.candidate_estimated_uplift,
+  };
+}
+
+function normalizeTrainingJob(raw: RawTrainingJob): TrainingJob {
+  return {
+    id: raw.job_id ?? 'unknown',
+    mode: raw.mode ?? 'control',
+    backend: raw.backend ?? 'unknown',
+    dataset_path: raw.dataset_path ?? '',
+    status: raw.status ?? 'pending',
+    created_at: raw.created_at ?? new Date().toISOString(),
+    policy_id: raw.policy_id,
+  };
+}
+
+function normalizeOpeReport(payload: unknown): OPEReport {
+  const wrapper = (typeof payload === 'object' && payload !== null)
+    ? payload as {
+        report?: {
+          policy_id?: string;
+          baseline_replay_score?: number;
+          candidate_estimated_uplift?: number;
+          uncertainty_lower?: number;
+          uncertainty_upper?: number;
+          support_coverage?: number;
+        };
+      }
+    : {};
+  const report = wrapper.report ?? {};
+  const baseline = report.baseline_replay_score ?? 0;
+  const uplift = report.candidate_estimated_uplift ?? 0;
+
+  return {
+    policy_id: report.policy_id ?? '',
+    baseline_score: baseline,
+    candidate_score: baseline + uplift,
+    uplift,
+    uncertainty_low: report.uncertainty_lower ?? 0,
+    uncertainty_high: report.uncertainty_upper ?? 0,
+    coverage: report.support_coverage ?? 0,
+  };
+}
 
 export function PolicyCandidates() {
   const [policies, setPolicies] = useState<PolicyArtifact[]>([]);
@@ -73,30 +156,48 @@ export function PolicyCandidates() {
   const [opeReport, setOpeReport] = useState<OPEReport | null>(null);
   const [opeLoading, setOpeLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const trainingBackends = backendsByMode[trainForm.mode];
+
+  async function loadPolicyData(selectedId?: string) {
+    setLoading(true);
+    try {
+      const [policiesPayload, jobsPayload] = await Promise.all([
+        fetchJson<{ policies?: RawPolicyArtifact[] }>('/rl/policies'),
+        fetchJson<{ jobs?: RawTrainingJob[] }>('/rl/jobs'),
+      ]);
+      const nextPolicies = (policiesPayload.policies ?? []).map(normalizePolicyArtifact);
+      const nextJobs = (jobsPayload.jobs ?? []).map(normalizeTrainingJob);
+      setPolicies(nextPolicies);
+      setJobs(nextJobs);
+      if (selectedId) {
+        setSelected(nextPolicies.find((policy) => policy.id === selectedId) ?? null);
+      }
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    Promise.all([
-      fetchJson<PolicyArtifact[]>('/rl/policies'),
-      fetchJson<TrainingJob[]>('/rl/jobs'),
-    ])
-      .then(([p, j]) => { setPolicies(p); setJobs(j); })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
+    void loadPolicyData();
   }, []);
 
   async function startTraining() {
     if (!trainForm.dataset_path.trim()) return;
     setSubmitting(true);
     try {
-      const job = await fetchJson<TrainingJob>('/rl/train', {
+      await fetchJson('/rl/train', {
         method: 'POST',
         body: JSON.stringify(trainForm),
       });
-      setJobs((prev) => [job, ...prev]);
+      await loadPolicyData(selected?.id);
       setTrainForm({ ...defaultTrainForm });
       setShowTrainForm(false);
-    } catch {
-      // keep form open
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to start training job');
     } finally {
       setSubmitting(false);
     }
@@ -106,13 +207,15 @@ export function PolicyCandidates() {
     setOpeLoading(true);
     setOpeReport(null);
     try {
-      const report = await fetchJson<OPEReport>('/rl/ope', {
+      const payload = await fetchJson<unknown>('/rl/ope', {
         method: 'POST',
         body: JSON.stringify({ policy_id: policy.id }),
       });
-      setOpeReport(report);
-    } catch {
-      // ignore
+      setOpeReport(normalizeOpeReport(payload));
+      await loadPolicyData(policy.id);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to run OPE');
     } finally {
       setOpeLoading(false);
     }
@@ -121,21 +224,33 @@ export function PolicyCandidates() {
   async function policyAction(action: 'promote' | 'rollback' | 'canary', policy: PolicyArtifact) {
     setActionLoading(action);
     try {
-      const updated = await fetchJson<PolicyArtifact>(`/rl/${action}`, {
+      await fetchJson(`/rl/${action}`, {
         method: 'POST',
         body: JSON.stringify({ policy_id: policy.id }),
       });
-      setPolicies((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      setSelected(updated);
-    } catch {
-      // ignore
+      await loadPolicyData(policy.id);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : `Failed to ${action} policy`);
     } finally {
       setActionLoading(null);
     }
   }
 
   function trainField(key: keyof typeof trainForm, value: string) {
-    setTrainForm((prev) => ({ ...prev, [key]: value }));
+    setTrainForm((prev) => {
+      if (key !== 'mode') {
+        return { ...prev, [key]: value };
+      }
+
+      const nextMode = value as typeof trainingModes[number];
+      const compatibleBackends = backendsByMode[nextMode];
+      const nextBackend = compatibleBackends.includes(prev.backend as typeof compatibleBackends[number])
+        ? prev.backend
+        : compatibleBackends[0];
+
+      return { ...prev, mode: nextMode, backend: nextBackend };
+    });
   }
 
   const upliftColor = (uplift: number) =>
@@ -177,10 +292,9 @@ export function PolicyCandidates() {
                 onChange={(e) => trainField('mode', e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
               >
-                <option value="ppo">PPO</option>
-                <option value="dpo">DPO</option>
-                <option value="sft">SFT</option>
-                <option value="grpo">GRPO</option>
+                {trainingModes.map((mode) => (
+                  <option key={mode} value={mode}>{mode}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -190,9 +304,9 @@ export function PolicyCandidates() {
                 onChange={(e) => trainField('backend', e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
               >
-                <option value="local">local</option>
-                <option value="remote">remote</option>
-                <option value="cloud">cloud</option>
+                {trainingBackends.map((backend) => (
+                  <option key={backend} value={backend}>{backend}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -346,8 +460,9 @@ export function PolicyCandidates() {
               {selected.status !== 'promoted' && (
                 <button
                   onClick={() => policyAction('promote', selected)}
-                  disabled={actionLoading !== null}
+                  disabled={actionLoading !== null || selected.ope_score === undefined}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-green-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-green-800 disabled:opacity-60"
+                  title={selected.ope_score === undefined ? 'Run OPE before promoting this policy' : undefined}
                 >
                   {actionLoading === 'promote' ? 'Promoting...' : 'Promote'}
                 </button>

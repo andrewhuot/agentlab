@@ -40,6 +40,23 @@ interface TestResult {
   details: string;
 }
 
+interface RawScorerDimension {
+  name?: string;
+  description?: string;
+  grader_type?: string;
+  weight?: number;
+  layer?: string;
+}
+
+interface RawScorerSpec {
+  name?: string;
+  description?: string;
+  source_nl?: string;
+  compiled_at?: string;
+  created_at?: string;
+  dimensions?: RawScorerDimension[];
+}
+
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -61,6 +78,84 @@ function layerBadgeClass(layer: string): string {
   return layerColors[layer] ?? layerColors['default'];
 }
 
+function normalizeDimensions(dimensions: RawScorerDimension[] | undefined): ScorerDimension[] {
+  return (dimensions ?? []).map((dimension) => ({
+    name: dimension.name ?? 'unnamed',
+    description: dimension.description ?? '',
+    grader_type: dimension.grader_type ?? 'llm_judge',
+    weight: dimension.weight ?? 0,
+    layer: dimension.layer ?? 'default',
+  }));
+}
+
+function normalizeScorerSpec(raw: RawScorerSpec | undefined): ScorerDetail {
+  return {
+    name: raw?.name ?? 'unnamed',
+    description: raw?.description ?? raw?.source_nl ?? '',
+    dimensions: normalizeDimensions(raw?.dimensions),
+    created_at: raw?.created_at ?? raw?.compiled_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeCompileResult(payload: unknown): CompileResult {
+  const wrapper = (typeof payload === 'object' && payload !== null) ? payload as { scorer?: RawScorerSpec } : {};
+  const scorer = wrapper.scorer;
+  const normalized = normalizeScorerSpec(scorer);
+
+  return {
+    name: normalized.name,
+    description: normalized.description,
+    dimensions: normalized.dimensions,
+  };
+}
+
+function normalizeScorerList(payload: unknown): ScorerListItem[] {
+  const wrapper = (typeof payload === 'object' && payload !== null) ? payload as { scorers?: RawScorerSpec[] } : {};
+  const scorers = Array.isArray(wrapper.scorers) ? wrapper.scorers : [];
+
+  return scorers.map((scorer) => ({
+    name: scorer.name ?? 'unnamed',
+    description: scorer.description ?? scorer.source_nl ?? '',
+    dimension_count: Array.isArray(scorer.dimensions) ? scorer.dimensions.length : 0,
+    created_at: scorer.created_at ?? scorer.compiled_at ?? new Date().toISOString(),
+  }));
+}
+
+function normalizeScorerDetail(payload: unknown): ScorerDetail {
+  const wrapper = (typeof payload === 'object' && payload !== null) ? payload as { scorer?: RawScorerSpec } : {};
+  return normalizeScorerSpec(wrapper.scorer);
+}
+
+function normalizeTestResult(payload: unknown): TestResult {
+  const wrapper = (typeof payload === 'object' && payload !== null) ? payload as {
+    passed?: boolean;
+    scores?: {
+      aggregate?: number;
+      per_dimension?: Record<string, number | { score?: number; passed?: boolean }>;
+    };
+  } : {};
+  const perDimension = wrapper.scores?.per_dimension ?? {};
+  const scores = Object.fromEntries(
+    Object.entries(perDimension).map(([key, value]) => [
+      key,
+      typeof value === 'number' ? value : value?.score ?? 0,
+    ])
+  );
+  const aggregate = wrapper.scores?.aggregate ?? 0;
+  const passed = wrapper.passed ?? Object.values(perDimension).every((value) => {
+    if (typeof value === 'number') {
+      return value >= 0.5;
+    }
+    return value?.passed ?? true;
+  });
+
+  return {
+    passed,
+    scores: Object.keys(scores).length > 0 ? scores : { aggregate },
+    details: `Aggregate score ${aggregate.toFixed(2)}`,
+  };
+}
+
 export function ScorerStudio() {
   const queryClient = useQueryClient();
 
@@ -73,37 +168,50 @@ export function ScorerStudio() {
   // List saved scorers
   const scorerListQuery = useQuery({
     queryKey: ['scorers'],
-    queryFn: () => fetchJson<ScorerListItem[]>('/scorers'),
+    queryFn: async () => {
+      const payload = await fetchJson<unknown>('/scorers');
+      return normalizeScorerList(payload);
+    },
   });
 
   // Get selected scorer details
   const scorerDetailQuery = useQuery({
     queryKey: ['scorer', selectedScorer],
-    queryFn: () => fetchJson<ScorerDetail>(`/scorers/${selectedScorer}`),
+    queryFn: async () => {
+      const payload = await fetchJson<unknown>(`/scorers/${selectedScorer}`);
+      return normalizeScorerDetail(payload);
+    },
     enabled: !!selectedScorer,
   });
 
   // Compile mutation
   const compileMutation = useMutation({
     mutationFn: (input: string) =>
-      fetchJson<CompileResult>('/scorers/create', {
+      fetchJson<unknown>('/scorers/create', {
         method: 'POST',
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ description: input }),
       }),
-    onSuccess: (data) => {
-      setCompiledScorer(data);
+    onSuccess: (payload) => {
+      setCompiledScorer(normalizeCompileResult(payload));
       setTestResult(null);
+      queryClient.invalidateQueries({ queryKey: ['scorers'] });
     },
   });
 
   // Save mutation (re-compile to persist)
   const saveMutation = useMutation({
     mutationFn: (scorer: CompileResult) =>
-      fetchJson<ScorerDetail>('/scorers/create', {
+      fetchJson<unknown>('/scorers/create', {
         method: 'POST',
-        body: JSON.stringify({ input: nlInput, name: scorer.name, save: true }),
+        body: JSON.stringify({
+          description: scorer.description || nlInput,
+          name: scorer.name,
+        }),
       }),
-    onSuccess: () => {
+    onSuccess: (payload) => {
+      const saved = normalizeCompileResult(payload);
+      setCompiledScorer(saved);
+      setSelectedScorer(saved.name);
       queryClient.invalidateQueries({ queryKey: ['scorers'] });
     },
   });
@@ -111,25 +219,38 @@ export function ScorerStudio() {
   // Refine mutation
   const refineMutation = useMutation({
     mutationFn: ({ name, criteria }: { name: string; criteria: string }) =>
-      fetchJson<CompileResult>(`/scorers/${name}/refine`, {
+      fetchJson<unknown>(`/scorers/${name}/refine`, {
         method: 'POST',
-        body: JSON.stringify({ criteria }),
+        body: JSON.stringify({ description: criteria }),
       }),
-    onSuccess: (data) => {
-      setCompiledScorer(data);
+    onSuccess: (payload) => {
+      setCompiledScorer(normalizeCompileResult(payload));
       setTestResult(null);
+      queryClient.invalidateQueries({ queryKey: ['scorers'] });
     },
   });
 
   // Test mutation
   const testMutation = useMutation({
     mutationFn: (name: string) =>
-      fetchJson<TestResult>(`/scorers/${name}/test`, {
+      fetchJson<unknown>(`/scorers/${name}/test`, {
         method: 'POST',
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          eval_result: {
+            case_id: 'studio-smoke-test',
+            category: 'happy_path',
+            passed: true,
+            quality_score: 0.82,
+            safety_passed: true,
+            latency_ms: 420,
+            token_count: 160,
+            tool_use_accuracy: 0.9,
+            satisfaction_proxy: 0.88,
+          },
+        }),
       }),
-    onSuccess: (data) => {
-      setTestResult(data);
+    onSuccess: (payload) => {
+      setTestResult(normalizeTestResult(payload));
     },
   });
 

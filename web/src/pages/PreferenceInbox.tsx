@@ -20,6 +20,11 @@ interface PreferenceStats {
   by_source: Record<string, number>;
 }
 
+interface PreferencePairsResponse {
+  pairs?: Array<Record<string, unknown>>;
+  count?: number;
+}
+
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -37,6 +42,22 @@ const defaultForm = {
   confidence: 0.9,
 };
 
+function normalizePreferencePair(raw: Record<string, unknown>, index: number): PreferencePair {
+  return {
+    id: typeof raw.id === 'string'
+      ? raw.id
+      : typeof raw.pair_id === 'string'
+        ? raw.pair_id
+        : `pair-${index + 1}`,
+    input_text: typeof raw.input_text === 'string' ? raw.input_text : '',
+    chosen: typeof raw.chosen === 'string' ? raw.chosen : '',
+    rejected: typeof raw.rejected === 'string' ? raw.rejected : '',
+    source: typeof raw.source === 'string' ? raw.source : 'human',
+    confidence: typeof raw.confidence === 'number' ? raw.confidence : 0,
+    created_at: typeof raw.created_at === 'string' ? raw.created_at : new Date().toISOString(),
+  };
+}
+
 export function PreferenceInbox() {
   const [pairs, setPairs] = useState<PreferencePair[]>([]);
   const [stats, setStats] = useState<PreferenceStats | null>(null);
@@ -48,39 +69,40 @@ export function PreferenceInbox() {
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  async function loadInbox() {
+    setLoading(true);
+    try {
+      const [pairsPayload, statsPayload] = await Promise.all([
+        fetchJson<PreferencePairsResponse>('/preferences/pairs'),
+        fetchJson<PreferenceStats>('/preferences/stats'),
+      ]);
+      setPairs((pairsPayload.pairs ?? []).map((pair, index) => normalizePreferencePair(pair, index)));
+      setStats(statsPayload);
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    Promise.all([
-      fetchJson<PreferencePair[]>('/preferences/pairs'),
-      fetchJson<PreferenceStats>('/preferences/stats'),
-    ])
-      .then(([p, s]) => { setPairs(p); setStats(s); })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
+    void loadInbox();
   }, []);
 
   async function submitPair() {
     if (!form.input_text.trim() || !form.chosen.trim() || !form.rejected.trim()) return;
     setSubmitting(true);
     try {
-      const created = await fetchJson<PreferencePair>('/preferences/pairs', {
+      await fetchJson('/preferences/pairs', {
         method: 'POST',
         body: JSON.stringify(form),
       });
-      setPairs((prev) => [created, ...prev]);
-      setStats((prev) => prev
-        ? {
-            total_pairs: prev.total_pairs + 1,
-            by_source: {
-              ...prev.by_source,
-              [form.source]: (prev.by_source[form.source] ?? 0) + 1,
-            },
-          }
-        : prev
-      );
+      await loadInbox();
       setForm({ ...defaultForm });
       setShowForm(false);
-    } catch {
-      // keep form open on error
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to submit preference pair');
     } finally {
       setSubmitting(false);
     }

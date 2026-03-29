@@ -15,7 +15,9 @@ def _get_orchestrator(request: Request):
     if orch is None:
         from policy_opt.registry import PolicyArtifactRegistry
         from policy_opt.orchestrator import PolicyOptOrchestrator
-        registry = PolicyArtifactRegistry()
+        # Keep the route-level fallback isolated per app instance so tests and
+        # unconfigured local runs do not leak state through a shared SQLite file.
+        registry = PolicyArtifactRegistry(":memory:")
         orch = PolicyOptOrchestrator(policy_registry=registry)
         request.app.state.policy_orchestrator = orch
     return orch
@@ -149,6 +151,8 @@ async def ope_evaluate(request: Request, body: dict[str, Any] = Body(...)):
     episodes = episode_store.list_episodes(limit=body.get("n_episodes", 500))
     evaluator = OffPolicyEvaluator()
     report = evaluator.evaluate(policy, episodes)
+    policy.ope_report = report.to_dict()
+    registry.update_policy(policy)
     return {"ok": True, "report": report.to_dict()}
 
 

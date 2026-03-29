@@ -35,10 +35,99 @@ interface DiffResult {
   diff: string;
 }
 
+interface RawRegistryItem {
+  name?: string;
+  version?: number;
+  created_at?: string;
+  data?: Record<string, unknown>;
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json() as Promise<T>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function summarizeRegistryItem(data: Record<string, unknown>): string {
+  if (typeof data.description === 'string' && data.description.trim()) {
+    return data.description;
+  }
+  if (typeof data.instructions === 'string' && data.instructions.trim()) {
+    return data.instructions.trim().split('\n')[0] ?? 'Instructions available';
+  }
+  if (Array.isArray(data.rules) && data.rules.length > 0) {
+    return `${data.rules.length} rule${data.rules.length === 1 ? '' : 's'}`;
+  }
+  if (typeof data.tool_name === 'string' && data.tool_name.trim()) {
+    return `Tool contract for ${data.tool_name}`;
+  }
+  if (typeof data.from_agent === 'string' && typeof data.to_agent === 'string') {
+    return `${data.from_agent} -> ${data.to_agent}`;
+  }
+  return 'No description available';
+}
+
+function normalizeRegistryItem(raw: unknown): RegistryItem {
+  const item = isRecord(raw) ? raw : {};
+  const data = isRecord(item.data) ? item.data : {};
+
+  return {
+    name: typeof item.name === 'string' ? item.name : 'unknown',
+    description: summarizeRegistryItem(data),
+    version: typeof item.version === 'number' ? item.version : 1,
+    updated_at: typeof item.created_at === 'string' ? item.created_at : '',
+  };
+}
+
+function normalizeRegistryDetail(payload: unknown): RegistryItemDetail | null {
+  const wrapper = isRecord(payload) ? payload : {};
+  const rawItem = isRecord(wrapper.item) ? wrapper.item : wrapper;
+  if (!isRecord(rawItem)) {
+    return null;
+  }
+
+  const data = isRecord(rawItem.data) ? rawItem.data : {};
+  const metadata = isRecord(data.metadata) ? data.metadata : {};
+
+  return {
+    name: typeof rawItem.name === 'string' ? rawItem.name : 'unknown',
+    description: summarizeRegistryItem(data),
+    version: typeof rawItem.version === 'number' ? rawItem.version : 1,
+    updated_at: typeof rawItem.created_at === 'string' ? rawItem.created_at : '',
+    content: JSON.stringify(data, null, 2),
+    versions: [
+      {
+        version: typeof rawItem.version === 'number' ? rawItem.version : 1,
+        updated_at: typeof rawItem.created_at === 'string' ? rawItem.created_at : '',
+        author: typeof metadata.author === 'string' ? metadata.author : 'system',
+      },
+    ],
+  };
+}
+
+function normalizeDiff(payload: unknown): DiffResult {
+  const data = isRecord(payload) ? payload : {};
+  const changes = Array.isArray(data.changes) ? data.changes : [];
+
+  if (changes.length === 0) {
+    return { diff: 'No differences found.' };
+  }
+
+  return {
+    diff: changes
+      .filter(isRecord)
+      .map((change) => {
+        const field = typeof change.field === 'string' ? change.field : 'unknown';
+        const oldValue = JSON.stringify(change.old, null, 2) ?? 'null';
+        const newValue = JSON.stringify(change.new, null, 2) ?? 'null';
+        return `Field: ${field}\n- ${oldValue}\n+ ${newValue}`;
+      })
+      .join('\n\n'),
+  };
 }
 
 export function Registry() {
@@ -49,24 +138,34 @@ export function Registry() {
 
   const listQuery = useQuery({
     queryKey: ['registry', activeType, searchQuery],
-    queryFn: () =>
-      searchQuery.trim()
-        ? fetchJson<RegistryItem[]>(`/registry/search?q=${encodeURIComponent(searchQuery)}&type=${activeType}`)
-        : fetchJson<RegistryItem[]>(`/registry/${activeType}`),
+    queryFn: async () => {
+      const payload = searchQuery.trim()
+        ? await fetchJson<{ results?: unknown[] }>(
+            `/registry/search?q=${encodeURIComponent(searchQuery)}&type=${activeType}`
+          )
+        : await fetchJson<{ items?: unknown[] }>(`/registry/${activeType}`);
+      const items = searchQuery.trim() ? payload.results ?? [] : payload.items ?? [];
+      return items.map(normalizeRegistryItem);
+    },
   });
 
   const detailQuery = useQuery({
     queryKey: ['registry', activeType, expandedItem],
-    queryFn: () => fetchJson<RegistryItemDetail>(`/registry/${activeType}/${expandedItem}`),
+    queryFn: async () => {
+      const payload = await fetchJson<unknown>(`/registry/${activeType}/${expandedItem}`);
+      return normalizeRegistryDetail(payload);
+    },
     enabled: !!expandedItem,
   });
 
   const diffQuery = useQuery({
     queryKey: ['registry-diff', activeType, expandedItem, diffVersions?.v1, diffVersions?.v2],
-    queryFn: () =>
-      fetchJson<DiffResult>(
+    queryFn: async () => {
+      const payload = await fetchJson<unknown>(
         `/registry/${activeType}/${expandedItem}/diff?v1=${diffVersions!.v1}&v2=${diffVersions!.v2}`
-      ),
+      );
+      return normalizeDiff(payload);
+    },
     enabled: !!expandedItem && !!diffVersions,
   });
 

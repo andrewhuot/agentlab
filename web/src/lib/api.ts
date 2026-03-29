@@ -126,6 +126,197 @@ function percent(value: number | null | undefined): number {
   return value * 100;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function numberValue(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is string => typeof item === 'string' && item.length > 0);
+}
+
+function numberRecord(value: unknown): Record<string, number> {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, numberValue(item)])
+  );
+}
+
+function normalizeContextHealthReport(payload: unknown): ContextHealthReport {
+  const data = isRecord(payload) ? payload : {};
+
+  return {
+    traces_analyzed: numberValue(data.traces_analyzed),
+    total_events: numberValue(data.total_events),
+    average_utilization: numberValue(data.average_utilization, numberValue(data.utilization_ratio)),
+    growth_pattern_counts: numberRecord(data.growth_pattern_counts),
+    context_correlated_failure_traces: stringList(data.context_correlated_failure_traces),
+    average_handoff_fidelity: numberValue(
+      data.average_handoff_fidelity,
+      numberValue(data.avg_handoff_fidelity)
+    ),
+    average_memory_staleness: numberValue(
+      data.average_memory_staleness,
+      numberValue(data.memory_staleness)
+    ),
+  };
+}
+
+function normalizeContextSimulationResult(
+  payload: unknown,
+  request: {
+    trace_id: string;
+    strategy: 'truncate_tail' | 'sliding_window' | 'summarize';
+    token_budget: number;
+    ttl_seconds: number;
+    pin_keywords: string[];
+  }
+): ContextSimulationResult {
+  const data = isRecord(payload) ? payload : {};
+  const rawResults = Array.isArray(data.results) ? data.results : [];
+  const strategyBudgets: Record<string, number> = {
+    aggressive: 8000,
+    balanced: 16000,
+    conservative: 32000,
+  };
+
+  const primaryResult = rawResults.find((item) => isRecord(item)) ?? {};
+  const primary = isRecord(primaryResult) ? primaryResult : {};
+  const primaryAvgUtilization = numberValue(primary.avg_utilization);
+  const peakTokens = numberValue(primary.peak_tokens, request.token_budget);
+  const totalTokensLost = numberValue(primary.total_tokens_lost);
+
+  const budgetComparison = rawResults
+    .filter(isRecord)
+    .map((item) => {
+      const strategyName = typeof item.strategy_name === 'string' ? item.strategy_name : '';
+      return {
+        budget: strategyBudgets[strategyName] ?? request.token_budget,
+        average_utilization: numberValue(item.avg_utilization),
+        estimated_failure_rate: 0,
+      };
+    });
+
+  return {
+    trace_id: request.trace_id,
+    strategy: request.strategy,
+    token_budget: request.token_budget,
+    baseline_average_utilization: primaryAvgUtilization,
+    simulated_average_utilization: primaryAvgUtilization,
+    estimated_failure_delta: 0,
+    estimated_compaction_loss: peakTokens > 0 ? totalTokensLost / peakTokens : 0,
+    memory_staleness: 0,
+    ttl_seconds: request.ttl_seconds,
+    pinned_memory_hits: request.pin_keywords.length,
+    budget_comparison: budgetComparison.length > 0
+      ? budgetComparison
+      : [
+          {
+            budget: request.token_budget,
+            average_utilization: primaryAvgUtilization,
+            estimated_failure_rate: 0,
+          },
+        ],
+    notes: [],
+  };
+}
+
+function normalizeChangeAuditDetail(payload: unknown, id: string): ChangeAuditDetail {
+  const data = isRecord(payload) ? payload : {};
+  const dimensionBreakdown = isRecord(data.dimension_breakdown) ? data.dimension_breakdown : {};
+  const gateResults = Array.isArray(data.gate_results) ? data.gate_results : [];
+  const adversarialResults = isRecord(data.adversarial_results) ? data.adversarial_results : {};
+  const compositeBreakdown = isRecord(data.composite_breakdown) ? data.composite_breakdown : {};
+  const compositeSource = isRecord(compositeBreakdown.contributions)
+    ? compositeBreakdown.contributions
+    : compositeBreakdown;
+  const timeline = Array.isArray(data.timeline) ? data.timeline : [];
+
+  return {
+    change_id: typeof data.card_id === 'string' ? data.card_id : id,
+    status: typeof data.status === 'string' ? data.status : 'pending',
+    score_deltas: Object.fromEntries(
+      Object.entries(dimensionBreakdown).map(([key, value]) => {
+        const row = isRecord(value) ? value : {};
+        return [key, numberValue(row.delta)];
+      })
+    ),
+    gate_decisions: gateResults
+      .filter(isRecord)
+      .map((gate) => ({
+        gate: typeof gate.gate === 'string' ? gate.gate : 'unknown',
+        passed: Boolean(gate.passed),
+        reason: typeof gate.reason === 'string' ? gate.reason : '',
+      })),
+    adversarial_results: {
+      executed: numberValue(
+        adversarialResults.executed,
+        numberValue(adversarialResults.num_cases)
+      ),
+      failures: numberValue(
+        adversarialResults.failures,
+        adversarialResults.passed === false ? 1 : 0
+      ),
+    },
+    composite_breakdown: numberRecord(compositeSource),
+    timeline: timeline
+      .filter(isRecord)
+      .map((item, index) => ({
+        stage: typeof item.stage === 'string'
+          ? item.stage
+          : typeof item.phase === 'string'
+            ? item.phase
+            : `step_${index + 1}`,
+        timestamp: numberValue(item.timestamp),
+        detail: typeof item.detail === 'string'
+          ? item.detail
+          : typeof item.status === 'string'
+            ? item.status
+            : '',
+      })),
+    failure_reason: typeof data.rejection_reason === 'string' ? data.rejection_reason : '',
+  };
+}
+
+function normalizeChangeAuditSummary(payload: unknown): ChangeAuditSummary {
+  const data = isRecord(payload) ? payload : {};
+  const topRejectionReasons = Array.isArray(data.top_rejection_reasons)
+    ? data.top_rejection_reasons
+    : [];
+  const improvementTrend = Array.isArray(data.improvement_trend) ? data.improvement_trend : [];
+
+  return {
+    total_changes: numberValue(data.total_changes),
+    accepted_changes: numberValue(data.accepted_changes, numberValue(data.accepted)),
+    rejected_changes: numberValue(data.rejected_changes, numberValue(data.rejected)),
+    accept_rate: numberValue(data.accept_rate),
+    top_rejection_reasons: topRejectionReasons
+      .filter(isRecord)
+      .map((entry) => ({
+        reason: typeof entry.reason === 'string' ? entry.reason : 'unknown',
+        count: numberValue(entry.count),
+      })),
+    improvement_trend: improvementTrend
+      .filter(isRecord)
+      .map((entry) => ({
+        change_id: typeof entry.change_id === 'string' ? entry.change_id : '',
+        created_at: numberValue(entry.created_at),
+        composite_delta: numberValue(entry.composite_delta),
+      })),
+    change_ids: stringList(data.change_ids),
+  };
+}
+
 function parseDiffLines(diff: string): DiffLine[] {
   if (!diff.trim()) return [];
 
@@ -1175,7 +1366,8 @@ export function useContextReport(limit = 1000, tokenBudget = 8000) {
         limit: String(limit),
         token_budget: String(tokenBudget),
       });
-      return fetchApi<ContextHealthReport>(`/context/report?${qs.toString()}`);
+      const payload = await fetchApi<unknown>(`/context/report?${qs.toString()}`);
+      return normalizeContextHealthReport(payload);
     },
     refetchInterval: 15000,
   });
@@ -1195,11 +1387,13 @@ export function useRunContextSimulation() {
       pin_keywords: string[];
     }
   >({
-    mutationFn: (payload) =>
-      fetchApi('/context/simulate', {
+    mutationFn: async (payload) => {
+      const response = await fetchApi<unknown>('/context/simulate', {
         method: 'POST',
         body: JSON.stringify(payload),
-      }),
+      });
+      return normalizeContextSimulationResult(response, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['context', 'report'] });
     },
@@ -1489,14 +1683,21 @@ export function useChangeAudit(id: string | null) {
   return useQuery<ChangeAuditDetail>({
     queryKey: ['changes', 'audit', id],
     enabled: Boolean(id),
-    queryFn: () => fetchApi(`/changes/${encodeURIComponent(id || '')}/audit`),
+    queryFn: async () => {
+      if (!id) throw new ApiRequestError('Missing change ID', 400);
+      const payload = await fetchApi<unknown>(`/changes/${encodeURIComponent(id)}/audit`);
+      return normalizeChangeAuditDetail(payload, id);
+    },
   });
 }
 
 export function useChangeAuditSummary() {
   return useQuery<ChangeAuditSummary>({
     queryKey: ['changes', 'audit-summary'],
-    queryFn: () => fetchApi('/changes/audit-summary'),
+    queryFn: async () => {
+      const payload = await fetchApi<unknown>('/changes/audit-summary');
+      return normalizeChangeAuditSummary(payload);
+    },
     refetchInterval: 10000,
   });
 }

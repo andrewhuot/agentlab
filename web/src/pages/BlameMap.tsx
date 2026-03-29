@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, TrendingDown, TrendingUp, Minus } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { classNames } from '../lib/utils';
 
@@ -24,10 +25,59 @@ interface BlameCluster {
   traces: { trace_id: string; timestamp: string; summary: string }[];
 }
 
+interface RawBlameCluster {
+  cluster_id?: string;
+  grader_name?: string;
+  agent_path?: string;
+  failure_reason?: string;
+  count?: number;
+  impact_score?: number;
+  trend?: string;
+  example_trace_ids?: string[];
+  first_seen?: number;
+  last_seen?: number;
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json() as Promise<T>;
+}
+
+function normalizeTrend(trend: string | undefined): 'up' | 'down' | 'flat' {
+  if (trend === 'growing' || trend === 'up') {
+    return 'up';
+  }
+  if (trend === 'shrinking' || trend === 'down') {
+    return 'down';
+  }
+  return 'flat';
+}
+
+function normalizeBlameClusters(payload: { clusters?: RawBlameCluster[] } | RawBlameCluster[]): BlameCluster[] {
+  const rawClusters = Array.isArray(payload) ? payload : payload.clusters ?? [];
+
+  return rawClusters.map((cluster, index) => {
+    const failureReason = cluster.failure_reason ?? 'Unspecified failure';
+    const traceIds = Array.isArray(cluster.example_trace_ids) ? cluster.example_trace_ids : [];
+    const lastSeen = cluster.last_seen ?? cluster.first_seen ?? Date.now() / 1000;
+    const firstSeen = cluster.first_seen ?? lastSeen;
+
+    return {
+      id: cluster.cluster_id ?? `cluster-${index + 1}`,
+      grader_name: cluster.grader_name ?? 'unknown',
+      agent_path: cluster.agent_path ?? 'unknown',
+      failure_reason: failureReason,
+      count: cluster.count ?? 0,
+      impact: cluster.impact_score ?? 0,
+      trend: normalizeTrend(cluster.trend),
+      traces: traceIds.map((traceId, traceIndex) => ({
+        trace_id: traceId,
+        timestamp: new Date((traceIndex === 0 ? lastSeen : firstSeen) * 1000).toISOString(),
+        summary: failureReason,
+      })),
+    };
+  });
 }
 
 function TrendIcon({ trend }: { trend: 'up' | 'down' | 'flat' }) {
@@ -37,19 +87,29 @@ function TrendIcon({ trend }: { trend: 'up' | 'down' | 'flat' }) {
 }
 
 export function BlameMap() {
+  const [searchParams] = useSearchParams();
   const [windowSeconds, setWindowSeconds] = useState(86400);
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
+  const requestedFilter = searchParams.get('filter');
 
   const blameQuery = useQuery({
     queryKey: ['blame', windowSeconds],
-    queryFn: () => fetchJson<BlameCluster[]>(`/traces/blame?window=${windowSeconds}`),
+    queryFn: async () => {
+      const payload = await fetchJson<{ clusters?: RawBlameCluster[] }>(`/traces/blame?window=${windowSeconds}`);
+      return normalizeBlameClusters(payload);
+    },
   });
 
   function toggleCluster(id: string) {
     setExpandedCluster((current) => (current === id ? null : id));
   }
 
-  const clusters = blameQuery.data ?? [];
+  const clusters = (blameQuery.data ?? []).filter((cluster) => {
+    if (!requestedFilter) {
+      return true;
+    }
+    return cluster.failure_reason === requestedFilter;
+  });
   const maxImpact = clusters.length > 0 ? Math.max(...clusters.map((c) => c.impact)) : 1;
 
   return (

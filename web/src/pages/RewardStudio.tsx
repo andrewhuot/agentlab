@@ -12,9 +12,11 @@ interface Reward {
   scope: string;
   granularity: string;
   source: string;
-  trust_tier: string;
+  trust_tier: number;
   weight: number;
   hard_gate: boolean;
+  created_at?: string;
+  version?: number;
 }
 
 interface AuditFinding {
@@ -33,6 +35,19 @@ interface ChallengeReport {
   passed: number;
   total: number;
   failures: string[];
+}
+
+interface RawReward {
+  name?: string;
+  kind?: string;
+  scope?: string;
+  granularity?: string;
+  source?: string;
+  trust_tier?: number;
+  weight?: number;
+  hard_gate?: boolean;
+  created_at?: string;
+  version?: number;
 }
 
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
@@ -56,16 +71,109 @@ const severityIcon = {
   info: <CheckCircle className="h-3.5 w-3.5 text-blue-500" />,
 };
 
+const rewardOptions = {
+  kind: ['verifiable', 'preference', 'business_outcome', 'constitutional'],
+  scope: ['runtime', 'buildtime', 'multi_agent'],
+  granularity: ['step', 'trajectory', 'episode', 'delayed_outcome'],
+  source: ['deterministic_checker', 'environment_checker', 'human_label', 'llm_judge', 'ai_preference'],
+} as const;
+
 const defaultForm: Omit<Reward, 'name'> & { name: string } = {
   name: '',
-  kind: 'scalar',
-  scope: 'turn',
-  granularity: 'token',
-  source: 'model',
-  trust_tier: 'medium',
+  kind: 'verifiable',
+  scope: 'runtime',
+  granularity: 'step',
+  source: 'deterministic_checker',
+  trust_tier: 3,
   weight: 1.0,
   hard_gate: false,
 };
+
+function normalizeReward(raw: RawReward): Reward {
+  return {
+    name: raw.name ?? 'unnamed',
+    kind: raw.kind ?? 'verifiable',
+    scope: raw.scope ?? 'runtime',
+    granularity: raw.granularity ?? 'step',
+    source: raw.source ?? 'deterministic_checker',
+    trust_tier: raw.trust_tier ?? 3,
+    weight: raw.weight ?? 1,
+    hard_gate: Boolean(raw.hard_gate),
+    created_at: raw.created_at,
+    version: raw.version,
+  };
+}
+
+function normalizeTrustTier(value: number): 'high' | 'medium' | 'low' {
+  if (value <= 2) {
+    return 'high';
+  }
+  if (value === 3) {
+    return 'medium';
+  }
+  return 'low';
+}
+
+function trustTierLabel(value: number): string {
+  return `tier ${value}`;
+}
+
+function normalizeAuditResult(payload: unknown): AuditResult {
+  const data = (typeof payload === 'object' && payload !== null)
+    ? payload as {
+        reward_name?: string;
+        findings?: Array<{ severity?: AuditFinding['severity']; description?: string; message?: string }>;
+        pass_rate?: number;
+      }
+    : {};
+  const findings = Array.isArray(data.findings) ? data.findings : [];
+
+  return {
+    reward_name: data.reward_name ?? '',
+    findings: findings.map((finding) => ({
+      severity: finding.severity ?? 'info',
+      message: finding.description ?? finding.message ?? 'No details provided.',
+    })),
+    passed: findings.length === 0 || (data.pass_rate ?? 0) >= 1,
+  };
+}
+
+function normalizeChallengeReport(payload: unknown): ChallengeReport {
+  const data = (typeof payload === 'object' && payload !== null)
+    ? payload as {
+        reports?: Array<{
+          suite_name?: string;
+          passed?: number;
+          total_probes?: number;
+          findings?: Array<{ description?: string; message?: string }>;
+          results?: Array<{ passed?: boolean; details?: string }>;
+        }>;
+      }
+    : {};
+  const reports = Array.isArray(data.reports) ? data.reports : [];
+  const total = reports.reduce((sum, report) => sum + (report.total_probes ?? 0), 0);
+  const passed = reports.reduce((sum, report) => sum + (report.passed ?? 0), 0);
+  const failures = reports.flatMap((report) => {
+    const fromFindings = Array.isArray(report.findings)
+      ? report.findings
+          .map((finding) => finding.description ?? finding.message ?? '')
+          .filter((entry): entry is string => entry.length > 0)
+      : [];
+    const fromResults = Array.isArray(report.results)
+      ? report.results
+          .filter((result) => result.passed === false && typeof result.details === 'string')
+          .map((result) => result.details as string)
+      : [];
+    return [...fromFindings, ...fromResults];
+  });
+
+  return {
+    suite: reports.length === 1 ? reports[0]?.suite_name ?? 'challenge' : 'all suites',
+    passed,
+    total,
+    failures,
+  };
+}
 
 export function RewardStudio() {
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -83,26 +191,41 @@ export function RewardStudio() {
   const [challengeReport, setChallengeReport] = useState<ChallengeReport | null>(null);
   const [running, setRunning] = useState(false);
 
+  async function loadRewards(selectedName?: string) {
+    setLoading(true);
+    try {
+      const payload = await fetchJson<{ rewards?: RawReward[] }>('/rewards');
+      const nextRewards = (payload.rewards ?? []).map(normalizeReward);
+      setRewards(nextRewards);
+      if (selectedName) {
+        setSelected(nextRewards.find((reward) => reward.name === selectedName) ?? null);
+      }
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    fetchJson<Reward[]>('/rewards')
-      .then(setRewards)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
+    void loadRewards();
   }, []);
 
   async function createReward() {
     if (!form.name.trim()) return;
     setCreating(true);
     try {
-      const created = await fetchJson<Reward>('/rewards', {
+      await fetchJson('/rewards', {
         method: 'POST',
         body: JSON.stringify(form),
       });
-      setRewards((prev) => [created, ...prev]);
+      await loadRewards(form.name);
       setForm({ ...defaultForm });
       setShowForm(false);
-    } catch {
-      // ignore, keep form open
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to create reward');
     } finally {
       setCreating(false);
     }
@@ -112,10 +235,11 @@ export function RewardStudio() {
     setAuditing(true);
     setAuditResult(null);
     try {
-      const result = await fetchJson<AuditResult>(`/rewards/${reward.name}/audit`, { method: 'POST' });
-      setAuditResult(result);
-    } catch {
-      // ignore
+      const payload = await fetchJson<unknown>(`/rewards/${reward.name}/audit`, { method: 'POST' });
+      setAuditResult(normalizeAuditResult(payload));
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to audit reward');
     } finally {
       setAuditing(false);
     }
@@ -125,10 +249,11 @@ export function RewardStudio() {
     setRunning(true);
     setChallengeReport(null);
     try {
-      const report = await fetchJson<ChallengeReport>('/rewards/challenge/run', { method: 'POST' });
-      setChallengeReport(report);
-    } catch {
-      // ignore
+      const payload = await fetchJson<unknown>('/rewards/challenge/run', { method: 'POST' });
+      setChallengeReport(normalizeChallengeReport(payload));
+      setError(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to run challenge suite');
     } finally {
       setRunning(false);
     }
@@ -179,23 +304,29 @@ export function RewardStudio() {
             {(['kind', 'scope', 'granularity', 'source'] as const).map((key) => (
               <div key={key}>
                 <label className="mb-1 block text-xs capitalize text-gray-500">{key}</label>
-                <input
+                <select
                   value={form[key]}
                   onChange={(e) => field(key, e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
+                >
+                  {rewardOptions[key].map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
               </div>
             ))}
             <div>
               <label className="mb-1 block text-xs text-gray-500">Trust Tier</label>
               <select
                 value={form.trust_tier}
-                onChange={(e) => field('trust_tier', e.target.value)}
+                onChange={(e) => field('trust_tier', parseInt(e.target.value, 10))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
               >
-                <option value="high">high</option>
-                <option value="medium">medium</option>
-                <option value="low">low</option>
+                <option value={1}>tier 1</option>
+                <option value={2}>tier 2</option>
+                <option value={3}>tier 3</option>
+                <option value={4}>tier 4</option>
+                <option value={5}>tier 5</option>
               </select>
             </div>
             <div>
@@ -282,10 +413,10 @@ export function RewardStudio() {
                   <span
                     className={classNames(
                       'rounded border px-1.5 py-0.5 text-[11px] font-medium',
-                      trustTierColors[r.trust_tier] ?? 'bg-gray-50 text-gray-700 border-gray-200'
+                      trustTierColors[normalizeTrustTier(r.trust_tier)] ?? 'bg-gray-50 text-gray-700 border-gray-200'
                     )}
                   >
-                    {r.trust_tier}
+                    {trustTierLabel(r.trust_tier)}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-gray-500">weight: {r.weight} · source: {r.source}</p>

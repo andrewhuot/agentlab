@@ -16,6 +16,7 @@ def _get_store(request: Request):
     return store
 
 
+@router.get("")
 @router.get("/")
 async def list_change_cards(
     request: Request,
@@ -33,6 +34,90 @@ async def list_change_cards(
     return {
         "cards": [c.to_dict() for c in cards],
         "count": len(cards),
+    }
+
+
+@router.get("/audit-summary")
+async def get_audit_summary(request: Request, limit: int = 100) -> dict[str, Any]:
+    """Get aggregated accept/reject statistics.
+
+    Returns:
+        {
+            "total_changes": int,
+            "accepted": int,
+            "rejected": int,
+            "pending": int,
+            "accept_rate": float,
+            "top_rejection_reasons": [
+                {"reason": "safety_regression", "count": 5},
+                {"reason": "insufficient_significance", "count": 3},
+                ...
+            ],
+            "avg_improvement_accepted": float,
+            "gates_failure_breakdown": {
+                "significance": 3,
+                "safety": 2,
+                "adversarial": 1
+            }
+        }
+    """
+    store = _get_store(request)
+    all_cards = store.list_all(limit=limit)
+
+    total = len(all_cards)
+    accepted = len([c for c in all_cards if c.status == "applied"])
+    rejected = len([c for c in all_cards if c.status == "rejected"])
+    pending = len([c for c in all_cards if c.status == "pending"])
+
+    accept_rate = accepted / total if total > 0 else 0.0
+
+    # Analyze rejection reasons
+    rejection_reasons: dict[str, int] = {}
+    for card in all_cards:
+        if card.status == "rejected" and card.rejection_reason:
+            reason = card.rejection_reason
+            rejection_reasons[reason] = rejection_reasons.get(reason, 0) + 1
+
+    top_rejection_reasons = [
+        {"reason": reason, "count": count}
+        for reason, count in sorted(rejection_reasons.items(), key=lambda x: x[1], reverse=True)[:5]
+    ]
+
+    # Calculate average improvement for accepted changes
+    accepted_cards = [c for c in all_cards if c.status == "applied"]
+    avg_improvement = 0.0
+    if accepted_cards:
+        improvements = []
+        for card in accepted_cards:
+            # Try to get composite score delta
+            if card.composite_breakdown:
+                composite_before = sum(card.composite_breakdown.get("components", {}).values())
+                composite_after = composite_before + sum(
+                    card.dimension_breakdown.get(dim, {}).get("delta", 0)
+                    for dim in card.dimension_breakdown
+                )
+                improvements.append(composite_after - composite_before)
+        if improvements:
+            avg_improvement = sum(improvements) / len(improvements)
+
+    # Analyze gate failures
+    gates_failure_breakdown: dict[str, int] = {}
+    for card in all_cards:
+        if card.status == "rejected":
+            for gate_result in card.gate_results:
+                if not gate_result.get("passed", True):
+                    gate_name = gate_result.get("gate", "unknown")
+                    gates_failure_breakdown[gate_name] = gates_failure_breakdown.get(gate_name, 0) + 1
+
+    return {
+        "total_changes": total,
+        "accepted": accepted,
+        "rejected": rejected,
+        "pending": pending,
+        "accept_rate": accept_rate,
+        "top_rejection_reasons": top_rejection_reasons,
+        "avg_improvement_accepted": avg_improvement,
+        "gates_failure_breakdown": gates_failure_breakdown,
     }
 
 
@@ -173,88 +258,4 @@ async def get_change_audit(card_id: str, request: Request) -> dict[str, Any]:
         "composite_breakdown": card.composite_breakdown,
         "timeline": card.timeline,
         "rejection_reason": card.rejection_reason if card.status == "rejected" else None,
-    }
-
-
-@router.get("/audit-summary")
-async def get_audit_summary(request: Request, limit: int = 100) -> dict[str, Any]:
-    """Get aggregated accept/reject statistics.
-
-    Returns:
-        {
-            "total_changes": int,
-            "accepted": int,
-            "rejected": int,
-            "pending": int,
-            "accept_rate": float,
-            "top_rejection_reasons": [
-                {"reason": "safety_regression", "count": 5},
-                {"reason": "insufficient_significance", "count": 3},
-                ...
-            ],
-            "avg_improvement_accepted": float,
-            "gates_failure_breakdown": {
-                "significance": 3,
-                "safety": 2,
-                "adversarial": 1
-            }
-        }
-    """
-    store = _get_store(request)
-    all_cards = store.list_all(limit=limit)
-
-    total = len(all_cards)
-    accepted = len([c for c in all_cards if c.status == "applied"])
-    rejected = len([c for c in all_cards if c.status == "rejected"])
-    pending = len([c for c in all_cards if c.status == "pending"])
-
-    accept_rate = accepted / total if total > 0 else 0.0
-
-    # Analyze rejection reasons
-    rejection_reasons: dict[str, int] = {}
-    for card in all_cards:
-        if card.status == "rejected" and card.rejection_reason:
-            reason = card.rejection_reason
-            rejection_reasons[reason] = rejection_reasons.get(reason, 0) + 1
-
-    top_rejection_reasons = [
-        {"reason": reason, "count": count}
-        for reason, count in sorted(rejection_reasons.items(), key=lambda x: x[1], reverse=True)[:5]
-    ]
-
-    # Calculate average improvement for accepted changes
-    accepted_cards = [c for c in all_cards if c.status == "applied"]
-    avg_improvement = 0.0
-    if accepted_cards:
-        improvements = []
-        for card in accepted_cards:
-            # Try to get composite score delta
-            if card.composite_breakdown:
-                composite_before = sum(card.composite_breakdown.get("components", {}).values())
-                composite_after = composite_before + sum(
-                    card.dimension_breakdown.get(dim, {}).get("delta", 0)
-                    for dim in card.dimension_breakdown
-                )
-                improvements.append(composite_after - composite_before)
-        if improvements:
-            avg_improvement = sum(improvements) / len(improvements)
-
-    # Analyze gate failures
-    gates_failure_breakdown: dict[str, int] = {}
-    for card in all_cards:
-        if card.status == "rejected":
-            for gate_result in card.gate_results:
-                if not gate_result.get("passed", True):
-                    gate_name = gate_result.get("gate", "unknown")
-                    gates_failure_breakdown[gate_name] = gates_failure_breakdown.get(gate_name, 0) + 1
-
-    return {
-        "total_changes": total,
-        "accepted": accepted,
-        "rejected": rejected,
-        "pending": pending,
-        "accept_rate": accept_rate,
-        "top_rejection_reasons": top_rejection_reasons,
-        "avg_improvement_accepted": avg_improvement,
-        "gates_failure_breakdown": gates_failure_breakdown,
     }

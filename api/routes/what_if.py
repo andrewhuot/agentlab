@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
+
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
+
+from evals.what_if import WhatIfEngine, WhatIfStore
+from logger.store import ConversationStore
 
 router = APIRouter(prefix="/api/what-if", tags=["what-if"])
 
@@ -22,6 +28,31 @@ class ProjectRequest(BaseModel):
     total_population: int
 
 
+def _get_what_if_engine(request: Request) -> WhatIfEngine:
+    """Return a shared What-If engine, lazily initializing when necessary."""
+    existing = getattr(request.app.state, "what_if_engine", None)
+    if existing is not None:
+        return existing
+
+    conversation_store = getattr(request.app.state, "conversation_store", None)
+    if conversation_store is None:
+        conversation_store = ConversationStore(
+            db_path=os.environ.get("AUTOAGENT_DB", "conversations.db")
+        )
+        request.app.state.conversation_store = conversation_store
+
+    # Keep the lazy fallback isolated to the app instance so route tests and
+    # unconfigured local runs do not reuse old what-if jobs from disk.
+    fd, db_path = tempfile.mkstemp(prefix="autoagent-what-if-", suffix=".db")
+    os.close(fd)
+    engine = WhatIfEngine(
+        conversation_store=conversation_store,
+        what_if_store=WhatIfStore(db_path),
+    )
+    request.app.state.what_if_engine = engine
+    return engine
+
+
 @router.post("/replay")
 async def start_replay(request: Request, body: ReplayRequest) -> dict:
     """Start a what-if replay job.
@@ -29,7 +60,7 @@ async def start_replay(request: Request, body: ReplayRequest) -> dict:
     Replays historical conversations through a candidate configuration
     and compares outcomes with the original results.
     """
-    what_if_engine = request.app.state.what_if_engine
+    what_if_engine = _get_what_if_engine(request)
 
     try:
         result = what_if_engine.replay_with_config(
@@ -57,7 +88,7 @@ async def get_results(request: Request, job_id: str) -> dict:
     Returns detailed outcomes for each replayed conversation,
     including score deltas and comparison metrics.
     """
-    what_if_engine = request.app.state.what_if_engine
+    what_if_engine = _get_what_if_engine(request)
     result = what_if_engine.what_if_store.get_result(job_id)
 
     if not result:
@@ -99,7 +130,7 @@ async def project_impact(request: Request, body: ProjectRequest) -> dict:
     Extrapolates sample replay results to estimate the impact
     on the entire conversation population.
     """
-    what_if_engine = request.app.state.what_if_engine
+    what_if_engine = _get_what_if_engine(request)
 
     try:
         projection = what_if_engine.project_impact(
@@ -131,7 +162,7 @@ async def list_jobs(
     request: Request, limit: int = Query(10, ge=1, le=100)
 ) -> dict:
     """List recent what-if replay jobs."""
-    what_if_engine = request.app.state.what_if_engine
+    what_if_engine = _get_what_if_engine(request)
     jobs = what_if_engine.what_if_store.list_recent(limit=limit)
 
     return {"jobs": jobs}

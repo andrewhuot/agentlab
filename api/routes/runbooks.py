@@ -29,6 +29,7 @@ async def search_runbooks(
     return {"runbooks": [p.to_dict() for p in results], "count": len(results)}
 
 
+@router.get("")
 @router.get("/")
 async def list_runbooks(
     request: Request,
