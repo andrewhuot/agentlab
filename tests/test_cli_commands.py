@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -76,6 +77,57 @@ class TestCLIStructure:
         # But it should still work
         result2 = runner.invoke(cli, ["run", "--help"])
         assert result2.exit_code == 0
+
+
+class TestBrandedBanner:
+    """Verify branded banner output on key startup surfaces."""
+
+    def test_root_help_shows_branded_banner(self, runner):
+        result = runner.invoke(cli, ["--help"])
+        assert result.exit_code == 0
+        assert "Continuous Agent Optimization Platform" in result.output
+        assert "Created by Andrew Huot" in result.output
+        assert "AutoAgent" in result.output
+
+    def test_root_help_suppresses_banner_with_no_banner_flag(self, runner):
+        result = runner.invoke(cli, ["--no-banner", "--help"])
+        assert result.exit_code == 0
+        assert "Continuous Agent Optimization Platform" not in result.output
+        assert "Created by Andrew Huot" not in result.output
+
+    def test_server_shows_banner_before_startup_message(self, runner, monkeypatch):
+        captured: dict[str, object] = {}
+
+        def fake_run(app: str, host: str, port: int, reload: bool) -> None:
+            captured["app"] = app
+            captured["host"] = host
+            captured["port"] = port
+            captured["reload"] = reload
+
+        monkeypatch.setitem(sys.modules, "uvicorn", SimpleNamespace(run=fake_run))
+
+        result = runner.invoke(cli, ["server", "--host", "127.0.0.1", "--port", "8123", "--reload"])
+
+        assert result.exit_code == 0
+        assert "Continuous Agent Optimization Platform" in result.output
+        assert "Starting AutoAgent VNextCC server on 127.0.0.1:8123" in result.output
+        assert captured == {
+            "app": "api.server:app",
+            "host": "127.0.0.1",
+            "port": 8123,
+            "reload": True,
+        }
+
+    def test_server_quiet_flag_suppresses_banner(self, runner, monkeypatch):
+        def fake_run(app: str, host: str, port: int, reload: bool) -> None:
+            del app, host, port, reload
+
+        monkeypatch.setitem(sys.modules, "uvicorn", SimpleNamespace(run=fake_run))
+
+        result = runner.invoke(cli, ["server", "--quiet"])
+
+        assert result.exit_code == 0
+        assert "Continuous Agent Optimization Platform" not in result.output
 
 
 class TestInitCommand:

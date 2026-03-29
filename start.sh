@@ -30,6 +30,10 @@ hr() {
 
 # ─── Globals ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AUTOAGENT_VERSION="$(awk -F'"' '/^version = "/ { print $2; exit }' "$SCRIPT_DIR/pyproject.toml" 2>/dev/null || true)"
+if [[ -z "$AUTOAGENT_VERSION" ]]; then
+  AUTOAGENT_VERSION="dev"
+fi
 VENV_DIR="$SCRIPT_DIR/.venv"
 VENV_BIN_DIR="$VENV_DIR/bin"
 VENV_ACTIVATE="$VENV_BIN_DIR/activate"
@@ -91,12 +95,15 @@ activate_venv() {
 # ─── Checks ────────────────────────────────────────────────────────────────────
 banner() {
   echo ""
-  echo -e "${BOLD_WHITE}  ┌─────────────────────────────────────────────────────────┐${RESET}"
-  echo -e "${BOLD_WHITE}  │                                                         │${RESET}"
-  echo -e "${BOLD_WHITE}  │   ${BOLD_CYAN}AutoAgent${RESET}${BOLD_WHITE}  -  Agent Optimization Platform             │${RESET}"
-  echo -e "${BOLD_WHITE}  │   ${DIM}Starting up...${RESET}${BOLD_WHITE}                                            │${RESET}"
-  echo -e "${BOLD_WHITE}  │                                                         │${RESET}"
-  echo -e "${BOLD_WHITE}  └─────────────────────────────────────────────────────────┘${RESET}"
+  echo -e "${BLUE}      /\\\\        ${RESET}${BOLD_WHITE}___         __        ___                     __${RESET}"
+  echo -e "${BLUE}     /==\\\\       ${RESET}${BOLD_WHITE}/   | __  __/ /_____  /   | ____ ____  ____  / /_${RESET}"
+  echo -e "${BLUE}    /====\\\\      ${RESET}${BOLD_WHITE}/ /| |/ / / / __/ __ \\/ /| |/ __ \`/ _ \\/ __ \\/ __/${RESET}"
+  echo -e "${BLUE}    |::::|      ${RESET}${BOLD_WHITE}/ ___ / /_/ / /_/ /_/ / ___ / /_/ /  __/ / / / /_${RESET}"
+  echo -e "${BLUE}    /|__|\\     ${RESET}${BOLD_WHITE}/_/  |_|\\__,_/\\__/\\____/_/  |_|\\__, /\\___/_/ /_/\\__/${RESET}"
+  echo -e "${BLUE}      ||        ${RESET}${BOLD_WHITE}                         /____/${RESET}"
+  echo -e "${BLUE}      ||        ${RESET}${BOLD_CYAN}Continuous Agent Optimization Platform${RESET}${BOLD_CYAN}   v${AUTOAGENT_VERSION}${RESET}"
+  echo -e "${BLUE}      ||        ${RESET}${DIM}Created by Andrew Huot${RESET}"
+  echo -e "${DIM}  ------------------------------------------------------------------------${RESET}"
   echo ""
 }
 

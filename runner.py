@@ -55,6 +55,12 @@ import yaml
 from agent.config.loader import load_config
 from agent.config.runtime import load_runtime_config
 from agent.config.schema import validate_config, config_diff as schema_config_diff
+from cli.branding import (
+    banner_enabled,
+    echo_startup_banner,
+    get_autoagent_version,
+    render_startup_banner,
+)
 from deployer import Deployer
 from evals import EvalRunner
 from logger import ConversationStore
@@ -88,6 +94,40 @@ CONFIGS_DIR = os.environ.get("AUTOAGENT_CONFIGS", "configs")
 MEMORY_DB = os.environ.get("AUTOAGENT_MEMORY_DB", "optimizer_memory.db")
 REGISTRY_DB = os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db")
 TRACE_DB = os.environ.get("AUTOAGENT_TRACE_DB", ".autoagent/traces.db")
+AUTOAGENT_VERSION = get_autoagent_version()
+
+
+def _banner_flag_options(command):
+    """Add shared banner suppression flags so key startup commands stay script-friendly."""
+    command = click.option(
+        "--no-banner",
+        is_flag=True,
+        default=False,
+        help="Suppress the branded startup banner.",
+    )(command)
+    command = click.option(
+        "--quiet",
+        is_flag=True,
+        default=False,
+        help="Suppress the branded startup banner.",
+    )(command)
+    return command
+
+
+class AutoAgentGroup(click.Group):
+    """Prepend the branded splash to top-level help to make entry into the CLI distinct."""
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        """Capture banner suppression intent early because Click handles help before callbacks."""
+        ctx.meta["banner_enabled"] = "--quiet" not in args and "--no-banner" not in args
+        return super().parse_args(ctx, args)
+
+    def get_help(self, ctx: click.Context) -> str:
+        help_text = super().get_help(ctx)
+        show_banner = ctx.meta.get("banner_enabled", banner_enabled(ctx))
+        if ctx.parent is None and show_banner:
+            return f"{render_startup_banner(AUTOAGENT_VERSION)}\n{help_text}"
+        return help_text
 
 
 def _load_config_dict(config_path: str) -> dict:
@@ -751,14 +791,20 @@ def _load_versioned_config(configs_dir: str, config_version: int | None) -> tupl
 # Root CLI group
 # ---------------------------------------------------------------------------
 
-@click.group()
-@click.version_option(version="1.0.0", prog_name="autoagent")
-def cli() -> None:
+@click.group(cls=AutoAgentGroup, invoke_without_command=True)
+@click.version_option(version=AUTOAGENT_VERSION, prog_name="autoagent")
+@_banner_flag_options
+@click.pass_context
+def cli(ctx: click.Context, quiet: bool, no_banner: bool) -> None:
     """AutoAgent VNextCC — agent optimization platform.
 
     A product-grade platform for iterating ADK agent quality.
     CLI-first, API-ready, with a web console for visual insight.
     """
+    del quiet, no_banner
+    if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
+        click.echo(ctx.get_help())
+        ctx.exit()
 
 
 # ---------------------------------------------------------------------------
@@ -3050,10 +3096,12 @@ def memory_add(note: str, section: str) -> None:
 # ---------------------------------------------------------------------------
 
 @cli.command("server")
+@_banner_flag_options
 @click.option("--host", default="0.0.0.0", show_default=True, help="Host to bind to.")
 @click.option("--port", default=8000, show_default=True, type=int, help="Port to bind to.")
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload for development.")
-def server(host: str, port: int, reload: bool) -> None:
+@click.pass_context
+def server(ctx: click.Context, quiet: bool, no_banner: bool, host: str, port: int, reload: bool) -> None:
     """Start the API server + web console.
 
     Starts the FastAPI backend serving both the REST API and the web console.
@@ -3065,6 +3113,8 @@ def server(host: str, port: int, reload: bool) -> None:
     """
     import uvicorn
 
+    del quiet, no_banner
+    echo_startup_banner(ctx)
     click.echo(f"Starting AutoAgent VNextCC server on {host}:{port}")
     click.echo(f"  API docs:     http://localhost:{port}/docs")
     click.echo(f"  Web console:  http://localhost:{port}")
@@ -4028,6 +4078,7 @@ def autonomous(scope: str, yes: bool, cycles: int, max_loop_cycles: int) -> None
 
 
 @cli.command("quickstart")
+@_banner_flag_options
 @click.option("--agent-name", default="My Agent", show_default=True,
               help="Agent name for AUTOAGENT.md.")
 @click.option("--verbose", is_flag=True, default=False, help="Show detailed output.")
@@ -4035,7 +4086,15 @@ def autonomous(scope: str, yes: bool, cycles: int, max_loop_cycles: int) -> None
               help="Directory to initialize in.")
 @click.option("--open/--no-open", "auto_open", default=True, help="Auto-open web console after completion.")
 @click.pass_context
-def quickstart(ctx: click.Context, agent_name: str, verbose: bool, target_dir: str, auto_open: bool) -> None:
+def quickstart(
+    ctx: click.Context,
+    quiet: bool,
+    no_banner: bool,
+    agent_name: str,
+    verbose: bool,
+    target_dir: str,
+    auto_open: bool,
+) -> None:
     """Run the ENTIRE golden path: init → seed → eval → optimize → summary.
 
     A single command that takes you from zero to optimized agent in minutes.
@@ -4044,6 +4103,8 @@ def quickstart(ctx: click.Context, agent_name: str, verbose: bool, target_dir: s
       autoagent quickstart
       autoagent quickstart --agent-name "Support Bot" --verbose
     """
+    del quiet, no_banner
+    echo_startup_banner(ctx)
     click.echo(click.style("\n✦ AutoAgent Quickstart", fg="cyan", bold=True))
     click.echo(click.style(f"  {_soul_line('quickstart')}", fg="cyan"))
     click.echo(click.style("  Running the full golden path...\n", fg="white"))
@@ -4192,17 +4253,31 @@ def observer_mod_observe(store: ConversationStore):
 # autoagent demo
 # ---------------------------------------------------------------------------
 
-@cli.group("demo")
-def demo() -> None:
+@cli.group("demo", invoke_without_command=True)
+@_banner_flag_options
+@click.pass_context
+def demo(ctx: click.Context, quiet: bool, no_banner: bool) -> None:
     """Demo commands for presentations and quick trials."""
+    del quiet, no_banner
+    if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
+        echo_startup_banner(ctx)
+        click.echo(ctx.get_help())
+        ctx.exit()
 
 
 @demo.command("quickstart")
+@_banner_flag_options
 @click.option("--dir", "target_dir", default=".", show_default=True,
               help="Directory to initialize in.")
 @click.option("--open/--no-open", "auto_open", default=True, help="Auto-open web console after completion.")
 @click.pass_context
-def demo_quickstart(ctx: click.Context, target_dir: str, auto_open: bool) -> None:
+def demo_quickstart(
+    ctx: click.Context,
+    quiet: bool,
+    no_banner: bool,
+    target_dir: str,
+    auto_open: bool,
+) -> None:
     """Interactive demo: seed data, run one optimise cycle, show results.
 
     More visual and concise than quickstart — designed for presentations.
@@ -4210,6 +4285,8 @@ def demo_quickstart(ctx: click.Context, target_dir: str, auto_open: bool) -> Non
     Examples:
       autoagent demo quickstart
     """
+    del quiet, no_banner
+    echo_startup_banner(ctx)
     click.echo(click.style("\n╔══════════════════════════════════════╗", fg="cyan"))
     click.echo(click.style("║       AutoAgent Demo Mode            ║", fg="cyan"))
     click.echo(click.style("╚══════════════════════════════════════╝\n", fg="cyan"))
@@ -4313,6 +4390,7 @@ def demo_quickstart(ctx: click.Context, target_dir: str, auto_open: bool) -> Non
 
 
 @demo.command("vp")
+@_banner_flag_options
 @click.option("--agent-name", default="Acme Support Bot", show_default=True,
               help="Agent name for the demo scenario.")
 @click.option("--company", default="Acme Corp", show_default=True,
@@ -4321,7 +4399,16 @@ def demo_quickstart(ctx: click.Context, target_dir: str, auto_open: bool) -> Non
               help="Skip dramatic pauses between acts.")
 @click.option("--web", is_flag=True, default=False,
               help="Auto-start server and open browser after demo.")
-def demo_vp(agent_name: str, company: str, no_pause: bool, web: bool) -> None:
+@click.pass_context
+def demo_vp(
+    ctx: click.Context,
+    quiet: bool,
+    no_banner: bool,
+    agent_name: str,
+    company: str,
+    no_pause: bool,
+    web: bool,
+) -> None:
     """VP-ready demo with 5-act storytelling structure.
 
     A polished, rehearsed demo flow that showcases AutoAgent's power in under 5 minutes.
@@ -4332,6 +4419,9 @@ def demo_vp(agent_name: str, company: str, no_pause: bool, web: bool) -> None:
       autoagent demo vp --agent-name "Support Bot" --company "Acme Inc"
       autoagent demo vp --no-pause --web
     """
+    del quiet, no_banner
+    echo_startup_banner(ctx)
+
     def pause(seconds: float = 1.0) -> None:
         """Dramatic pause between acts unless --no-pause."""
         if not no_pause:

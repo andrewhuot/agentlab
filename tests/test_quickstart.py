@@ -104,6 +104,17 @@ class TestQuickstartCommand:
         assert result.exit_code == 0
         assert "Quickstart complete" in result.output
 
+    def test_quickstart_shows_branded_banner(self, runner, tmp_dir):
+        result = runner.invoke(cli, ["quickstart", "--dir", tmp_dir, "--no-open"])
+        assert result.exit_code == 0
+        assert "Continuous Agent Optimization Platform" in result.output
+        assert "Created by Andrew Huot" in result.output
+
+    def test_quickstart_no_banner_flag_suppresses_banner(self, runner, tmp_dir):
+        result = runner.invoke(cli, ["quickstart", "--dir", tmp_dir, "--no-open", "--no-banner"])
+        assert result.exit_code == 0
+        assert "Continuous Agent Optimization Platform" not in result.output
+
     def test_quickstart_shows_steps(self, runner, tmp_dir):
         result = runner.invoke(cli, ["quickstart", "--dir", tmp_dir])
         assert "Step 1/4" in result.output
@@ -149,6 +160,12 @@ class TestDemoCommand:
         result = runner.invoke(cli, ["demo", "--help"])
         assert result.exit_code == 0
         assert "demo" in result.output.lower()
+
+    def test_demo_group_shows_branded_banner(self, runner):
+        result = runner.invoke(cli, ["demo"])
+        assert result.exit_code == 0
+        assert "Continuous Agent Optimization Platform" in result.output
+        assert "Created by Andrew Huot" in result.output
 
     def test_demo_quickstart_runs(self, runner, tmp_dir):
         result = runner.invoke(cli, ["demo", "quickstart", "--dir", tmp_dir])
