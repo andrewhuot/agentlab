@@ -180,7 +180,9 @@ wait_for_http() {
   done
 
   echo -e "\r  ${RED}✗  $label did not start within ${max_attempts}s${RESET}"
-  echo -e "  ${DIM}Check logs: cat .autoagent/${label,,}.log${RESET}"
+  local label_lower
+  label_lower=$(echo "$label" | tr '[:upper:]' '[:lower:]')
+  echo -e "  ${DIM}Check logs: cat .autoagent/${label_lower}.log${RESET}"
   return 1
 }
 
