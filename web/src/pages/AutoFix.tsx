@@ -3,7 +3,7 @@ import { PageHeader } from '../components/PageHeader';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { EmptyState } from '../components/EmptyState';
 import { StatusBadge } from '../components/StatusBadge';
-import { useApplyAutoFix, useAutoFixHistory, useAutoFixProposals, useSuggestAutoFix } from '../lib/api';
+import { useApplyAutoFix, useAutoFixHistory, useAutoFixProposals, useRejectAutoFix, useSuggestAutoFix } from '../lib/api';
 import { toastError, toastInfo, toastSuccess } from '../lib/toast';
 import { formatTimestamp, statusLabel, statusVariant } from '../lib/utils';
 
@@ -16,6 +16,7 @@ export function AutoFix() {
   const historyQuery = useAutoFixHistory(50);
   const suggestMutation = useSuggestAutoFix();
   const applyMutation = useApplyAutoFix();
+  const rejectMutation = useRejectAutoFix();
 
   function handleSuggest() {
     suggestMutation.mutate(undefined, {
@@ -56,6 +57,22 @@ export function AutoFix() {
     );
   }
 
+  function handleReject(proposalId: string) {
+    rejectMutation.mutate(
+      { proposal_id: proposalId },
+      {
+        onSuccess: (outcome) => {
+          toastInfo('AutoFix proposal rejected', outcome.message);
+          proposalsQuery.refetch();
+          historyQuery.refetch();
+        },
+        onError: (error) => {
+          toastError('AutoFix reject failed', error.message);
+        },
+      }
+    );
+  }
+
   if (proposalsQuery.isLoading || historyQuery.isLoading) {
     return (
       <div className="space-y-4">
@@ -67,6 +84,7 @@ export function AutoFix() {
 
   const proposals = proposalsQuery.data || [];
   const history = historyQuery.data || [];
+  const actionableStatuses = new Set(['pending', 'suggested', 'evaluated']);
 
   return (
     <div className="space-y-6">
@@ -85,6 +103,18 @@ export function AutoFix() {
         }
       />
 
+      {proposalsQuery.isError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Unable to load AutoFix proposals. Generate a fresh batch or retry the API.
+        </div>
+      )}
+
+      {historyQuery.isError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Unable to load AutoFix history. Recent apply outcomes may be stale.
+        </div>
+      )}
+
       {proposals.length === 0 ? (
         <EmptyState
           icon={Bot}
@@ -98,7 +128,9 @@ export function AutoFix() {
           <h3 className="mb-4 text-sm font-semibold text-gray-900">Proposals</h3>
           <div className="space-y-3">
             {proposals.map((proposal) => {
-              const applyDisabled = applyMutation.isPending || proposal.status !== 'suggested';
+              const canReview = actionableStatuses.has(proposal.status);
+              const applyDisabled = applyMutation.isPending || rejectMutation.isPending || !canReview;
+              const rejectDisabled = applyMutation.isPending || rejectMutation.isPending || !canReview;
               return (
                 <div key={proposal.proposal_id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -122,11 +154,22 @@ export function AutoFix() {
                     </p>
                   )}
 
+                  {proposal.rationale && (
+                    <p className="mt-2 text-sm text-gray-700">{proposal.rationale}</p>
+                  )}
+
                   <pre className="mt-3 overflow-x-auto rounded-md border border-gray-200 bg-white p-2 text-[11px] text-gray-700">
                     {proposal.diff_preview}
                   </pre>
 
-                  <div className="mt-3 flex justify-end">
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button
+                      onClick={() => handleReject(proposal.proposal_id)}
+                      disabled={rejectDisabled}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {rejectMutation.isPending ? 'Rejecting...' : 'Reject proposal'}
+                    </button>
                     <button
                       onClick={() => handleApply(proposal.proposal_id)}
                       disabled={applyDisabled}

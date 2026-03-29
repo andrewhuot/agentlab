@@ -18,6 +18,7 @@ import type {
   ContextSimulationResult,
   ContextTraceAnalysis,
   ConfigDiff,
+  ConfigEditResult,
   ConfigShow,
   ConfigVersion,
   ConversationRecord,
@@ -777,6 +778,33 @@ export function useConfigDiff(versionA: number | null, versionB: number | null) 
   });
 }
 
+export function useNaturalLanguageConfigEdit() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ConfigEditResult,
+    ApiRequestError,
+    { description: string; dry_run: boolean }
+  >({
+    mutationFn: (body) =>
+      fetchApi('/edit', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: (result, body) => {
+      if (body.dry_run || !result.applied) {
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['configs'] });
+      queryClient.invalidateQueries({ queryKey: ['configShow'] });
+      queryClient.invalidateQueries({ queryKey: ['configDiff'] });
+      queryClient.invalidateQueries({ queryKey: ['deployStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['optimizeHistory'] });
+    },
+  });
+}
+
 // Conversations
 export function useConversations(filters: {
   outcome?: string;
@@ -1237,8 +1265,8 @@ export function useAutoFixHistory(limit = 100) {
   return useQuery<AutoFixHistoryEntry[]>({
     queryKey: ['autofix', 'history', limit],
     queryFn: async () => {
-      const payload = await fetchApi<{ history: AutoFixHistoryEntry[] }>(`/autofix/history?limit=${limit}`);
-      return payload.history ?? [];
+      const payload = await fetchApi<{ history?: AutoFixHistoryEntry[]; proposals?: AutoFixHistoryEntry[] }>(`/autofix/history?limit=${limit}`);
+      return payload.history ?? payload.proposals ?? [];
     },
     refetchInterval: 5000,
   });
@@ -1267,6 +1295,21 @@ export function useApplyAutoFix() {
       fetchApi(`/autofix/apply/${proposal_id}`, {
         method: 'POST',
         body: JSON.stringify({ current_config: current_config || {} }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['autofix', 'proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['autofix', 'history'] });
+    },
+  });
+}
+
+export function useRejectAutoFix() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AutoFixApplyOutcome, ApiRequestError, { proposal_id: string }>({
+    mutationFn: ({ proposal_id }) =>
+      fetchApi(`/autofix/reject/${proposal_id}`, {
+        method: 'POST',
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['autofix', 'proposals'] });

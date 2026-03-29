@@ -9,6 +9,10 @@ import { StatusBadge } from '../components/StatusBadge';
 import { toastError, toastSuccess } from '../lib/toast';
 import { formatPercent, formatTimestamp, statusVariant } from '../lib/utils';
 
+type PendingConfirmation =
+  | { type: 'rollback'; canaryVersion: number | null }
+  | { type: 'deploy'; version: number; strategy: 'immediate' };
+
 export function Deploy() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: deployStatus, isLoading, isError, refetch } = useDeployStatus();
@@ -19,6 +23,7 @@ export function Deploy() {
   const [showForm, setShowForm] = useState(false);
   const [version, setVersion] = useState('');
   const [strategy, setStrategy] = useState<'canary' | 'immediate'>('canary');
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const showDeployForm = showForm || searchParams.get('new') === '1';
   const activeConfig = deployStatus?.active_version
     ? configs?.find((entry) => entry.version === deployStatus.active_version) || null
@@ -33,10 +38,16 @@ export function Deploy() {
 
   function handleDeploy() {
     if (!version) return;
+    if (strategy === 'immediate') {
+      setPendingConfirmation({ type: 'deploy', version: Number(version), strategy });
+      return;
+    }
+
     deploy.mutate(
       { version: Number(version), strategy },
       {
         onSuccess: (response) => {
+          setPendingConfirmation(null);
           toastSuccess('Deploy request completed', response.message);
           closeForm();
           setVersion('');
@@ -50,15 +61,61 @@ export function Deploy() {
   }
 
   function handleRollback() {
-    rollback.mutate(undefined, {
-      onSuccess: (response) => {
-        toastSuccess('Rollback completed', response.message);
-        refetch();
-      },
-      onError: (error) => {
-        toastError('Rollback failed', error.message);
-      },
+    setPendingConfirmation({
+      type: 'rollback',
+      canaryVersion: deployStatus?.canary_version ?? null,
     });
+  }
+
+  function confirmPendingAction() {
+    if (!pendingConfirmation) return;
+
+    if (pendingConfirmation.type === 'rollback') {
+      rollback.mutate(undefined, {
+        onSuccess: (response) => {
+          setPendingConfirmation(null);
+          toastSuccess('Rollback completed', response.message);
+          refetch();
+        },
+        onError: (error) => {
+          setPendingConfirmation(null);
+          toastError('Rollback failed', error.message);
+        },
+      });
+      return;
+    }
+
+    deploy.mutate(
+      { version: pendingConfirmation.version, strategy: pendingConfirmation.strategy },
+      {
+        onSuccess: (response) => {
+          setPendingConfirmation(null);
+          toastSuccess('Deploy request completed', response.message);
+          closeForm();
+          setVersion('');
+          refetch();
+        },
+        onError: (error) => {
+          setPendingConfirmation(null);
+          toastError('Deploy failed', error.message);
+        },
+      }
+    );
+  }
+
+  function cancelPendingAction() {
+    setPendingConfirmation(null);
+  }
+
+  const confirmationTitle =
+    pendingConfirmation?.type === 'rollback' ? 'Confirm rollback' : 'Confirm immediate deploy';
+  const confirmationDescription =
+    pendingConfirmation?.type === 'rollback'
+      ? `Rollback canary v${pendingConfirmation.canaryVersion ?? '—'} and return traffic to the active version.`
+      : `Promote v${pendingConfirmation?.type === 'deploy' ? pendingConfirmation.version : '—'} to all traffic immediately.`;
+
+  function isConfirmationPending(type: PendingConfirmation['type']) {
+    return pendingConfirmation?.type === type;
   }
 
   if (isLoading) {
@@ -109,6 +166,27 @@ export function Deploy() {
         </div>
       )}
 
+      {pendingConfirmation && (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <h3 className="text-sm font-semibold text-amber-900">{confirmationTitle}</h3>
+          <p className="mt-1 text-sm text-amber-800">{confirmationDescription}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={cancelPendingAction}
+              className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmPendingAction}
+              className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              {pendingConfirmation.type === 'rollback' ? 'Confirm rollback' : 'Confirm deploy'}
+            </button>
+          </div>
+        </section>
+      )}
+
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border border-gray-200 bg-white p-5">
           <p className="text-xs text-gray-500">Active Version</p>
@@ -152,7 +230,7 @@ export function Deploy() {
               />
               <button
                 onClick={handleRollback}
-                disabled={rollback.isPending}
+                disabled={rollback.isPending || isConfirmationPending('rollback')}
                 className="inline-flex items-center gap-1 rounded-lg border border-red-300 bg-white px-2.5 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-60"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
@@ -182,8 +260,9 @@ export function Deploy() {
         <section className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Version</label>
+              <label htmlFor="deploy-version" className="mb-1 block text-xs text-gray-500">Version</label>
               <select
+                id="deploy-version"
                 value={version}
                 onChange={(event) => setVersion(event.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
@@ -198,8 +277,9 @@ export function Deploy() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Strategy</label>
+              <label htmlFor="deploy-strategy" className="mb-1 block text-xs text-gray-500">Strategy</label>
               <select
+                id="deploy-strategy"
                 value={strategy}
                 onChange={(event) => setStrategy(event.target.value as 'canary' | 'immediate')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
@@ -212,7 +292,7 @@ export function Deploy() {
             <div className="flex items-end">
               <button
                 onClick={handleDeploy}
-                disabled={!version || deploy.isPending}
+                disabled={!version || deploy.isPending || isConfirmationPending('deploy')}
                 className="w-full rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
               >
                 {deploy.isPending ? 'Deploying...' : 'Deploy'}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { useCxAgents, useCxImport } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
@@ -41,6 +42,13 @@ export function CxImport() {
     );
   }
 
+  function handleReset() {
+    setStep(1);
+    setProject('');
+    setLocation('global');
+    setSelectedAgent(null);
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -70,24 +78,36 @@ export function CxImport() {
         <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
           <h3 className="text-sm font-medium text-gray-900">GCP Project</h3>
           <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="my-gcp-project"
-              value={project}
-              onChange={(e) => setProject(e.target.value)}
-              className="flex-1 bg-white border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
-            <input
-              type="text"
-              placeholder="global"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-32 bg-white border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
-            />
+            <div className="flex-1">
+              <label htmlFor="cx-project" className="mb-1 block text-xs text-gray-500">
+                GCP project ID
+              </label>
+              <input
+                id="cx-project"
+                type="text"
+                placeholder="my-gcp-project"
+                value={project}
+                onChange={(e) => setProject(e.target.value)}
+                className="w-full bg-white border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+            <div className="w-32">
+              <label htmlFor="cx-location" className="mb-1 block text-xs text-gray-500">
+                Location
+              </label>
+              <input
+                id="cx-location"
+                type="text"
+                placeholder="global"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full bg-white border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
             <button
               onClick={handleFetchAgents}
               disabled={!project.trim()}
-              className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="self-end px-4 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               List Agents
             </button>
@@ -172,6 +192,32 @@ export function CxImport() {
             )}
             <p><span className="text-gray-500">Snapshot:</span> {importMutation.data.snapshot_path}</p>
             <p><span className="text-gray-500">Surfaces:</span> {importMutation.data.surfaces_mapped.join(', ')}</p>
+          </div>
+          <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-green-700">Next steps</p>
+            <p className="mt-1 text-sm text-green-900">
+              Run an eval to validate the imported behavior, then review the generated config before optimization.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              onClick={handleReset}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+            >
+              Import another agent
+            </button>
+            <Link
+              to="/evals"
+              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
+            >
+              Run evaluations
+            </Link>
+            <Link
+              to="/configs"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+            >
+              Review configs
+            </Link>
           </div>
         </div>
       )}

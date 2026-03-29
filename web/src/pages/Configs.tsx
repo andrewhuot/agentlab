@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Columns3, Settings2 } from 'lucide-react';
-import { useConfigDiff, useConfigs, useConfigShow } from '../lib/api';
+import { useConfigDiff, useConfigs, useConfigShow, useNaturalLanguageConfigEdit } from '../lib/api';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
 import { YamlViewer } from '../components/YamlViewer';
 import { YamlDiff } from '../components/YamlDiff';
+import { toastError, toastSuccess } from '../lib/toast';
 import { formatTimestamp, statusVariant } from '../lib/utils';
+import type { ConfigEditResult } from '../lib/types';
 
 export function Configs() {
   const { data: configs, isLoading, isError, refetch } = useConfigs();
@@ -15,12 +17,16 @@ export function Configs() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareA, setCompareA] = useState<number | null>(null);
   const [compareB, setCompareB] = useState<number | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [previewedDescription, setPreviewedDescription] = useState('');
+  const [editPreview, setEditPreview] = useState<ConfigEditResult | null>(null);
 
   const { data: selectedConfig, isLoading: configLoading } = useConfigShow(selectedVersion);
   const { data: diffData, isLoading: diffLoading } = useConfigDiff(
     compareMode ? compareA : null,
     compareMode ? compareB : null
   );
+  const nlEdit = useNaturalLanguageConfigEdit();
 
   function handleToggleCompare() {
     setCompareMode((current) => !current);
@@ -28,6 +34,66 @@ export function Configs() {
       setCompareA(null);
       setCompareB(null);
     }
+  }
+
+  function handleEditDescriptionChange(value: string) {
+    setEditDescription(value);
+    if (previewedDescription && value.trim() !== previewedDescription) {
+      setEditPreview(null);
+      setPreviewedDescription('');
+    }
+  }
+
+  function handlePreviewEdit() {
+    const description = editDescription.trim();
+    if (!description) {
+      toastError('Description required', 'Describe the config change you want to preview.');
+      return;
+    }
+
+    nlEdit.mutate(
+      { description, dry_run: true },
+      {
+        onSuccess: (result) => {
+          setEditPreview(result);
+          setPreviewedDescription(description);
+          toastSuccess(
+            'Preview ready',
+            result.accepted
+              ? 'Review the diff and apply when ready.'
+              : 'Review the diff before deciding whether to apply.'
+          );
+        },
+        onError: (error) => {
+          toastError('Preview failed', error.message);
+        },
+      }
+    );
+  }
+
+  function handleApplyPreview() {
+    if (!previewedDescription) {
+      toastError('Preview required', 'Preview the edit before applying it.');
+      return;
+    }
+
+    nlEdit.mutate(
+      { description: previewedDescription, dry_run: false },
+      {
+        onSuccess: (result) => {
+          setEditPreview(result);
+          toastSuccess(
+            result.applied ? 'Config edit applied' : 'Config edit not applied',
+            result.applied
+              ? `Optimization attempt ${result.attempt?.attempt_id ?? 'created'}.`
+              : 'The change did not clear acceptance checks.'
+          );
+        },
+        onError: (error) => {
+          toastError('Apply failed', error.message);
+        },
+      }
+    );
   }
 
   if (isLoading) {
@@ -77,6 +143,90 @@ export function Configs() {
         </div>
       )}
 
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-gray-900">Natural-language edit</h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Describe the change you want, preview the YAML diff, then apply it once the direction looks right.
+            </p>
+          </div>
+          {editPreview && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              {editPreview.applied ? 'Applied to the active config.' : 'Preview only until you confirm apply.'}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          <div>
+            <label htmlFor="config-nl-edit" className="mb-1 block text-xs font-medium text-gray-600">
+              Describe config change
+            </label>
+            <textarea
+              id="config-nl-edit"
+              value={editDescription}
+              onChange={(event) => handleEditDescriptionChange(event.target.value)}
+              rows={4}
+              placeholder="Reduce timeout_seconds from six to four for faster retries."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handlePreviewEdit}
+              disabled={nlEdit.isPending}
+              className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+            >
+              {nlEdit.isPending ? 'Previewing...' : 'Preview edit'}
+            </button>
+            <button
+              onClick={handleApplyPreview}
+              disabled={
+                nlEdit.isPending ||
+                !editPreview ||
+                !previewedDescription ||
+                editDescription.trim() !== previewedDescription
+              }
+              className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+            >
+              {nlEdit.isPending ? 'Applying...' : 'Apply previewed edit'}
+            </button>
+            {previewedDescription && editDescription.trim() !== previewedDescription && (
+              <p className="text-xs text-amber-700">
+                Preview is out of date. Run preview again before applying.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {editPreview && (
+          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-700">
+                {editPreview.intent.change_type}
+              </span>
+              {editPreview.intent.target_surfaces.map((surface) => (
+                <span
+                  key={surface}
+                  className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700"
+                >
+                  {surface}
+                </span>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-gray-700">{editPreview.intent.description}</p>
+            <p className="mt-2 text-xs text-gray-600">
+              Composite score: {editPreview.score_before.toFixed(2)} {'->'} {editPreview.score_after.toFixed(2)}
+            </p>
+            <pre className="mt-3 overflow-x-auto rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700">
+              {editPreview.diff || 'No textual diff returned.'}
+            </pre>
+          </div>
+        )}
+      </section>
+
       {compareMode && (
         <section className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -111,6 +261,12 @@ export function Configs() {
               </select>
             </div>
           </div>
+        </section>
+      )}
+
+      {compareMode && !diffLoading && (compareA === null || compareB === null) && (
+        <section className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          Select two versions to compare YAML changes side by side.
         </section>
       )}
 

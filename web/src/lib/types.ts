@@ -237,6 +237,30 @@ export interface ConfigDiff {
   diff_lines: DiffLine[];
 }
 
+export interface ConfigEditIntent {
+  description: string;
+  target_surfaces: string[];
+  change_type: string;
+  constraints: string[];
+}
+
+export interface ConfigEditResult {
+  intent: ConfigEditIntent;
+  diff: string;
+  score_before: number;
+  score_after: number;
+  applied: boolean;
+  accepted: boolean;
+  dry_run: boolean;
+  scores: Record<string, number>;
+  attempt: {
+    attempt_id: string;
+    status: string;
+    score_before: number;
+    score_after: number;
+  } | null;
+}
+
 export interface ToolCallRecord {
   name?: string;
   input?: unknown;

@@ -325,6 +325,20 @@ class AutoFixEngine:
 
         return new_config, f"Applied {proposal.mutation_name} (proposal {proposal_id})"
 
+    def reject(self, proposal_id: str) -> str:
+        """Mark a proposal as rejected so it is removed from the apply queue."""
+        if self.store is None:
+            raise RuntimeError("AutoFixStore is required to reject proposals")
+
+        proposal = self.store.get(proposal_id)
+        if proposal is None:
+            raise KeyError(f"Proposal '{proposal_id}' not found")
+        if proposal.status in {"applied", "rejected", "expired"}:
+            raise ValueError(f"Proposal '{proposal_id}' is already {proposal.status}")
+
+        self.store.update_status(proposal_id, "rejected")
+        return f"Rejected {proposal.mutation_name} (proposal {proposal_id})"
+
     def history(self, limit: int = 50) -> list[AutoFixProposal]:
         """Return past proposals from the store."""
         if self.store is None:

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PauseCircle, RefreshCw } from 'lucide-react';
-import { useLoopStatus, useStartLoop, useStopLoop } from '../lib/api';
+import { PauseCircle, PlayCircle, RefreshCw } from 'lucide-react';
+import { useControlState, useLoopStatus, usePauseControl, useResumeControl, useStartLoop, useStopLoop } from '../lib/api';
 import { wsClient } from '../lib/websocket';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
@@ -12,8 +12,11 @@ import { formatPercent, statusVariant } from '../lib/utils';
 
 export function LoopMonitor() {
   const { data: loopStatus, isLoading, refetch } = useLoopStatus();
+  const controlState = useControlState();
   const startLoop = useStartLoop();
   const stopLoop = useStopLoop();
+  const pauseControl = usePauseControl();
+  const resumeControl = useResumeControl();
 
   const [cycles, setCycles] = useState(10);
   const [delay, setDelay] = useState(1);
@@ -61,6 +64,23 @@ export function LoopMonitor() {
     });
   }
 
+  function handlePauseResume() {
+    const mutation = controlState.data?.paused ? resumeControl : pauseControl;
+    mutation.mutate(undefined, {
+      onSuccess: () => {
+        if (controlState.data?.paused) {
+          toastSuccess('Optimization resumed', 'Loop observations stay live and proposal decisions are active again.');
+        } else {
+          toastInfo('Optimization paused', 'Loop observations continue while optimization decisions stay on hold.');
+        }
+        controlState.refetch();
+      },
+      onError: (error) => {
+        toastError('Failed to update optimization controls', error.message);
+      },
+    });
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -71,6 +91,8 @@ export function LoopMonitor() {
   }
 
   const running = loopStatus?.running ?? false;
+  const optimizationPaused = controlState.data?.paused ?? false;
+  const controlPending = pauseControl.isPending || resumeControl.isPending;
 
   return (
     <div className="space-y-6">
@@ -98,6 +120,48 @@ export function LoopMonitor() {
           )
         }
       />
+
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Optimization Controls</h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Pause optimization decisions while the loop keeps collecting data.
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              Use Stop Loop to end the current run. Pause only freezes proposals, approvals, and deploy decisions.
+            </p>
+          </div>
+          <button
+            onClick={handlePauseResume}
+            disabled={controlPending}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+          >
+            {optimizationPaused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
+            {optimizationPaused
+              ? (resumeControl.isPending ? 'Resuming...' : 'Resume optimization')
+              : (pauseControl.isPending ? 'Pausing...' : 'Pause optimization')}
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">Loop run</p>
+            <div className="mt-1">
+              <StatusBadge variant={running ? 'running' : 'pending'} label={running ? 'running' : 'idle'} />
+            </div>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">Optimization state</p>
+            <div className="mt-1">
+              <StatusBadge
+                variant={statusVariant(optimizationPaused ? 'warning' : 'running')}
+                label={optimizationPaused ? 'paused' : 'active'}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {!running && (
         <section className="rounded-lg border border-gray-200 bg-white p-4">

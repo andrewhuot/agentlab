@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import type { ExperimentCard as ExperimentCardType, ArchiveRole } from '../lib/types';
 import { StatusBadge } from './StatusBadge';
@@ -98,6 +99,14 @@ function getMetadata(experiment: ExperimentCardType): ExperimentMetadata {
   };
 }
 
+function primaryActionForStatus(status: ExperimentCardType['status']) {
+  if (status === 'accepted') {
+    return { label: 'Monitor deploy', href: '/deploy' };
+  }
+
+  return { label: 'Approve or reject', href: '/changes' };
+}
+
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -105,6 +114,7 @@ function getMetadata(experiment: ExperimentCardType): ExperimentMetadata {
 export function ExperimentCardComponent({ experiment }: ExperimentCardProps) {
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const meta = getMetadata(experiment);
+  const primaryAction = primaryActionForStatus(experiment.status);
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 transition-colors hover:border-gray-300">
@@ -238,6 +248,21 @@ export function ExperimentCardComponent({ experiment }: ExperimentCardProps) {
           )}
         </div>
       )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
+        <Link
+          to={primaryAction.href}
+          className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gray-800"
+        >
+          {primaryAction.label}
+        </Link>
+        <Link
+          to="/configs"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          View config versions
+        </Link>
+      </div>
     </div>
   );
 }

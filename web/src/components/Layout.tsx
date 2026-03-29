@@ -7,57 +7,111 @@ import { ToastViewport } from './ToastViewport';
 import { MockModeBanner } from './MockModeBanner';
 import { wsClient } from '../lib/websocket';
 
-const pageTitles: Record<string, string> = {
-  '/': 'Builder Workspace',
-  '/builder': 'Builder Workspace',
-  '/dashboard': 'Dashboard',
-  '/demo': 'Demo',
-  '/assistant': 'Assistant',
-  '/evals': 'Eval Runs',
-  '/optimize': 'Optimize',
-  '/live-optimize': 'Live Optimize',
-  '/configs': 'Configs',
-  '/conversations': 'Conversations',
-  '/deploy': 'Deploy',
-  '/loop': 'Loop Monitor',
-  '/opportunities': 'Opportunities',
-  '/changes': 'Changes',
-  '/experiments': 'Experiments',
-  '/traces': 'Traces',
-  '/events': 'Event Log',
-  '/autofix': 'AutoFix',
-  '/judge-ops': 'Judge Ops',
-  '/context': 'Context Workbench',
-  '/intelligence': 'Intelligence Studio',
-  '/runbooks': 'Runbooks',
-  '/skills': 'Skills',
-  '/registry': 'Registry',
-  '/memory': 'Project Memory',
-  '/blame': 'Blame Map',
-  '/scorer-studio': 'Scorer Studio',
-  '/adk/import': 'ADK Import',
-  '/adk/deploy': 'ADK Deploy',
-  '/cx/import': 'CX Import',
-  '/cx/deploy': 'CX Deploy',
-  '/agent-skills': 'Agent Skills',
-  '/agent-studio': 'Agent Studio',
-  '/notifications': 'Notifications',
-  '/sandbox': 'Sandbox',
-  '/knowledge': 'Knowledge',
-  '/what-if': 'What-If Replay',
-  '/reviews': 'Collaborative Review',
-  '/reward-studio': 'Reward Studio',
-  '/preference-inbox': 'Preference Inbox',
-  '/policy-candidates': 'Policy Candidates',
-  '/reward-audit': 'Reward Audit',
-  '/settings': 'Settings',
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+export interface RouteContext {
+  title: string;
+  breadcrumbs: BreadcrumbItem[];
+}
+
+const staticRouteContexts: Record<string, RouteContext> = {
+  '/': { title: 'Builder Workspace', breadcrumbs: [] },
+  '/builder': { title: 'Builder Workspace', breadcrumbs: [] },
+  '/builder/demo': { title: 'Builder Demo', breadcrumbs: [] },
+  '/dashboard': { title: 'Dashboard', breadcrumbs: [{ label: 'Operate' }] },
+  '/demo': { title: 'Demo', breadcrumbs: [{ label: 'Operate' }] },
+  '/assistant': { title: 'Assistant', breadcrumbs: [] },
+  '/evals': { title: 'Eval Runs', breadcrumbs: [{ label: 'Operate' }] },
+  '/optimize': { title: 'Optimize', breadcrumbs: [{ label: 'Improve' }] },
+  '/live-optimize': { title: 'Live Optimize', breadcrumbs: [{ label: 'Improve' }] },
+  '/configs': { title: 'Config Versions', breadcrumbs: [{ label: 'Governance' }] },
+  '/conversations': { title: 'Conversations', breadcrumbs: [{ label: 'Operate' }] },
+  '/deploy': { title: 'Deploy', breadcrumbs: [{ label: 'Operate' }] },
+  '/loop': { title: 'Loop Monitor', breadcrumbs: [{ label: 'Operate' }] },
+  '/opportunities': { title: 'Opportunities', breadcrumbs: [{ label: 'Improve' }] },
+  '/changes': {
+    title: 'Change Review',
+    breadcrumbs: [{ label: 'Improve' }, { label: 'Change Review' }],
+  },
+  '/experiments': { title: 'Experiments', breadcrumbs: [{ label: 'Improve' }] },
+  '/traces': { title: 'Traces', breadcrumbs: [{ label: 'Operate' }] },
+  '/events': { title: 'Event Log', breadcrumbs: [{ label: 'Operate' }] },
+  '/autofix': { title: 'AutoFix', breadcrumbs: [{ label: 'Improve' }] },
+  '/judge-ops': { title: 'Judge Ops', breadcrumbs: [{ label: 'Governance' }] },
+  '/context': { title: 'Context Workbench', breadcrumbs: [{ label: 'Analysis' }] },
+  '/intelligence': {
+    title: 'Intelligence Studio',
+    breadcrumbs: [{ label: 'Analysis' }, { label: 'Build Agent' }],
+  },
+  '/runbooks': { title: 'Runbooks', breadcrumbs: [{ label: 'Governance' }] },
+  '/skills': { title: 'Skills', breadcrumbs: [{ label: 'Analysis' }] },
+  '/registry': { title: 'Registry Browser', breadcrumbs: [{ label: 'Analysis' }] },
+  '/memory': { title: 'Project Memory', breadcrumbs: [{ label: 'Governance' }] },
+  '/blame': { title: 'Blame Map', breadcrumbs: [{ label: 'Analysis' }] },
+  '/scorer-studio': { title: 'Scorer Studio', breadcrumbs: [{ label: 'Governance' }] },
+  '/adk/import': {
+    title: 'ADK Import',
+    breadcrumbs: [{ label: 'Integrations' }, { label: 'ADK Import' }],
+  },
+  '/adk/deploy': {
+    title: 'ADK Deploy',
+    breadcrumbs: [{ label: 'Integrations' }, { label: 'ADK Deploy' }],
+  },
+  '/cx/import': {
+    title: 'CX Import',
+    breadcrumbs: [{ label: 'Integrations' }, { label: 'CX Import' }],
+  },
+  '/cx/deploy': {
+    title: 'CX Deploy',
+    breadcrumbs: [{ label: 'Integrations' }, { label: 'CX Deploy' }],
+  },
+  '/agent-skills': { title: 'Agent Skills', breadcrumbs: [{ label: 'Analysis' }] },
+  '/agent-studio': {
+    title: 'Agent Studio',
+    breadcrumbs: [{ label: 'Improve' }, { label: 'Agent Studio' }],
+  },
+  '/notifications': { title: 'Notifications', breadcrumbs: [{ label: 'Governance' }] },
+  '/sandbox': { title: 'Sandbox', breadcrumbs: [{ label: 'Analysis' }] },
+  '/knowledge': { title: 'Knowledge', breadcrumbs: [{ label: 'Analysis' }] },
+  '/what-if': { title: 'What-If Replay', breadcrumbs: [{ label: 'Analysis' }] },
+  '/reviews': { title: 'Collaborative Review', breadcrumbs: [{ label: 'Analysis' }] },
+  '/reward-studio': { title: 'Reward Studio', breadcrumbs: [{ label: 'Policy Optimization' }] },
+  '/preference-inbox': {
+    title: 'Preference Inbox',
+    breadcrumbs: [{ label: 'Policy Optimization' }],
+  },
+  '/policy-candidates': {
+    title: 'Policy Candidates',
+    breadcrumbs: [{ label: 'Policy Optimization' }],
+  },
+  '/reward-audit': { title: 'Reward Audit', breadcrumbs: [{ label: 'Policy Optimization' }] },
+  '/settings': { title: 'Settings', breadcrumbs: [{ label: 'Governance' }] },
 };
 
-function getPageTitle(pathname: string): string {
-  if (pageTitles[pathname]) return pageTitles[pathname];
-  if (pathname.startsWith('/evals/')) return 'Eval Detail';
-  if (pathname.startsWith('/builder/')) return 'Builder Workspace';
-  return 'AutoAgent';
+export function getRouteContext(pathname: string): RouteContext {
+  if (pathname.startsWith('/evals/')) {
+    const runId = pathname.split('/')[2] || '';
+    return {
+      title: 'Eval Detail',
+      breadcrumbs: [
+        { label: 'Operate' },
+        { label: 'Eval Runs', href: '/evals' },
+        { label: `Run ${runId.slice(0, 8)}` },
+      ],
+    };
+  }
+
+  if (pathname.startsWith('/builder/')) {
+    return { title: 'Builder Workspace', breadcrumbs: [] };
+  }
+
+  return staticRouteContexts[pathname] ?? {
+    title: 'AutoAgent',
+    breadcrumbs: [],
+  };
 }
 
 function useGlobalShortcuts() {
@@ -90,27 +144,17 @@ function useGlobalShortcuts() {
   }, [navigate]);
 }
 
-function breadcrumbs(pathname: string): Array<{ label: string; href?: string }> {
-  if (pathname.startsWith('/evals/')) {
-    const runId = pathname.split('/')[2] || '';
-    return [
-      { label: 'Eval Runs', href: '/evals' },
-      { label: `Run ${runId.slice(0, 8)}` },
-    ];
-  }
-  return [];
-}
-
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const title = getPageTitle(location.pathname);
+  const routeContext = useMemo(() => getRouteContext(location.pathname), [location.pathname]);
+  const title = routeContext.title;
   const isAssistantRoute = location.pathname === '/assistant';
   const isBuilderRoute =
     location.pathname === '/' ||
     location.pathname === '/builder' ||
     location.pathname.startsWith('/builder/');
   const isFullWidthRoute = isAssistantRoute || isBuilderRoute;
-  const crumbItems = useMemo(() => breadcrumbs(location.pathname), [location.pathname]);
+  const crumbItems = routeContext.breadcrumbs;
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useGlobalShortcuts();

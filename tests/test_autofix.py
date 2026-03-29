@@ -348,6 +348,24 @@ class TestAutoFixEngine:
         with pytest.raises(RuntimeError, match="AutoFixStore is required"):
             engine.apply("any-id", {})
 
+    def test_reject_pending_proposal(self, store: AutoFixStore) -> None:
+        """Reject updates the proposal status so it leaves the approval queue."""
+        store.save(_make_proposal(proposal_id="reject-01"))
+
+        engine = AutoFixEngine(proposers=[], mutation_registry=None, store=store)
+        message = engine.reject("reject-01")
+
+        assert "reject-01" in message
+        updated = store.get("reject-01")
+        assert updated is not None
+        assert updated.status == "rejected"
+
+    def test_reject_without_store(self) -> None:
+        """Rejecting without a store raises RuntimeError."""
+        engine = AutoFixEngine(proposers=[], mutation_registry=None, store=None)
+        with pytest.raises(RuntimeError, match="AutoFixStore is required"):
+            engine.reject("any-id")
+
     def test_history(self, store: AutoFixStore) -> None:
         """History returns stored proposals."""
         now = time.time()
