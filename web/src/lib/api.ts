@@ -653,6 +653,81 @@ export function useStartEval() {
   });
 }
 
+// Auto-eval generation
+export function useGenerateEvals() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { suite_id: string; status: string; total_cases: number; message: string },
+    ApiRequestError,
+    { agent_config: Record<string, unknown>; agent_name?: string }
+  >({
+    mutationFn: (params) =>
+      fetchApi('/eval/generate', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['generatedSuite'] });
+    },
+  });
+}
+
+export function useGeneratedSuite(suiteId: string | undefined) {
+  return useQuery<import('./types').GeneratedEvalSuite>({
+    queryKey: ['generatedSuite', suiteId],
+    enabled: Boolean(suiteId),
+    queryFn: () => fetchApi(`/eval/generated/${suiteId}`),
+  });
+}
+
+export function useAcceptSuite() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { suite_id: string; status: string; total_cases: number; message: string },
+    ApiRequestError,
+    string
+  >({
+    mutationFn: (suiteId) =>
+      fetchApi(`/eval/generated/${suiteId}/accept`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['generatedSuite'] });
+    },
+  });
+}
+
+export function useUpdateGeneratedCase() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    import('./types').GeneratedEvalCase,
+    ApiRequestError,
+    { suiteId: string; caseId: string; updates: Record<string, unknown> }
+  >({
+    mutationFn: ({ suiteId, caseId, updates }) =>
+      fetchApi(`/eval/generated/${suiteId}/cases/${caseId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['generatedSuite'] });
+    },
+  });
+}
+
+export function useDeleteGeneratedCase() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, ApiRequestError, { suiteId: string; caseId: string }>({
+    mutationFn: ({ suiteId, caseId }) =>
+      fetchApi(`/eval/generated/${suiteId}/cases/${caseId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['generatedSuite'] });
+    },
+  });
+}
+
 // Optimize
 export function useOptimizeHistory() {
   return useQuery<OptimizationAttempt[]>({

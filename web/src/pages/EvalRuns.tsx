@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FlaskConical, Plus, X } from 'lucide-react';
+import { FlaskConical, Plus, X, Wand2 } from 'lucide-react';
 import { useApplyCurriculum, useConfigs, useCurriculumBatches, useEvalRuns, useGenerateCurriculum, useStartEval } from '../lib/api';
 import { StatusBadge } from '../components/StatusBadge';
 import { EmptyState } from '../components/EmptyState';
 import { PageHeader } from '../components/PageHeader';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
 import { ScoreDisplay } from '../components/ScoreDisplay';
+import { EvalGenerator } from '../components/EvalGenerator';
+import { GeneratedEvalReview } from '../components/GeneratedEvalReview';
 import { wsClient } from '../lib/websocket';
 import { toastError, toastInfo, toastSuccess } from '../lib/toast';
 import { formatTimestamp, statusVariant } from '../lib/utils';
@@ -22,6 +24,8 @@ export function EvalRuns() {
   const applyCurriculum = useApplyCurriculum();
 
   const [showForm, setShowForm] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [generatedSuiteId, setGeneratedSuiteId] = useState<string | null>(null);
   const [configVersion, setConfigVersion] = useState<string>('');
   const [category, setCategory] = useState('');
   const [selectedRuns, setSelectedRuns] = useState<string[]>([]);
@@ -133,15 +137,63 @@ export function EvalRuns() {
         title="Eval Runs"
         description="Launch evaluations, inspect progress, and compare the quality impact of different runs."
         actions={
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-          >
-            <Plus className="h-4 w-4" />
-            New Eval Run
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowGenerator(true); setGeneratedSuiteId(null); }}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              <Wand2 className="h-4 w-4" />
+              Generate Evals
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+            >
+              <Plus className="h-4 w-4" />
+              New Eval Run
+            </button>
+          </div>
         }
       />
+
+      {showGenerator && !generatedSuiteId && (
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">AI Eval Generation</h3>
+            <button
+              onClick={() => setShowGenerator(false)}
+              className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <EvalGenerator
+            onSuiteGenerated={(suiteId) => setGeneratedSuiteId(suiteId)}
+          />
+        </section>
+      )}
+
+      {generatedSuiteId && (
+        <section className="rounded-lg border border-gray-200 bg-white p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">Review Generated Evals</h3>
+            <button
+              onClick={() => { setGeneratedSuiteId(null); setShowGenerator(false); }}
+              className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <GeneratedEvalReview
+            suiteId={generatedSuiteId}
+            onAccepted={() => {
+              toastSuccess('Eval suite accepted', 'Generated cases are now available for eval runs.');
+              setGeneratedSuiteId(null);
+              setShowGenerator(false);
+            }}
+          />
+        </section>
+      )}
 
       {isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

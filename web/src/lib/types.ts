@@ -183,6 +183,43 @@ export interface EvalRun {
   passed_cases: number;
 }
 
+// Auto-generated eval types
+export interface GeneratedEvalCase {
+  case_id: string;
+  category: string;
+  user_message: string;
+  expected_behavior: string;
+  expected_specialist: string;
+  expected_keywords: string[];
+  expected_tool: string | null;
+  safety_probe: boolean;
+  difficulty: 'easy' | 'medium' | 'hard';
+  rationale: string;
+  split: string;
+}
+
+export interface GeneratedEvalSuite {
+  suite_id: string;
+  agent_name: string;
+  created_at: string;
+  status: 'generating' | 'ready' | 'accepted';
+  categories: Record<string, GeneratedEvalCase[]>;
+  summary: {
+    total_cases: number;
+    categories: Record<string, number>;
+    difficulty_distribution: Record<string, number>;
+    behavior_distribution: Record<string, number>;
+    safety_probes: number;
+  };
+}
+
+export interface GenerateEvalResponse {
+  suite_id: string;
+  status: string;
+  total_cases: number;
+  message: string;
+}
+
 export interface OptimizationAttempt {
   attempt_id: string;
   timestamp: string;

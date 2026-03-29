@@ -1167,6 +1167,106 @@ def eval_list() -> None:
             click.echo(f"  {f.name}  (invalid format)")
 
 
+@eval_group.command("generate")
+@click.option("--config", "config_path", default=None, help="Path to agent config YAML/JSON to analyze.")
+@click.option("--agent-name", default="agent", help="Agent name for labeling the eval suite.")
+@click.option("--from-transcripts", is_flag=True, default=False, help="Generate from conversation transcripts (future).")
+@click.option("--output", default=None, help="Write generated eval suite to JSON file.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
+@click.option("--provider", default=None, type=click.Choice(["openai", "anthropic", "mock"]), help="Force LLM provider.")
+def eval_generate(
+    config_path: str | None,
+    agent_name: str,
+    from_transcripts: bool,
+    output: str | None,
+    json_output: bool,
+    provider: str | None,
+) -> None:
+    """AI-generate a comprehensive eval suite from agent config.
+
+    Examples:
+      autoagent eval generate
+      autoagent eval generate --config agent_config.yaml
+      autoagent eval generate --config agent_config.yaml --output evals.json
+      autoagent eval generate --provider mock --agent-name "My Agent"
+    """
+    from evals.auto_generator import AutoEvalGenerator
+
+    if not json_output:
+        click.echo(click.style("✦ Auto-generating eval suite", fg="cyan"))
+        _print_cli_plan(
+            "Generation plan",
+            [
+                "Analyze agent config (system prompt, tools, routing, policies)",
+                "Generate eval cases across 8 categories via AI",
+                "Output structured eval suite",
+            ],
+        )
+
+    # Load agent config
+    agent_config: dict = {}
+    if config_path:
+        config_file = Path(config_path)
+        if not config_file.exists():
+            click.echo(click.style(f"Config file not found: {config_path}", fg="red"), err=True)
+            sys.exit(1)
+        raw = config_file.read_text(encoding="utf-8")
+        if config_file.suffix in (".yaml", ".yml"):
+            agent_config = yaml.safe_load(raw) or {}
+        else:
+            agent_config = json.loads(raw)
+        if not json_output:
+            click.echo(f"  Loaded config: {config_path}")
+    else:
+        # Try loading default autoagent.yaml
+        default_config = Path("autoagent.yaml")
+        if default_config.exists():
+            agent_config = yaml.safe_load(default_config.read_text(encoding="utf-8")) or {}
+            if not json_output:
+                click.echo("  Loaded default config: autoagent.yaml")
+        else:
+            if not json_output:
+                click.echo("  No config provided — using empty config (mock cases)")
+
+    if from_transcripts:
+        if not json_output:
+            click.echo("  --from-transcripts: transcript-based generation (future feature)")
+
+    generator = AutoEvalGenerator(llm_provider=provider)
+    if not json_output:
+        click.echo("  Generating...")
+
+    suite = generator.generate(agent_config=agent_config, agent_name=agent_name)
+
+    if json_output:
+        click.echo(json.dumps(suite.to_dict(), indent=2))
+    else:
+        click.echo(click.style(f"\n  Suite {suite.suite_id}", fg="green"))
+        click.echo(f"  Status:     {suite.status}")
+        click.echo(f"  Total cases: {suite.total_cases}")
+        click.echo()
+        for cat, cases in suite.categories.items():
+            difficulty_str = ", ".join(
+                f"{d}={sum(1 for c in cases if c.difficulty == d)}"
+                for d in ("easy", "medium", "hard")
+                if any(c.difficulty == d for c in cases)
+            )
+            click.echo(f"  {cat:<20s} {len(cases):>3d} cases  ({difficulty_str})")
+
+        summary = suite.summary
+        click.echo(f"\n  Safety probes: {summary.get('safety_probes', 0)}")
+        click.echo(click.style(f"\n  Mood: {_score_mood(0.85)}", fg="magenta"))
+        _print_next_actions([
+            "autoagent eval run --suite <generated_cases>",
+            "autoagent eval generate --output evals.json",
+        ])
+
+    if output:
+        Path(output).write_text(json.dumps(suite.to_dict(), indent=2), encoding="utf-8")
+        if not json_output:
+            click.echo(f"\n  Written to {output}")
+
+
 # ---------------------------------------------------------------------------
 # autoagent optimize
 # ---------------------------------------------------------------------------

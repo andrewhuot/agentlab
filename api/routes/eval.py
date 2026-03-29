@@ -1,4 +1,4 @@
-"""Eval endpoints — run evals, list runs, inspect results."""
+"""Eval endpoints — run evals, list runs, inspect results, auto-generate."""
 
 from __future__ import annotations
 
@@ -10,13 +10,20 @@ import yaml
 from fastapi import APIRouter, HTTPException, Request
 
 from evals.scorer import composite_breakdown
+from evals.auto_generator import AutoEvalGenerator
 from api.models import (
+    AcceptSuiteResponse,
+    AutoEvalGenerateRequest,
+    AutoEvalGenerateResponse,
     EvalCaseResult,
     EvalRunRequest,
     EvalRunResponse,
     EvalResultsResponse,
+    GeneratedCaseResponse,
+    GeneratedSuiteResponse,
     TaskStatus,
     TaskStatusEnum,
+    UpdateCaseRequest,
 )
 from api.tasks import Task
 
@@ -190,3 +197,80 @@ async def get_eval_history_run(run_id: str, request: Request) -> dict:
     if run is None:
         raise HTTPException(status_code=404, detail=f"Eval run not found: {run_id}")
     return run
+
+
+# ---------------------------------------------------------------------------
+# Auto-eval generation endpoints
+# ---------------------------------------------------------------------------
+
+# Module-level generator instance (shared across requests)
+_auto_eval_generator = AutoEvalGenerator()
+
+
+@router.post("/generate", response_model=AutoEvalGenerateResponse, status_code=201)
+async def generate_eval_suite(body: AutoEvalGenerateRequest) -> AutoEvalGenerateResponse:
+    """Analyze an agent config and generate a comprehensive eval suite."""
+    suite = _auto_eval_generator.generate(
+        agent_config=body.agent_config,
+        agent_name=body.agent_name,
+    )
+    return AutoEvalGenerateResponse(
+        suite_id=suite.suite_id,
+        status=suite.status,
+        total_cases=suite.total_cases,
+        message=f"Generated {suite.total_cases} eval cases across {len(suite.categories)} categories",
+    )
+
+
+@router.get("/generated/{suite_id}", response_model=GeneratedSuiteResponse)
+async def get_generated_suite(suite_id: str) -> GeneratedSuiteResponse:
+    """Fetch a previously generated eval suite."""
+    suite = _auto_eval_generator.get_suite(suite_id)
+    if suite is None:
+        raise HTTPException(status_code=404, detail=f"Generated suite not found: {suite_id}")
+    suite_dict = suite.to_dict()
+    return GeneratedSuiteResponse(**suite_dict)
+
+
+@router.post("/generated/{suite_id}/accept", response_model=AcceptSuiteResponse)
+async def accept_generated_suite(suite_id: str) -> AcceptSuiteResponse:
+    """Accept a generated eval suite, making it available for eval runs."""
+    suite = _auto_eval_generator.accept_suite(suite_id)
+    if suite is None:
+        raise HTTPException(status_code=404, detail=f"Generated suite not found: {suite_id}")
+    return AcceptSuiteResponse(
+        suite_id=suite.suite_id,
+        status=suite.status,
+        total_cases=suite.total_cases,
+        message=f"Accepted suite with {suite.total_cases} cases",
+    )
+
+
+@router.patch("/generated/{suite_id}/cases/{case_id}", response_model=GeneratedCaseResponse)
+async def update_generated_case(
+    suite_id: str,
+    case_id: str,
+    body: UpdateCaseRequest,
+) -> GeneratedCaseResponse:
+    """Edit a specific case within a generated suite."""
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No updates provided")
+    case = _auto_eval_generator.update_case(suite_id, case_id, updates)
+    if case is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Case {case_id} not found in suite {suite_id}",
+        )
+    return GeneratedCaseResponse(**case.to_dict())
+
+
+@router.delete("/generated/{suite_id}/cases/{case_id}", status_code=204)
+async def delete_generated_case(suite_id: str, case_id: str) -> None:
+    """Delete a specific case from a generated suite."""
+    deleted = _auto_eval_generator.delete_case(suite_id, case_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Case {case_id} not found in suite {suite_id}",
+        )

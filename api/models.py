@@ -94,6 +94,64 @@ class EvalResultsResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Auto-eval generation models
+# ---------------------------------------------------------------------------
+
+class AutoEvalGenerateRequest(BaseModel):
+    """Request to generate an eval suite from an agent config."""
+    agent_config: dict = Field(..., description="Agent configuration dict (system_prompt, tools, routing_rules, policies)")
+    agent_name: str = Field("agent", description="Human-readable agent name")
+
+class AutoEvalGenerateResponse(BaseModel):
+    """Response after triggering eval generation."""
+    suite_id: str = Field(..., description="Generated suite identifier")
+    status: str = Field(..., description="Suite status: generating, ready, accepted")
+    total_cases: int = Field(0, description="Total cases generated")
+    message: str = Field("", description="Human-readable status message")
+
+class GeneratedCaseResponse(BaseModel):
+    """A single generated eval case."""
+    case_id: str
+    category: str
+    user_message: str
+    expected_behavior: str
+    expected_specialist: str = ""
+    expected_keywords: list[str] = Field(default_factory=list)
+    expected_tool: Optional[str] = None
+    safety_probe: bool = False
+    difficulty: str = "medium"
+    rationale: str = ""
+    split: str = "tuning"
+
+class GeneratedSuiteResponse(BaseModel):
+    """Full generated eval suite response."""
+    suite_id: str
+    agent_name: str
+    created_at: str
+    status: str
+    categories: dict[str, list[GeneratedCaseResponse]] = Field(default_factory=dict)
+    summary: dict[str, Any] = Field(default_factory=dict)
+
+class UpdateCaseRequest(BaseModel):
+    """Request to update a generated eval case."""
+    user_message: Optional[str] = None
+    expected_behavior: Optional[str] = None
+    expected_specialist: Optional[str] = None
+    expected_keywords: Optional[list[str]] = None
+    expected_tool: Optional[str] = None
+    safety_probe: Optional[bool] = None
+    difficulty: Optional[str] = None
+    rationale: Optional[str] = None
+
+class AcceptSuiteResponse(BaseModel):
+    """Response after accepting a generated suite."""
+    suite_id: str
+    status: str
+    total_cases: int
+    message: str
+
+
+# ---------------------------------------------------------------------------
 # Optimize models
 # ---------------------------------------------------------------------------
 
