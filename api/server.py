@@ -106,6 +106,7 @@ def _seed_demo_data_if_empty(conversation_store) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize shared resources on startup, clean up on shutdown."""
+    from agent import create_eval_agent
     from agent.config.runtime import load_runtime_config
     from agent.tracing import instrument_eval_runner
     from deployer.canary import Deployer
@@ -151,7 +152,12 @@ async def lifespan(app: FastAPI):
 
     # High-level components
     observer = Observer(conversation_store)
+    eval_agent = create_eval_agent(
+        runtime,
+        default_config=version_manager.get_active_config(),
+    )
     eval_runner = EvalRunner(
+        agent_fn=eval_agent.run,
         history_db_path=runtime.eval.history_db_path,
         cache_enabled=runtime.eval.cache_enabled,
         cache_db_path=runtime.eval.cache_db_path,
@@ -160,9 +166,7 @@ async def lifespan(app: FastAPI):
         token_cost_per_1k=runtime.eval.token_cost_per_1k,
     )
     instrument_eval_runner(eval_runner, trace_store, agent_path="eval", branch="api")
-    eval_runner.mock_mode_messages = [
-        "Eval harness is using mock_agent_response, so eval scores remain simulated until a real agent_fn is wired in."
-    ]
+    eval_runner.mock_mode_messages = list(eval_agent.mock_mode_messages)
     router = build_router_from_runtime_config(runtime.optimizer)
     proposer = Proposer(
         use_mock=router.mock_mode,
