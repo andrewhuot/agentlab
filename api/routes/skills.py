@@ -47,8 +47,8 @@ def _get_skill_store(request: Request) -> SkillStore:
     which is for executable skills. The core.skills system is the unified
     build-time + run-time skill management layer.
     """
-    # For now, create a store on demand. In production, initialize in lifespan.
-    # TODO: Add to api.server.py lifespan as app.state.core_skill_store
+    # app.state.core_skill_store is initialized in api.server.py lifespan.
+    # Fall back to on-demand creation only in tests or standalone use.
     store = getattr(request.app.state, "core_skill_store", None)
     if store is None:
         store = SkillStore(db_path=".autoagent/core_skills.db")
