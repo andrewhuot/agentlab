@@ -55,12 +55,23 @@ import yaml
 from agent.config.loader import load_config
 from agent.config.runtime import load_runtime_config
 from agent.config.schema import validate_config, config_diff as schema_config_diff
+from cli.bootstrap import bootstrap_workspace, seed_demo_workspace
 from cli.branding import (
     banner_enabled,
     echo_startup_banner,
     get_autoagent_version,
     render_startup_banner,
 )
+from cli.intelligence import (
+    TranscriptReportStore,
+    _build_generation_prompt,
+    _load_replayed_report,
+    intelligence_group,
+)
+from cli.mcp_setup import mcp_group
+from cli.mode import mode_group, summarize_mode_state
+from cli.status import StatusSnapshot, render_status as render_status_home
+from cli.workspace import AutoAgentWorkspace, discover_workspace
 from deployer import Deployer
 from evals import EvalRunner
 from logger import ConversationStore
@@ -135,6 +146,24 @@ def _load_config_dict(config_path: str) -> dict:
     """Load a raw config dictionary from disk."""
     with Path(config_path).open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle)
+
+
+def _enter_discovered_workspace(command_name: str | None) -> AutoAgentWorkspace | None:
+    """Switch cwd to the nearest discovered workspace for workspace-aware commands."""
+    if command_name == "init":
+        return None
+    workspace = discover_workspace()
+    if workspace is not None and Path.cwd() != workspace.root:
+        os.chdir(workspace.root)
+    return workspace
+
+
+def _require_workspace(command_name: str | None = None) -> AutoAgentWorkspace:
+    """Return the current workspace or raise a helpful CLI error."""
+    workspace = _enter_discovered_workspace(command_name)
+    if workspace is None:
+        raise click.ClickException("No AutoAgent workspace found. Run autoagent init")
+    return workspace
 
 
 def _make_nl_scorer():
@@ -814,6 +843,13 @@ def cli(ctx: click.Context, quiet: bool, no_banner: bool) -> None:
     if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
         click.echo(ctx.get_help())
         ctx.exit()
+    ctx.obj = ctx.obj or {}
+    ctx.obj["workspace"] = _enter_discovered_workspace(ctx.invoked_subcommand)
+
+
+cli.add_command(mode_group)
+cli.add_command(mcp_group)
+cli.add_command(intelligence_group)
 
 
 # ---------------------------------------------------------------------------
@@ -826,94 +862,88 @@ def cli(ctx: click.Context, quiet: bool, no_banner: bool) -> None:
               help="Project template to scaffold.")
 @click.option("--dir", "target_dir", default=".", show_default=True,
               help="Directory to initialize in.")
+@click.option("--name", default=None,
+              help="Optional workspace folder name to create inside --dir.")
 @click.option("--agent-name", default="My Agent", show_default=True,
               help="Agent name for AUTOAGENT.md.")
 @click.option("--platform", default="Google ADK", show_default=True,
               help="Platform for AUTOAGENT.md.")
 @click.option("--with-synthetic-data/--no-synthetic-data", default=True,
               show_default=True, help="Seed synthetic conversations and evals.")
-def init_project(template: str, target_dir: str, agent_name: str,
-                 platform: str, with_synthetic_data: bool) -> None:
-    """Scaffold a new AutoAgent project with config, eval suite, and structure."""
-    target = Path(target_dir).resolve()
-    target.mkdir(parents=True, exist_ok=True)
+@click.option("--demo/--no-demo", default=False, show_default=True,
+              help="Seed a reviewable demo workspace with traces, review cards, and AutoFix proposals.")
+def init_project(
+    template: str,
+    target_dir: str,
+    name: str | None,
+    agent_name: str,
+    platform: str,
+    with_synthetic_data: bool,
+    demo: bool,
+) -> None:
+    """Scaffold a new AutoAgent workspace with workspace metadata and starter data."""
+    base_dir = Path(target_dir).resolve()
+    workspace_root = (base_dir / name) if name else base_dir
+    workspace_root.mkdir(parents=True, exist_ok=True)
+
+    workspace_name = name or workspace_root.name
+    workspace = AutoAgentWorkspace.create(
+        workspace_root,
+        name=workspace_name,
+        template=template,
+        agent_name=agent_name,
+        platform=platform,
+        demo_seeded=demo,
+    )
+
+    summary = bootstrap_workspace(
+        workspace,
+        template=template,
+        agent_name=agent_name,
+        platform=platform,
+        with_synthetic_data=with_synthetic_data,
+        demo=demo,
+    )
 
     click.echo(click.style("\n✦ AutoAgent Init", fg="cyan", bold=True))
     click.echo("")
+    click.echo(click.style("  ✓ ", fg="green") + f"Initialized AutoAgent project in {workspace_root}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Workspace: {workspace.workspace_label}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Active config: v{workspace.metadata.active_config_version or 1:03d}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Config: {workspace.configs_dir / 'v001.yaml'}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Base config: {workspace.configs_dir / 'v001_base.yaml'}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Evals: {workspace.cases_dir}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Memory: {workspace.root / 'AUTOAGENT.md'}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Runtime config: {workspace.runtime_config_path}")
 
-    # Create directory structure
-    dirs = ["configs", "evals/cases", "agent/config"]
-    for d in dirs:
-        (target / d).mkdir(parents=True, exist_ok=True)
-    click.echo(click.style("  ✓ ", fg="green") + "Created directory structure")
-
-    # Copy base config
-    src_config = Path(__file__).parent / "agent" / "config" / "base_config.yaml"
-    dst_config = target / "configs" / "v001_base.yaml"
-    if src_config.exists() and not dst_config.exists():
-        shutil.copy2(src_config, dst_config)
-    click.echo(click.style("  ✓ ", fg="green") + "Copied base config")
-
-    # Copy eval cases
-    src_evals = Path(__file__).parent / "evals" / "cases"
-    if src_evals.exists():
-        dst_evals = target / "evals" / "cases"
-        for case_file in src_evals.glob("*.yaml"):
-            dst = dst_evals / case_file.name
-            if not dst.exists():
-                shutil.copy2(case_file, dst)
-    click.echo(click.style("  ✓ ", fg="green") + "Copied eval cases")
-
-    # Generate AUTOAGENT.md project memory
-    from core.project_memory import ProjectMemory
-    autoagent_md = target / "AUTOAGENT.md"
-    if not autoagent_md.exists():
-        content = ProjectMemory.generate_template(
-            agent_name=agent_name,
-            platform=platform,
-            use_case="General purpose assistant",
-        )
-        autoagent_md.write_text(content, encoding="utf-8")
-    click.echo(click.style("  ✓ ", fg="green") + f"Generated AUTOAGENT.md ({agent_name})")
-
-    # Seed starter runbooks
-    try:
-        from registry.runbooks import RunbookStore, seed_starter_runbooks
-        runbook_db = str(target / "registry.db") if target_dir != "." else REGISTRY_DB
-        runbook_store = RunbookStore(db_path=runbook_db)
-        n_runbooks = seed_starter_runbooks(runbook_store)
-        click.echo(click.style("  ✓ ", fg="green") + f"Seeded {n_runbooks} starter runbooks")
-    except Exception:
-        click.echo(click.style("  ⚠ ", fg="yellow") + "Skipped runbook seeding")
-
-    # Seed synthetic data
-    n_convos = 0
+    synthetic_summary = summary.get("synthetic_summary", {}) or {}
     if with_synthetic_data:
-        try:
-            from evals.synthetic import generate_dataset, seed_conversations
-            db_file = str(target / "conversations.db") if target_dir != "." else DB_PATH
-            store = ConversationStore(db_path=db_file)
-            ds = generate_dataset()
-            n_convos = seed_conversations(store, dataset=ds)
-            click.echo(click.style("  ✓ ", fg="green") + f"Seeded {n_convos} synthetic conversations")
-            click.echo(click.style("  ✓ ", fg="green") + f"Seeded {len(ds.eval_cases)} synthetic eval cases")
-        except Exception:
-            click.echo(click.style("  ⚠ ", fg="yellow") + "Skipped synthetic data seeding")
+        click.echo(
+            click.style("  ✓ ", fg="green")
+            + "Synthetic data: "
+            + f"{synthetic_summary.get('conversation_count', 0)} conversations, "
+            + f"{synthetic_summary.get('eval_case_count', 0)} eval cases"
+        )
+
+    if demo:
+        demo_summary = summary.get("demo_summary", {}) or {}
+        click.echo(
+            click.style("  ✓ ", fg="green")
+            + "Demo data seeded: "
+            + f"{len(demo_summary.get('trace_ids', []))} traces, "
+            + f"review {demo_summary.get('change_card_id', 'n/a')}, "
+            + f"autofix {demo_summary.get('autofix_id', 'n/a')}"
+        )
 
     click.echo("")
-    click.echo(click.style("  Initialized AutoAgent project in ", fg="white") + click.style(str(target), fg="cyan"))
-    click.echo(f"    Template:  {template}")
-    click.echo(f"    Config:    configs/v001_base.yaml")
-    click.echo(f"    Evals:     evals/cases/")
-    click.echo(f"    Memory:    AUTOAGENT.md")
-    if with_synthetic_data and n_convos:
-        click.echo(f"    Data:      {n_convos} synthetic conversations")
+    click.echo(f"  Template:   {template}")
+    click.echo(f"  Agent:      {agent_name}")
+    click.echo(f"  Platform:   {platform}")
     click.echo("")
-    click.echo(click.style("  Next steps:", bold=True))
-    click.echo("    autoagent eval run          # Run eval suite")
-    click.echo("    autoagent optimize          # Run optimization cycle")
-    click.echo("    autoagent server            # Start API + web console")
-    click.echo("    autoagent quickstart        # Run the full loop automatically")
+    click.echo(click.style("  Next step:", bold=True))
+    click.echo("    autoagent status")
+    click.echo("    autoagent build \"Build a support agent for order tracking\"")
+    click.echo("    autoagent eval run")
     click.echo("")
 
 
@@ -980,7 +1010,7 @@ def build_agent(prompt: str, connectors: tuple[str, ...], output_dir: str, json_
     click.echo(f"  Evals:    {eval_path}")
     click.echo(f"  Artifact: {artifact_path}")
     click.echo("")
-    click.echo(click.style("Next steps:", bold=True))
+    click.echo(click.style("Next step:", bold=True))
     click.echo(f"  autoagent eval run --config {config_path}")
     click.echo("  autoagent diagnose --interactive")
     click.echo("  autoagent loop --max-cycles 5")
@@ -1092,7 +1122,15 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         if not json_output:
             click.echo(f"Evaluating config: {config_path}")
     else:
-        if not json_output:
+        workspace = discover_workspace()
+        if workspace is not None:
+            resolved = workspace.resolve_active_config()
+            if resolved is not None:
+                config = resolved.config
+                config_path = str(resolved.path)
+                if not json_output:
+                    click.echo(f"Evaluating active config: {resolved.path}")
+        if config is None and not json_output:
             click.echo("Evaluating with default config")
 
     runner = _build_eval_runner(
@@ -1669,6 +1707,22 @@ def config_show(version: str | None, configs_dir: str, json_output: bool = False
                 return
 
     if resolved_version is None and version is None:
+        workspace = discover_workspace()
+        if workspace is not None:
+            resolved = workspace.resolve_active_config()
+            if resolved is None:
+                if json_output:
+                    click.echo(json_response("error", {"message": "No active config"}))
+                else:
+                    click.echo("No active config. Run: autoagent init")
+                return
+            if json_output:
+                click.echo(json_response("ok", {"version": resolved.version, "config": resolved.config}))
+            else:
+                click.echo(f"# Active config: v{resolved.version:03d}\n")
+                click.echo(yaml.safe_dump(resolved.config, default_flow_style=False, sort_keys=False))
+            return
+
         config = deployer.get_active_config()
         if config is None:
             if json_output:
@@ -1714,6 +1768,27 @@ def config_show(version: str | None, configs_dir: str, json_output: bool = False
     else:
         click.echo(f"# Config: v{resolved_version:03d} [{found['status']}]\n")
         click.echo(yaml.safe_dump(config, default_flow_style=False, sort_keys=False))
+
+
+@config_group.command("set-active")
+@click.argument("version", type=int)
+def config_set_active(version: int) -> None:
+    """Set the workspace default config version.
+
+    Examples:
+      autoagent config set-active 2
+    """
+    workspace = _require_workspace("config")
+    resolved = workspace.resolve_config_path(version)
+    if resolved is None:
+        raise click.ClickException(f"Config version not found: v{version:03d}")
+
+    workspace.set_active_config(version, filename=resolved.name)
+    click.echo(click.style(f"Set active config to v{version:03d}", fg="green"))
+    click.echo(f"Workspace: {workspace.root}")
+    click.echo(f"Config path: {resolved}")
+    click.echo("Next step:")
+    click.echo("  autoagent config show")
 
 
 @config_group.command("diff")
@@ -1830,6 +1905,7 @@ def config_migrate(input_file: str, output: str | None) -> None:
 # ---------------------------------------------------------------------------
 
 @cli.command("deploy")
+@click.argument("workflow", required=False, type=click.Choice(["canary", "immediate"]))
 @click.option("--config-version", type=int, default=None,
               help="Config version to deploy. Defaults to latest accepted.")
 @click.option("--strategy", type=click.Choice(["canary", "immediate"]),
@@ -1852,6 +1928,7 @@ def config_migrate(input_file: str, output: str | None) -> None:
 @click.option("--push/--no-push", default=False, show_default=True, help="Push to CX now (otherwise package only).")
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def deploy(
+    workflow: str | None,
     config_version: int | None,
     strategy: str,
     configs_dir: str,
@@ -1869,10 +1946,14 @@ def deploy(
     """Deploy a config version.
 
     Examples:
+      autoagent deploy canary
       autoagent deploy --config-version 5 --strategy canary
       autoagent deploy --strategy immediate
       autoagent deploy --target cx-studio
     """
+    if workflow is not None:
+        strategy = workflow
+
     if target == "cx-studio":
         try:
             selected_version, config, selected_path = _load_versioned_config(configs_dir, config_version)
@@ -2276,89 +2357,96 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
     Examples:
       autoagent status
     """
+    workspace = _require_workspace("status")
     store = ConversationStore(db_path=db)
     deployer = Deployer(configs_dir=configs_dir, store=store)
     memory = OptimizationMemory(db_path=memory_db)
-
-    # Config info
     deploy_status = deployer.status()
-    active = deploy_status["active_version"]
+    resolved = workspace.resolve_active_config()
+    active_version = resolved.version if resolved is not None else deploy_status["active_version"]
 
-    # Conversations count (preserved for compatibility)
     total_conversations = store.count()
-
-    # Eval score from memory
     recent_attempts = memory.recent(limit=1)
     latest = recent_attempts[0] if recent_attempts else None
-
-    # Health metrics
     report = Observer(store).observe()
     metrics = report.metrics
-
-    # Cycles run
     all_attempts = memory.recent(limit=100)
     accepted_attempts = [attempt for attempt in all_attempts if attempt.status == "accepted"]
-
-    # Top failures bar chart
     buckets = report.failure_buckets
+
+    mode_summary = summarize_mode_state(str(workspace.runtime_config_path))
+    pending_review_cards = 0
+    pending_autofix_proposals = 0
+
+    try:
+        from optimizer.change_card import ChangeCardStore
+
+        pending_review_cards = len(ChangeCardStore().list_pending(limit=200))
+    except Exception:
+        pending_review_cards = 0
+
+    try:
+        from optimizer.autofix import AutoFixStore
+
+        autofix_store = AutoFixStore()
+        if hasattr(autofix_store, "list_pending"):
+            pending_autofix_proposals = len(autofix_store.list_pending(limit=200))
+        else:
+            pending_autofix_proposals = len(autofix_store.list_proposals(status="pending", limit=200))
+    except Exception:
+        pending_autofix_proposals = 0
+
+    deployment_label = "none"
+    if deploy_status.get("canary_version") is not None:
+        deployment_label = (
+            f"active v{deploy_status.get('active_version', 0):03d} "
+            f"| canary v{deploy_status['canary_version']:03d}"
+        )
+    elif active_version is not None:
+        deployment_label = f"active v{active_version:03d}"
+
+    next_action = _status_next_action(report, len(all_attempts), len(accepted_attempts))
 
     if json_output:
         data = {
-            "config_version": active,
+            "workspace_name": workspace.workspace_label,
+            "workspace_path": str(workspace.root),
+            "mode": mode_summary["effective_mode"],
+            "config_version": active_version,
+            "active_config_summary": workspace.summarize_config(resolved.config if resolved is not None else None),
             "conversations": total_conversations,
             "eval_score": latest.score_after if latest else None,
+            "eval_timestamp": latest.timestamp if latest else None,
             "safety_violation_rate": metrics.safety_violation_rate,
             "cycles_run": len(all_attempts),
             "failure_buckets": buckets,
+            "pending_review_cards": pending_review_cards,
+            "pending_autofix_proposals": pending_autofix_proposals,
+            "deployment": deployment_label,
             "loop_status": "idle",
-            "next_action": _status_next_action(report, len(all_attempts), len(accepted_attempts)),
+            "next_action": next_action,
         }
         click.echo(json.dumps(data, indent=2))
         return
 
-    # Feature 5: Rich status display
-    click.echo(click.style("\nAutoAgent Status", bold=True))
-    click.echo("━" * 17)
-    click.echo(click.style(f"  {_soul_line('status')}", fg="cyan"))
-
-    config_str = f"v{active:03d}" if active else "none"
-    click.echo(f"  Config:     {config_str}")
-    click.echo(f"  Conversations: {total_conversations}")
-
-    if latest:
-        click.echo(f"  Eval score: {latest.score_after:.4f}")
-    else:
-        click.echo("  Eval score: n/a")
-    click.echo(f"  Mood:       {_score_mood(latest.score_after if latest else None)}")
-
-    safety_str = f"{metrics.safety_violation_rate:.3f}"
-    safety_ok = "✓" if metrics.safety_violation_rate == 0.0 else "✗"
-    click.echo(f"  Safety:     {safety_str} {safety_ok}")
-    click.echo(f"  Success:    {_bar_chart(metrics.success_rate)}  {metrics.success_rate:.0%}")
-    click.echo(f"  Errors:     {_bar_chart(metrics.error_rate)}  {metrics.error_rate:.0%}")
-    click.echo(f"  Cycles run: {len(all_attempts)}")
-
-    if buckets:
-        click.echo("\n  Top failures:")
-        total_failures = sum(buckets.values())
-        sorted_buckets = sorted(buckets.items(), key=lambda kv: kv[1], reverse=True)[:5]
-        for bucket_name, count in sorted_buckets:
-            pct = count / total_failures if total_failures > 0 else 0.0
-            bar = _bar_chart(pct)
-            pct_int = round(pct * 100)
-            click.echo(f"    {bucket_name:<20} {bar}  {pct_int:>3}% ({count} conversations)")
-
-    # Recommendation
-    click.echo(f"\n  Next action: {_status_next_action(report, len(all_attempts), len(accepted_attempts))}")
-
-    # Loop status
-    click.echo("\n  Loop: idle")
-    recs = _generate_recommendations(report, None)
-    suggested_actions = ["autoagent optimize --cycles 2", "autoagent logs --limit 10"]
-    if recs:
-        first_runbook = recs[0].split("autoagent runbook apply ")[-1].strip()
-        suggested_actions.insert(0, f"autoagent runbook apply {first_runbook}")
-    _print_next_actions(suggested_actions)
+    snapshot = StatusSnapshot(
+        workspace_name=workspace.workspace_label,
+        workspace_path=str(workspace.root),
+        mode_label=mode_summary["effective_mode"].upper(),
+        active_config_label=f"v{active_version:03d}" if active_version is not None else "none",
+        active_config_summary=workspace.summarize_config(resolved.config if resolved is not None else None),
+        eval_score_label=f"{latest.score_after:.4f}" if latest else "n/a",
+        eval_timestamp_label=_format_relative_time(latest.timestamp) if latest else "never",
+        conversations_label=str(total_conversations),
+        safety_label=f"{metrics.safety_violation_rate:.3f}",
+        cycles_run_label=str(len(all_attempts)),
+        pending_review_cards=pending_review_cards,
+        pending_autofix_proposals=pending_autofix_proposals,
+        deployment_label=deployment_label,
+        loop_label="idle",
+        next_action=next_action,
+    )
+    render_status_home(snapshot)
 
 
 # ---------------------------------------------------------------------------
@@ -2426,6 +2514,9 @@ def doctor(config_path: str) -> None:
     # ------------------------------------------------------------------
     click.echo("\nConfiguration")
     runtime = load_runtime_config(config_path)
+    mode_summary = summarize_mode_state(config_path)
+    click.echo(f"  CLI mode:           {mode_summary['message']}")
+    click.echo(f"  Mode source:        {mode_summary['mode_source']}")
     if runtime.optimizer.use_mock:
         issues.append("Mock mode is enabled")
         click.echo(
@@ -2804,6 +2895,8 @@ def autofix_apply(proposal_id: str, json_output: bool = False) -> None:
     if is_selector(proposal_id):
         store = AutoFixStore()
         proposals = store.list_pending(limit=1) if hasattr(store, "list_pending") else []
+        if not proposals and hasattr(store, "list_proposals"):
+            proposals = store.list_proposals(status="pending", limit=1)
         if not proposals:
             history = store.history(limit=50) if hasattr(store, "history") else []
             proposals = [p for p in history if getattr(p, "status", "") == "pending"]
@@ -5056,8 +5149,16 @@ def demo_quickstart(
 
     # Init + seed
     click.echo(click.style("▸ Setting up project...", fg="white", bold=True))
-    ctx.invoke(init_project, template="customer-support", target_dir=target_dir,
-               agent_name="Demo Agent", platform="Google ADK", with_synthetic_data=True)
+    ctx.invoke(
+        init_project,
+        template="customer-support",
+        target_dir=target_dir,
+        name=None,
+        agent_name="Demo Agent",
+        platform="Google ADK",
+        with_synthetic_data=True,
+        demo=True,
+    )
     workspace_paths = _workspace_state_paths(target_dir)
 
     # Single eval
@@ -5152,6 +5253,17 @@ def demo_quickstart(
 
     if auto_open:
         _auto_open_console()
+
+
+@demo.command("seed")
+def demo_seed() -> None:
+    """Seed demo traces, review cards, and AutoFix proposals into the current workspace."""
+    workspace = _require_workspace("demo")
+    summary = seed_demo_workspace(workspace)
+    click.echo(click.style("Demo workspace seeded.", fg="green"))
+    click.echo(f"Trace IDs: {', '.join(summary.get('trace_ids', [])) or 'none'}")
+    click.echo(f"Review card: {summary.get('change_card_id', 'n/a')}")
+    click.echo(f"AutoFix proposal: {summary.get('autofix_id', 'n/a')}")
 
 
 @demo.command("vp")
@@ -5538,11 +5650,11 @@ def autofix_show(proposal_id: str, json_output: bool = False) -> None:
     store = AutoFixStore()
 
     if is_selector(proposal_id):
-        history = store.history(limit=50) if hasattr(store, "history") else []
-        if proposal_id.lower() == "pending":
-            proposals = [p for p in history if getattr(p, "status", "") == "pending"]
-        else:
-            proposals = list(history)
+        proposals = store.list_pending(limit=1) if hasattr(store, "list_pending") else []
+        if proposal_id.lower() == "pending" and not proposals and hasattr(store, "list_proposals"):
+            proposals = store.list_proposals(status="pending", limit=1)
+        if proposal_id.lower() != "pending":
+            proposals = store.history(limit=50) if hasattr(store, "history") else []
         if not proposals:
             if json_output:
                 click.echo(json_response("error", {"message": f"No {proposal_id} proposals found"}))
@@ -6746,6 +6858,93 @@ def pref_export(fmt):
     # In a real implementation, would load pairs from the store
     click.echo(f"Exporting preferences in {fmt} format...")
     click.echo("No preference pairs to export yet. Submit pairs first via API or CLI.")
+
+
+@cli.group("import")
+def import_group() -> None:
+    """Compatibility aliases for importing configs and transcript archives."""
+
+
+@import_group.command("config")
+@click.argument("file_path", type=click.Path(exists=True))
+@click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
+def import_config_alias(file_path: str, configs_dir: str, json_output: bool = False) -> None:
+    """Alias for `autoagent config import`."""
+    from cli.stream2_helpers import ConfigImporter, json_response
+
+    importer = ConfigImporter(configs_dir=configs_dir)
+    try:
+        result = importer.import_config(file_path)
+    except (FileNotFoundError, ValueError) as exc:
+        if json_output:
+            click.echo(json_response("error", {"message": str(exc)}))
+        else:
+            raise click.ClickException(str(exc)) from exc
+        raise SystemExit(1)
+
+    if json_output:
+        click.echo(json_response("ok", result, next_cmd=f"autoagent config show {result['version']}"))
+        return
+
+    click.echo(click.style("\n✦ Config Imported", fg="cyan", bold=True))
+    click.echo(f"  Source:  {result['source_file']}")
+    click.echo(f"  Version: v{result['version']:03d}")
+    click.echo(f"  Hash:    {result['config_hash']}")
+    click.echo(f"  Path:    {result['dest_path']}")
+
+
+@import_group.group("transcript")
+def import_transcript_group() -> None:
+    """Compatibility alias for transcript intelligence commands."""
+
+
+@import_transcript_group.command("upload")
+@click.argument("archive", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def import_transcript_upload(archive: Path) -> None:
+    """Upload a transcript archive and persist the generated report."""
+    import base64
+
+    from optimizer.transcript_intelligence import TranscriptIntelligenceService
+
+    service = TranscriptIntelligenceService()
+    archive_base64 = base64.b64encode(archive.read_bytes()).decode("ascii")
+    report = service.import_archive(archive.name, archive_base64)
+    report_dict = report.to_dict()
+    TranscriptReportStore().save_report(
+        report=report_dict,
+        archive_name=archive.name,
+        archive_base64=archive_base64,
+    )
+    click.echo(f"Imported transcript archive. Report ID: {report.report_id}")
+
+
+@import_transcript_group.command("report")
+@click.argument("report_id")
+def import_transcript_report(report_id: str) -> None:
+    """Show a stored transcript report as JSON for backward compatibility."""
+    entry = TranscriptReportStore().get_report(report_id)
+    if entry is None:
+        raise click.ClickException(f"Unknown transcript intelligence report: {report_id}")
+    click.echo(json.dumps(entry.get("report", {}), indent=2))
+
+
+@import_transcript_group.command("generate-agent")
+@click.argument("report_id")
+@click.option("--prompt", default=None, help="Optional custom generation prompt.")
+@click.option("--output", "output_path", type=click.Path(dir_okay=False, path_type=Path), required=True)
+def import_transcript_generate_agent(report_id: str, prompt: str | None, output_path: Path) -> None:
+    """Generate an agent config from a stored transcript report."""
+    entry = TranscriptReportStore().get_report(report_id)
+    if entry is None:
+        raise click.ClickException(f"Unknown transcript intelligence report: {report_id}")
+
+    service, replayed_report_id, replayed_report = _load_replayed_report(entry)
+    generation_prompt = prompt or _build_generation_prompt(replayed_report)
+    generated = service.generate_agent_config(generation_prompt, transcript_report_id=replayed_report_id)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(yaml.safe_dump(generated, sort_keys=False), encoding="utf-8")
+    click.echo(f"Generated agent config written to {output_path}")
 
 
 if __name__ == "__main__":

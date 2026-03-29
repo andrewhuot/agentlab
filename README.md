@@ -12,15 +12,45 @@ Point it at a broken agent. Get a better one back.
 TRACE → DIAGNOSE → SEARCH → EVAL → GATE → DEPLOY → LEARN → REPEAT
 ```
 
+The CLI now uses a workspace-first UX:
+
+- `autoagent init --name my-project --demo` bootstraps a self-sufficient workspace
+- `autoagent status` is the home screen for the active workspace
+- Commands auto-discover the nearest workspace, so you can run them from any subdirectory
+- `autoagent import config ...` turns plain files into managed config history
+- `autoagent intelligence ...`, `autoagent mcp ...`, and `autoagent mode ...` are first-class command groups
+
 > **[Platform overview](docs/platform-overview.md)** — Full walkthrough of every subsystem and feature
 >
 > **[Architecture and process diagrams](docs/architecture-diagram.md)** — Visual guide to system design and data flow
 >
-> **[CLI quick start guide](docs/QUICKSTART_GUIDE.md)** — Beginner-friendly, copy-pasteable walkthrough of the full CLI surface
+> **[CLI quick start guide](docs/QUICKSTART_GUIDE.md)** — Workspace-first quickstart covering init, status, build/import, eval, intelligence, MCP setup, mode control, deploy, and the full command surface
 
 ---
 
-## Quick start
+## Workspace-first CLI quick start
+
+If you want the CLI flow without starting the full web stack, this is the fastest path:
+
+```bash
+python3 -m pip install -e .
+autoagent init --name my-project --demo
+cd my-project
+autoagent status
+autoagent build "Build a customer support agent for order tracking, refunds, and cancellations"
+```
+
+From there you can stay entirely inside the workspace:
+
+```bash
+autoagent eval run
+autoagent review
+autoagent deploy canary
+```
+
+The full walkthrough, including config import, selectors, `--json`, transcript intelligence, MCP setup, and mode control, lives in [docs/QUICKSTART_GUIDE.md](docs/QUICKSTART_GUIDE.md).
+
+## Full repo quick start
 
 ```bash
 git clone <repo-url> autoagent-vnextcc

@@ -16,6 +16,7 @@ from pathlib import Path
 import yaml
 from click.testing import CliRunner
 
+from optimizer.autofix import AutoFixProposal, AutoFixStore
 from runner import cli
 
 
@@ -328,6 +329,58 @@ class TestInspectCommands:
         assert result.exit_code == 0
         # Either shows "No policy artifacts" or shows a list
         assert "policy" in result.output.lower() or "No policy" in result.output
+
+    def test_autofix_show_pending_uses_store_pending_selector(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        aa_dir = tmp_path / ".autoagent"
+        aa_dir.mkdir()
+        store = AutoFixStore(db_path=str(aa_dir / "autofix.db"))
+        store.save(
+            AutoFixProposal(
+                proposal_id="prop-pending",
+                mutation_name="tighten_refund_check",
+                surface="prompts.root",
+                diff_preview="Add verification reminder",
+            )
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["autofix", "show", "pending", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["status"] == "ok"
+        assert data["data"]["proposal_id"] == "prop-pending"
+
+    def test_autofix_apply_pending_resolves_pending_store_entry(self, tmp_path: Path, monkeypatch) -> None:
+        import optimizer.autofix as autofix_module
+
+        monkeypatch.chdir(tmp_path)
+        aa_dir = tmp_path / ".autoagent"
+        aa_dir.mkdir()
+        store = AutoFixStore(db_path=str(aa_dir / "autofix.db"))
+        store.save(
+            AutoFixProposal(
+                proposal_id="prop-apply",
+                mutation_name="tighten_refund_check",
+                surface="prompts.root",
+                diff_preview="Add verification reminder",
+            )
+        )
+
+        def _fake_apply(self, proposal_id: str, current_config: dict) -> tuple[dict, str]:
+            del self, current_config
+            assert proposal_id == "prop-apply"
+            return {"model": "demo-model"}, "Applied pending proposal"
+
+        monkeypatch.setattr(autofix_module.AutoFixEngine, "apply", _fake_apply)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["autofix", "apply", "pending", "--json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["status"] == "ok"
+        assert data["data"]["proposal_id"] == "prop-apply"
+        assert data["data"]["config_version"] == 2
 
 
 # ---------------------------------------------------------------------------
