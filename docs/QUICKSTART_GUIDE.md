@@ -3,13 +3,25 @@
 This guide reflects the workspace-first CLI UX:
 
 - `autoagent init --name my-project --demo` creates a self-sufficient workspace with demo data.
-- Commands discover the nearest workspace automatically, so you can run them from any subdirectory.
+- Workspace-aware commands discover the nearest workspace automatically.
 - `autoagent status` is your home screen.
 - Plain YAML and JSON configs can be imported into managed config history.
 - Resource-style commands support selectors like `latest`, `active`, and `pending`.
 - Durable commands write real files and state instead of printing one-off previews.
 
-If you already have `autoagent` on your `PATH`, start at Section 1. If you are running from source in this repo, install once with `python3 -m pip install -e .`.
+If you already have `autoagent` on your `PATH`, start at Section 1.
+
+If you are running from source in this repo, activate the repo virtualenv first:
+
+```bash
+source .venv/bin/activate
+```
+
+Then install the CLI once:
+
+```bash
+python3 -m pip install -e .
+```
 
 ## 1. Quick Install
 
@@ -50,8 +62,10 @@ Workspace discovery works from any nested directory. No `--dir` flag is required
 mkdir -p scratch/deeply/nested
 cd scratch/deeply/nested
 autoagent status
-cd ../..
+cd ../../..
 ```
+
+The rest of the walkthrough assumes you are back in `./my-project`.
 
 What `status` summarizes:
 
@@ -169,6 +183,8 @@ Interactive diagnosis session:
 ```bash
 autoagent diagnose --interactive
 ```
+
+Type `quit` to leave the interactive diagnosis shell.
 
 Inspect the latest trace and its blame map:
 
@@ -519,6 +535,8 @@ Switch to live mode after you have real provider credentials in your environment
 autoagent mode set live
 ```
 
+You need at least one real provider credential, such as `OPENAI_API_KEY`, before enabling live mode.
+
 Mode preference is stored in `.autoagent/workspace.json`, so it survives future CLI sessions.
 
 ## 16. Advanced: Context Engineering
@@ -552,15 +570,21 @@ autoagent context analyze --trace "$TRACE_ID"
 
 ## 17. Command Reference Cheat Sheet
 
+Run each subsection as its own block. Unless the block says otherwise, start it from your workspace root (`./my-project` in the walkthrough above).
+
 ### Workspace and setup
 
 ```bash
+mkdir -p quickstart-reference
+cd quickstart-reference
 autoagent init --name my-project --demo
 autoagent init --dir . --name staging-agent --no-demo
+cd staging-agent
 autoagent demo seed
 autoagent status
 autoagent status --json
 autoagent doctor
+cd ../..
 ```
 
 ### Build and import
@@ -568,6 +592,7 @@ autoagent doctor
 ```bash
 autoagent build "Build an agent for refunds and order tracking"
 autoagent build-show latest
+cp configs/v001.yaml imported-agent.yaml
 autoagent import config imported-agent.yaml
 autoagent config import imported-agent.yaml
 ```
@@ -588,6 +613,7 @@ autoagent eval generate --config configs/v001.yaml --output generated_eval_suite
 autoagent explain
 autoagent diagnose
 autoagent diagnose --interactive
+# type `quit` to leave the interactive shell
 autoagent trace show latest
 autoagent trace blame --window 24h
 autoagent trace promote latest
@@ -634,6 +660,7 @@ autoagent config migrate ../docs/samples/legacy_autoagent.yaml --output migrated
 ### Deploy and release
 
 ```bash
+autoagent demo seed
 autoagent review
 autoagent review show pending
 autoagent deploy canary
@@ -654,8 +681,9 @@ autoagent resume
 ### Intelligence, MCP, and mode
 
 ```bash
-autoagent intelligence upload support-archive.zip
+autoagent intelligence upload ../docs/samples/sample_transcripts.zip
 autoagent intelligence report list
+REPORT_ID=$(autoagent intelligence report list --json | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["report_id"])')
 autoagent intelligence report show "$REPORT_ID"
 autoagent intelligence generate-agent "$REPORT_ID" --output configs/v003_transcript.yaml
 autoagent mcp init claude-code
@@ -672,15 +700,24 @@ autoagent mode set live
 ```bash
 autoagent context simulate --strategy balanced
 autoagent context report
+TRACE_ID=$(python3 - <<'PY'
+from observer.traces import TraceStore
+
+store = TraceStore(db_path=".autoagent/traces.db")
+recent = store.get_recent_trace_ids(limit=1)
+print(recent[0] if recent else "")
+PY
+)
 autoagent context analyze --trace "$TRACE_ID"
 ```
 
 ### Selector shortcuts
 
 ```bash
+autoagent demo seed
 autoagent eval show latest
 autoagent review show pending
-autoagent autofix apply pending
+autoagent autofix show pending
 autoagent config show active
 autoagent config show latest
 autoagent trace show latest
@@ -689,11 +726,12 @@ autoagent trace show latest
 ### JSON for scripting
 
 ```bash
+autoagent demo seed
 autoagent status --json
 autoagent config list --json
 autoagent eval show latest --json
 autoagent review show pending --json
-autoagent autofix apply pending --json
+autoagent autofix show pending --json
 autoagent release list --json
 ```
 
@@ -701,3 +739,10 @@ Notes on JSON output:
 
 - Stream 2 resource commands such as `config list`, `config show`, `review show`, `autofix apply`, and `release list` use the standard `{status, data, next}` envelope.
 - Some older commands such as `status --json` and `eval run --json` return direct JSON payloads for backward compatibility.
+
+Troubleshooting:
+
+- If `autoagent` is not found, re-run `source .venv/bin/activate` and `python3 -m pip install -e .`.
+- If you are following the repo examples, run them from the workspace root unless a block explicitly changes directories.
+- If `autoagent diagnose --interactive` is waiting for input, type `quit`.
+- If `autoagent mode set live` fails, export at least one real provider credential first.
