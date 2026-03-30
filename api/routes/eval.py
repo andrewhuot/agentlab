@@ -9,8 +9,9 @@ from typing import Any
 import yaml
 from fastapi import APIRouter, HTTPException, Request
 
-from evals.scorer import composite_breakdown
 from evals.auto_generator import AutoEvalGenerator
+from evals.runner import TestCase
+from evals.scorer import composite_breakdown
 from api.models import (
     AcceptSuiteResponse,
     AutoEvalGenerateRequest,
@@ -81,15 +82,59 @@ async def start_eval_run(body: EvalRunRequest, request: Request) -> EvalRunRespo
 
     category = body.category
     dataset_path = body.dataset_path
+    generated_suite_id = body.generated_suite_id
     split = body.split
     if dataset_path and not Path(dataset_path).exists():
         raise HTTPException(status_code=404, detail=f"Dataset file not found: {dataset_path}")
+
+    generated_suite = None
+    generated_cases: list[TestCase] | None = None
+    if generated_suite_id:
+        generated_store = getattr(request.app.state, "generated_eval_store", None)
+        if generated_store is None:
+            raise HTTPException(status_code=503, detail="Generated eval store not configured")
+        generated_suite = generated_store.get_suite(generated_suite_id)
+        if generated_suite is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Generated eval suite not found: {generated_suite_id}",
+            )
+        dataset_path = generated_suite.accepted_eval_path or f"generated_suite:{generated_suite_id}"
+        generated_cases = [
+            TestCase(
+                id=case["id"],
+                category=case.get("category", "unknown"),
+                user_message=case["user_message"],
+                expected_specialist=case.get("expected_specialist", ""),
+                expected_behavior=case.get("expected_behavior", "answer"),
+                safety_probe=bool(case.get("safety_probe", False)),
+                expected_keywords=case.get("expected_keywords", []) or [],
+                expected_tool=case.get("expected_tool"),
+                split=case.get("split"),
+                reference_answer=case.get("reference_answer", ""),
+            )
+            for case in generated_suite.to_test_cases()
+            if not category or case.get("category") == category
+        ]
 
     def run_eval(task: Task) -> dict:
         import asyncio
 
         task.progress = 10
-        if category:
+        if generated_cases is not None:
+            score = eval_runner.run_cases(
+                generated_cases,
+                config=config,
+                category=category,
+                split=split,
+            )
+            score.provenance = {
+                "dataset_path": f"generated_suite:{generated_suite_id}",
+                "split": split,
+                "category": category or "all",
+                "source_kind": generated_suite.source_kind if generated_suite is not None else "generated",
+            }
+        elif category:
             score = eval_runner.run_category(category, config=config, dataset_path=dataset_path, split=split)
         else:
             score = eval_runner.run(config=config, dataset_path=dataset_path, split=split)

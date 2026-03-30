@@ -157,6 +157,33 @@ def test_config_set_active_updates_workspace_metadata_and_default_show(
     assert "demo-model-v2" in show_result.output
 
 
+def test_config_show_active_selector_and_list_json_follow_workspace_metadata(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`config show active` and `config list --json` should respect workspace-selected active config."""
+    workspace = tmp_path / "active-selector"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+    assert init_result.exit_code == 0, init_result.output
+    _seed_second_config(workspace)
+
+    monkeypatch.chdir(workspace)
+    set_active_result = runner.invoke(cli, ["config", "set-active", "2"])
+    assert set_active_result.exit_code == 0, set_active_result.output
+
+    show_result = runner.invoke(cli, ["config", "show", "active"])
+    assert show_result.exit_code == 0, show_result.output
+    assert "# Config: v002" in show_result.output or "# Active config: v002" in show_result.output
+    assert "demo-model-v2" in show_result.output
+
+    list_result = runner.invoke(cli, ["config", "list", "--json"])
+    assert list_result.exit_code == 0, list_result.output
+    payload = json.loads(list_result.output)
+    active_versions = [entry["version"] for entry in payload["data"] if entry.get("is_active")]
+    assert active_versions == [2]
+
+
 def test_eval_run_uses_active_config_by_default(
     runner: CliRunner,
     tmp_path: Path,
@@ -209,6 +236,51 @@ def test_eval_run_uses_active_config_by_default(
     assert captured["config"]["model"] == "demo-model-v2"
 
 
+def test_eval_generate_handles_workspace_style_config_and_writes_suite(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`eval generate` should succeed against the seeded workspace config used by the quickstart."""
+    workspace = tmp_path / "eval-generate"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+    assert init_result.exit_code == 0, init_result.output
+
+    monkeypatch.chdir(workspace)
+    result = runner.invoke(
+        cli,
+        ["eval", "generate", "--config", "configs/v001.yaml", "--output", "generated_eval_suite.json"],
+    )
+
+    assert result.exit_code == 0, result.output
+    output_path = workspace / "generated_eval_suite.json"
+    assert output_path.exists()
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["status"] == "ready"
+    assert sum(len(cases) for cases in payload["categories"].values()) > 0
+
+
+def test_optimize_handles_empty_best_score_file_in_fresh_workspace(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`optimize` should treat a fresh empty best-score file as zero instead of crashing."""
+    workspace = tmp_path / "optimize-fresh"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+    assert init_result.exit_code == 0, init_result.output
+    assert (workspace / ".autoagent" / "best_score.txt").read_text(encoding="utf-8") == ""
+
+    monkeypatch.chdir(workspace)
+    result = runner.invoke(cli, ["optimize", "--cycles", "1", "--json"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert isinstance(payload, list)
+    assert len(payload) == 1
+    assert payload[0]["cycle"] == 1
+
+
 def test_init_then_build_supports_repo_free_user_flow(
     runner: CliRunner,
     tmp_path: Path,
@@ -228,6 +300,27 @@ def test_init_then_build_supports_repo_free_user_flow(
     assert result.exit_code == 0, result.output
     assert (workspace / ".autoagent" / "build_artifact_latest.json").exists()
     assert "Next step:" in result.output
+
+
+def test_trace_latest_selectors_work_in_demo_workspace(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`trace show latest` and `trace promote latest` should work in a demo-seeded workspace."""
+    workspace = tmp_path / "trace-latest"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace), "--demo"])
+    assert init_result.exit_code == 0, init_result.output
+
+    monkeypatch.chdir(workspace)
+    show_result = runner.invoke(cli, ["trace", "show", "latest"])
+    assert show_result.exit_code == 0, show_result.output
+    assert "Trace:" in show_result.output
+
+    promote_result = runner.invoke(cli, ["trace", "promote", "latest"])
+    assert promote_result.exit_code == 0, promote_result.output
+    promoted_files = list((workspace / "evals" / "cases").glob("promoted_*.yaml"))
+    assert promoted_files
 
 
 def test_status_home_screen_shows_workspace_summary_and_counts(

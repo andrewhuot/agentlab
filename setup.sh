@@ -209,7 +209,7 @@ main() {
     venv_major="$(echo "$venv_python_version" | cut -d. -f1)"
     venv_minor="$(echo "$venv_python_version" | cut -d. -f2)"
     if [[ "$venv_major" -lt 3 ]] || { [[ "$venv_major" -eq 3 ]] && [[ "$venv_minor" -lt 11 ]]; }; then
-      warn "Existing .venv uses Python $venv_python_version (need >=3.11) — recreating..."
+      warn "Existing .venv uses Python ${venv_python_version} (need >=3.11) - recreating..."
       rm -rf "$VENV_DIR"
       "$python_command" -m venv "$VENV_DIR"
       ok "Recreated .venv with $python_command"
@@ -235,11 +235,11 @@ main() {
 
   "$VENV_PYTHON" -m pip install $PYPI_INDEX --upgrade pip setuptools wheel >/dev/null
 
-  if "$VENV_PYTHON" -m pip install $PYPI_INDEX -e '.[dev]' --quiet 2>&1 | tail -3; then
+  if PIP_INDEX_URL="https://pypi.org/simple/" "$VENV_PYTHON" -m pip install -e '.[dev]' --quiet 2>&1 | tail -3; then
     ok "Python dependencies installed"
   else
     # Retry with output visible
-    "$VENV_PYTHON" -m pip install $PYPI_INDEX -e '.[dev]' || die "pip install failed. Check the error above."
+    PIP_INDEX_URL="https://pypi.org/simple/" "$VENV_PYTHON" -m pip install -e '.[dev]' || die "pip install failed. Check the error above."
     ok "Python dependencies installed"
   fi
 

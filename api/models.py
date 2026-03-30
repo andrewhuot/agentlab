@@ -42,6 +42,10 @@ class EvalRunRequest(BaseModel):
     config_path: Optional[str] = Field(None, description="Path to config YAML to evaluate; uses default if omitted")
     category: Optional[str] = Field(None, description="Run only a specific category of test cases")
     dataset_path: Optional[str] = Field(None, description="Dataset file (.jsonl/.csv) for eval runs")
+    generated_suite_id: Optional[str] = Field(
+        None,
+        description="Accepted or generated suite ID to run directly",
+    )
     split: str = Field(
         "all",
         pattern="^(train|test|all)$",
@@ -122,6 +126,7 @@ class GeneratedCaseResponse(BaseModel):
     difficulty: str = "medium"
     rationale: str = ""
     split: str = "tuning"
+    scoring_criteria: list[str] = Field(default_factory=list)
 
 class GeneratedSuiteResponse(BaseModel):
     """Full generated eval suite response."""
@@ -130,6 +135,7 @@ class GeneratedSuiteResponse(BaseModel):
     created_at: str
     status: str
     categories: dict[str, list[GeneratedCaseResponse]] = Field(default_factory=dict)
+    cases: list[GeneratedCaseResponse] = Field(default_factory=list)
     summary: dict[str, Any] = Field(default_factory=dict)
 
 class UpdateCaseRequest(BaseModel):
@@ -221,7 +227,14 @@ class GeneratedEvalSuiteResponse(BaseModel):
     agent_name: str
     created_at: str
     status: str
+    source_kind: str = "config"
+    mock_mode: bool = True
+    updated_at: Optional[str] = None
+    accepted_at: Optional[str] = None
+    accepted_eval_path: Optional[str] = None
+    transcript_count: int = 0
     categories: dict[str, list[GeneratedCaseResponse]] = Field(default_factory=dict)
+    cases: list[GeneratedCaseResponse] = Field(default_factory=list)
     summary: dict[str, Any] = Field(default_factory=dict)
 
 

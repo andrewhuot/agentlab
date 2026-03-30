@@ -79,6 +79,27 @@ class TestTranscriptIntelligenceCLI:
             assert payload["system_prompt"]
             assert payload["tools"]
 
+    def test_upload_resolves_relative_archive_from_nested_workspace_directory(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Relative archive paths should still work after workspace auto-discovery changes cwd."""
+        runner = CliRunner()
+        workspace = tmp_path / "workspace"
+        init_result = runner.invoke(cli, ["init", "--dir", str(workspace), "--demo"])
+        assert init_result.exit_code == 0, init_result.output
+
+        nested_dir = workspace / "scratch" / "deeply" / "nested"
+        nested_dir.mkdir(parents=True)
+        archive_path = _archive_path(nested_dir)
+        monkeypatch.chdir(nested_dir)
+
+        result = runner.invoke(cli, ["intelligence", "upload", archive_path.name])
+
+        assert result.exit_code == 0, result.output
+        assert "Report ID:" in result.output
+
 
 class TestMCPSetupCLI:
     @pytest.mark.parametrize(

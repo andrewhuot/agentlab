@@ -160,6 +160,21 @@ def test_trace_store_get_by_session(tmp_path: Path) -> None:
     assert len(session_b) == 1
 
 
+def test_trace_store_get_recent_trace_ids_returns_latest_unique_traces(tmp_path: Path) -> None:
+    """Recent trace lookup should return unique trace IDs ordered by latest activity."""
+    store = TraceStore(db_path=str(tmp_path / "traces.db"))
+    first = _make_event(trace_id="trace-a", event_id="a1")
+    second = _make_event(trace_id="trace-b", event_id="b1")
+    third = _make_event(trace_id="trace-a", event_id="a2")
+    store.log_event(first)
+    store.log_event(second)
+    store.log_event(third)
+
+    recent = store.get_recent_trace_ids(limit=2)
+
+    assert recent == ["trace-a", "trace-b"]
+
+
 def test_trace_collector_record_agent_transfer(tmp_path: Path) -> None:
     """record_agent_transfer should create an agent_transfer event with from/to metadata."""
     store = TraceStore(db_path=str(tmp_path / "traces.db"))

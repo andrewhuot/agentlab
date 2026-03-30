@@ -20,6 +20,20 @@ from optimizer.transcript_intelligence import TranscriptIntelligenceService
 INTELLIGENCE_STORE_PATH = Path(".autoagent") / "intelligence_reports.json"
 
 
+def _invocation_cwd() -> Path:
+    """Return the cwd from when the CLI invocation started."""
+    ctx = click.get_current_context(silent=True)
+    root = ctx.find_root() if ctx is not None else None
+    meta = getattr(root, "meta", {}) if root is not None else {}
+    raw_cwd = meta.get("invocation_cwd")
+    return Path(raw_cwd).resolve() if raw_cwd else Path.cwd().resolve()
+
+
+def _resolve_input_path(path: Path) -> Path:
+    """Resolve user-supplied input paths against the original invocation cwd."""
+    return path if path.is_absolute() else (_invocation_cwd() / path).resolve()
+
+
 class TranscriptReportStore:
     """Persist imported transcript reports so CLI invocations can reuse them.
 
@@ -169,10 +183,16 @@ def intelligence_group() -> None:
 
 
 @intelligence_group.command("upload")
-@click.argument("archive", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("archive", type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--json", "json_output", is_flag=True, help="Output the full imported report as JSON.")
 def upload_archive(archive: Path, json_output: bool) -> None:
     """Import a transcript archive without using the HTTP API."""
+    archive = _resolve_input_path(archive)
+    if not archive.exists():
+        raise click.ClickException(f"File does not exist: {archive}")
+    if archive.is_dir():
+        raise click.ClickException(f"Expected a file, got directory: {archive}")
+
     service = TranscriptIntelligenceService()
     archive_base64 = base64.b64encode(archive.read_bytes()).decode("ascii")
 

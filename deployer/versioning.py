@@ -110,6 +110,22 @@ class ConfigVersionManager:
         self.manifest["canary_version"] = None
         self._save_manifest()
 
+    def mark_canary(self, version: int) -> None:
+        """Mark an existing version as the active canary target."""
+        candidate = self._find_version(version)
+        if candidate is None:
+            raise ValueError(f"Unknown version: {version}")
+
+        previous_canary = self.manifest.get("canary_version")
+        if previous_canary is not None and previous_canary != version:
+            previous_entry = self._find_version(previous_canary)
+            if previous_entry is not None and previous_entry["status"] == "canary":
+                previous_entry["status"] = "retired"
+
+        candidate["status"] = "canary"
+        self.manifest["canary_version"] = version
+        self._save_manifest()
+
     def rollback(self, version: int):
         """Rollback a canary version."""
         rolled_back = self._find_version(version)

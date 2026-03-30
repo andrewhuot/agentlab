@@ -14,7 +14,10 @@ import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +60,7 @@ class GeneratedEvalCase:
     difficulty: str = "medium"  # easy, medium, hard
     rationale: str = ""  # why this test case matters
     split: str = "tuning"
+    scoring_criteria: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
@@ -72,6 +76,7 @@ class GeneratedEvalCase:
             "difficulty": self.difficulty,
             "rationale": self.rationale,
             "split": self.split,
+            "scoring_criteria": self.scoring_criteria,
         }
 
     @classmethod
@@ -89,6 +94,7 @@ class GeneratedEvalCase:
             difficulty=str(d.get("difficulty", "medium")),
             rationale=str(d.get("rationale", "")),
             split=str(d.get("split", "tuning")),
+            scoring_criteria=d.get("scoring_criteria", []) or [],
         )
 
     def to_test_case_dict(self) -> dict[str, Any]:
@@ -115,6 +121,12 @@ class GeneratedEvalSuite:
     agent_name: str
     created_at: str
     status: str  # "generating", "ready", "accepted"
+    source_kind: str = "config"
+    mock_mode: bool = True
+    updated_at: str | None = None
+    accepted_at: str | None = None
+    accepted_eval_path: str | None = None
+    transcript_count: int = 0
     categories: dict[str, list[GeneratedEvalCase]] = field(default_factory=dict)
     summary: dict[str, Any] = field(default_factory=dict)
 
@@ -134,6 +146,16 @@ class GeneratedEvalSuite:
                 result.extend(cases)
         return result
 
+    @property
+    def cases(self) -> list[GeneratedEvalCase]:
+        """Compatibility accessor returning all cases as a flat list."""
+        return self.all_cases()
+
+    @property
+    def category_counts(self) -> dict[str, int]:
+        """Return per-category case counts for API list summaries."""
+        return {category: len(cases) for category, cases in self.categories.items()}
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize the entire suite to a dictionary."""
         return {
@@ -141,10 +163,17 @@ class GeneratedEvalSuite:
             "agent_name": self.agent_name,
             "created_at": self.created_at,
             "status": self.status,
+            "source_kind": self.source_kind,
+            "mock_mode": self.mock_mode,
+            "updated_at": self.updated_at,
+            "accepted_at": self.accepted_at,
+            "accepted_eval_path": self.accepted_eval_path,
+            "transcript_count": self.transcript_count,
             "categories": {
                 cat: [case.to_dict() for case in cases]
                 for cat, cases in self.categories.items()
             },
+            "cases": [case.to_dict() for case in self.cases],
             "summary": self.summary,
         }
 
@@ -155,12 +184,22 @@ class GeneratedEvalSuite:
         categories: dict[str, list[GeneratedEvalCase]] = {}
         for cat, raw_cases in raw_categories.items():
             categories[cat] = [GeneratedEvalCase.from_dict(rc) for rc in raw_cases]
+        if not categories and isinstance(d.get("cases"), list):
+            for raw_case in d["cases"]:
+                case = GeneratedEvalCase.from_dict(raw_case)
+                categories.setdefault(case.category, []).append(case)
 
         return cls(
             suite_id=str(d.get("suite_id", "")),
             agent_name=str(d.get("agent_name", "")),
             created_at=str(d.get("created_at", "")),
             status=str(d.get("status", "ready")),
+            source_kind=str(d.get("source_kind", "config")),
+            mock_mode=bool(d.get("mock_mode", True)),
+            updated_at=d.get("updated_at"),
+            accepted_at=d.get("accepted_at"),
+            accepted_eval_path=d.get("accepted_eval_path"),
+            transcript_count=int(d.get("transcript_count", 0) or 0),
             categories=categories,
             summary=d.get("summary", {}),
         )
@@ -168,6 +207,96 @@ class GeneratedEvalSuite:
     def to_test_cases(self) -> list[dict[str, Any]]:
         """Convert all cases to runner-compatible TestCase dicts."""
         return [case.to_test_case_dict() for case in self.all_cases()]
+
+
+class GeneratedEvalSuiteStore:
+    """Durable store for generated eval suites used by API review flows."""
+
+    def __init__(self, store_dir: str = ".autoagent/generated_evals") -> None:
+        self.store_dir = Path(store_dir)
+        self.store_dir.mkdir(parents=True, exist_ok=True)
+
+    def _suite_path(self, suite_id: str) -> Path:
+        return self.store_dir / f"{suite_id}.json"
+
+    def save_suite(self, suite: GeneratedEvalSuite) -> None:
+        """Persist a generated suite."""
+        suite.updated_at = datetime.now(timezone.utc).isoformat()
+        self._suite_path(suite.suite_id).write_text(
+            json.dumps(suite.to_dict(), indent=2),
+            encoding="utf-8",
+        )
+
+    def list_suites(self, limit: int = 20) -> list[GeneratedEvalSuite]:
+        """Return recently generated suites, newest first."""
+        suites: list[GeneratedEvalSuite] = []
+        for path in sorted(self.store_dir.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True):
+            suites.append(GeneratedEvalSuite.from_dict(json.loads(path.read_text(encoding="utf-8"))))
+            if len(suites) >= limit:
+                break
+        return suites
+
+    def get_suite(self, suite_id: str) -> GeneratedEvalSuite | None:
+        """Load one suite by ID."""
+        path = self._suite_path(suite_id)
+        if not path.exists():
+            return None
+        return GeneratedEvalSuite.from_dict(json.loads(path.read_text(encoding="utf-8")))
+
+    def update_case(self, suite_id: str, case_id: str, updates: dict[str, Any]) -> GeneratedEvalSuite:
+        """Apply an inline edit to one case and persist the suite."""
+        suite = self.get_suite(suite_id)
+        if suite is None:
+            raise KeyError(f"Generated eval suite not found: {suite_id}")
+        for case in suite.cases:
+            if case.case_id != case_id:
+                continue
+            for field_name, value in updates.items():
+                if hasattr(case, field_name) and field_name != "case_id":
+                    setattr(case, field_name, value)
+            suite.summary = AutoEvalGenerator._build_summary(suite)
+            self.save_suite(suite)
+            return suite
+        raise KeyError(f"Generated eval case not found: {case_id}")
+
+    def delete_case(self, suite_id: str, case_id: str) -> GeneratedEvalSuite:
+        """Remove one case from a suite and persist the suite."""
+        suite = self.get_suite(suite_id)
+        if suite is None:
+            raise KeyError(f"Generated eval suite not found: {suite_id}")
+        for category, cases in list(suite.categories.items()):
+            for index, case in enumerate(cases):
+                if case.case_id != case_id:
+                    continue
+                cases.pop(index)
+                if not cases:
+                    del suite.categories[category]
+                suite.summary = AutoEvalGenerator._build_summary(suite)
+                self.save_suite(suite)
+                return suite
+        raise KeyError(f"Generated eval case not found: {case_id}")
+
+    def accept_suite(self, suite_id: str, eval_cases_dir: str = "evals/cases") -> GeneratedEvalSuite:
+        """Mark a suite as accepted and write it into the eval corpus."""
+        suite = self.get_suite(suite_id)
+        if suite is None:
+            raise KeyError(f"Generated eval suite not found: {suite_id}")
+        cases_dir = Path(eval_cases_dir)
+        cases_dir.mkdir(parents=True, exist_ok=True)
+        output_path = cases_dir / f"generated_{suite_id}.yaml"
+        output_path.write_text(
+            yaml.safe_dump(
+                {"cases": [case.to_test_case_dict() for case in suite.cases]},
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+        suite.status = "accepted"
+        suite.accepted_at = datetime.now(timezone.utc).isoformat()
+        suite.accepted_eval_path = str(output_path)
+        suite.updated_at = suite.accepted_at
+        self.save_suite(suite)
+        return suite
 
 
 # ---------------------------------------------------------------------------
@@ -481,6 +610,42 @@ def _generate_mock_cases(
     return cases
 
 
+def _normalize_tools(value: Any) -> list[Any]:
+    """Normalize tool config shapes into a list for prompt/mock generation."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        normalized: list[dict[str, Any]] = []
+        for name, config in value.items():
+            if isinstance(config, dict):
+                normalized.append({"name": name, **config})
+            else:
+                normalized.append({"name": str(name), "description": str(config)})
+        return normalized
+    return [value] if value else []
+
+
+def _normalize_routing_rules(value: Any) -> list[Any]:
+    """Normalize routing config shapes into a list of rule-like entries."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        rules = value.get("rules")
+        if isinstance(rules, list):
+            return rules
+        return [value]
+    return [value] if value else []
+
+
+def _normalize_named_entries(value: Any) -> list[Any]:
+    """Normalize dict/list values into a list of entries for analysis prompts."""
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        return list(value.values()) if value else []
+    return [value] if value else []
+
+
 # ---------------------------------------------------------------------------
 # LLM-based generation
 # ---------------------------------------------------------------------------
@@ -584,7 +749,11 @@ class AutoEvalGenerator:
     no API keys are available.
     """
 
-    def __init__(self, llm_provider: str | None = None) -> None:
+    def __init__(
+        self,
+        llm_provider: str | None = None,
+        store: GeneratedEvalSuiteStore | None = None,
+    ) -> None:
         """Initialize the generator.
 
         Args:
@@ -593,11 +762,13 @@ class AutoEvalGenerator:
         """
         self._llm_provider = llm_provider
         self._suites: dict[str, GeneratedEvalSuite] = {}
+        self._store = store
 
     def generate(
         self,
         agent_config: dict[str, Any],
         agent_name: str = "agent",
+        transcripts: list[dict[str, Any]] | None = None,
     ) -> GeneratedEvalSuite:
         """Generate a comprehensive eval suite from an agent configuration.
 
@@ -615,6 +786,9 @@ class AutoEvalGenerator:
             agent_name=agent_name,
             created_at=datetime.now(timezone.utc).isoformat(),
             status="generating",
+            source_kind="transcript" if transcripts else "config",
+            mock_mode=self._resolve_provider() == "mock",
+            transcript_count=len(transcripts or []),
         )
         self._suites[suite_id] = suite
 
@@ -636,6 +810,8 @@ class AutoEvalGenerator:
             suite.total_cases,
             len(suite.categories),
         )
+        if self._store is not None:
+            self._store.save_suite(suite)
         return suite
 
     def _extract_analysis_context(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -654,25 +830,25 @@ class AutoEvalGenerator:
         # Tools
         for key in ("tools", "functions", "available_tools"):
             if key in config:
-                context["tools"] = config[key]
+                context["tools"] = _normalize_tools(config[key])
                 break
 
         # Routing rules
         for key in ("routing_rules", "routingRules", "routes", "routing"):
             if key in config:
-                context["routing_rules"] = config[key]
+                context["routing_rules"] = _normalize_routing_rules(config[key])
                 break
 
         # Policies / guardrails
         for key in ("policies", "guardrails", "safety_rules", "rules"):
             if key in config:
-                context["policies"] = config[key]
+                context["policies"] = _normalize_named_entries(config[key])
                 break
 
         # Specialists
         for key in ("specialists", "agents", "sub_agents"):
             if key in config:
-                context["specialists"] = config[key]
+                context["specialists"] = _normalize_named_entries(config[key])
                 break
 
         return context

@@ -223,6 +223,21 @@ class TraceStore:
             ).fetchall()
             return [self._row_to_event(row) for row in rows]
 
+    def get_recent_trace_ids(self, limit: int = 20) -> list[str]:
+        """Return unique trace IDs ordered by most recent event timestamp."""
+        with sqlite3.connect(self.db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT trace_id, MAX(timestamp) AS latest_timestamp
+                FROM trace_events
+                GROUP BY trace_id
+                ORDER BY latest_timestamp DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+            return [str(row[0]) for row in rows]
+
     def get_events_by_session(self, session_id: str) -> list[TraceEvent]:
         """Get all events for a session, ordered by timestamp."""
         with sqlite3.connect(self.db_path) as conn:

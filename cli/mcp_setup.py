@@ -236,15 +236,38 @@ def _write_client_config(spec: MCPClientSpec) -> tuple[Path, Path | None]:
     return path, backup_path
 
 
+def _write_local_project_configs() -> list[Path]:
+    """Write the project-local JSON configs used by lightweight MCP quickstarts."""
+    written_paths: list[Path] = []
+    for path in [Path(".mcp.json"), Path(".cursor") / "mcp.json"]:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = _load_json(path)
+        servers = payload.get("mcpServers")
+        if not isinstance(servers, dict):
+            servers = {}
+        payload["mcpServers"] = servers
+        servers["autoagent"] = _autoagent_json_entry()
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        written_paths.append(path)
+    return written_paths
+
+
 @click.group("mcp")
 def mcp_group() -> None:
     """Configure AutoAgent MCP integration for supported coding tools."""
 
 
 @mcp_group.command("init")
-@click.argument("client_name", type=click.Choice(tuple(_client_specs().keys()), case_sensitive=False))
-def init_client(client_name: str) -> None:
+@click.argument("client_name", required=False, type=click.Choice(tuple(_client_specs().keys()), case_sensitive=False))
+def init_client(client_name: str | None) -> None:
     """Write AutoAgent MCP config for a supported client."""
+    if client_name is None:
+        written_paths = _write_local_project_configs()
+        click.echo("Configured AutoAgent MCP for local project files.")
+        for path in written_paths:
+            click.echo(f"Config path: {path}")
+        return
+
     spec = _client_specs()[client_name.lower()]
     config_path, backup_path = _write_client_config(spec)
 

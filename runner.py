@@ -40,6 +40,7 @@ Full command set:
 
 from __future__ import annotations
 
+import difflib
 import json
 import os
 import shutil
@@ -131,11 +132,41 @@ class AutoAgentGroup(click.Group):
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
         """Capture banner suppression intent early because Click handles help before callbacks."""
+        ctx.meta["invocation_cwd"] = Path.cwd().resolve()
+        show_all = "--all" in args
+        ctx.meta["show_all"] = show_all
         ctx.meta["banner_enabled"] = "--quiet" not in args and "--no-banner" not in args
-        return super().parse_args(ctx, args)
+        filtered_args = [arg for arg in args if arg != "--all"]
+        return super().parse_args(ctx, filtered_args)
+
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        """Hide experimental commands from default help unless `--all` is set."""
+        commands = super().list_commands(ctx)
+        if ctx.parent is None and not ctx.meta.get("show_all", False):
+            commands = [name for name in commands if name != "rl"]
+        return commands
 
     def get_help(self, ctx: click.Context) -> str:
         help_text = super().get_help(ctx)
+        if ctx.parent is None:
+            task_groups = [
+                "  build [Stable]",
+                "  import [Stable]",
+                "  eval [Stable]",
+                "  trace [Stable]",
+                "  improve [Stable]",
+                "  config [Stable]",
+                "  deploy [Stable]",
+                "  integrations [Beta]",
+                "  dev [Beta]",
+            ]
+            if ctx.meta.get("show_all", False):
+                task_groups.append("  rl [Experimental]")
+            taxonomy_block = "Task Groups:\n" + "\n".join(task_groups) + "\n\n"
+            if "Commands:\n" in help_text:
+                help_text = help_text.replace("Commands:\n", taxonomy_block + "Commands:\n", 1)
+            else:
+                help_text = help_text + "\n\n" + taxonomy_block
         show_banner = ctx.meta.get("banner_enabled", banner_enabled(ctx))
         if ctx.parent is None and show_banner:
             return f"{render_startup_banner(AUTOAGENT_VERSION)}\n{help_text}"
@@ -185,6 +216,30 @@ def _ensure_active_config(deployer: Deployer) -> dict:
     return config
 
 
+def _workspace_for_configs_dir(configs_dir: str) -> AutoAgentWorkspace | None:
+    """Return the discovered workspace when `configs_dir` points at its config directory."""
+    workspace = discover_workspace()
+    if workspace is None:
+        return None
+
+    try:
+        resolved_configs_dir = Path(configs_dir).resolve()
+    except OSError:
+        return None
+
+    return workspace if resolved_configs_dir == workspace.configs_dir.resolve() else None
+
+
+def _resolve_invocation_input_path(path: Path) -> Path:
+    """Resolve a user input path against the original invocation cwd."""
+    ctx = click.get_current_context(silent=True)
+    root = ctx.find_root() if ctx is not None else None
+    meta = getattr(root, "meta", {}) if root is not None else {}
+    raw_cwd = meta.get("invocation_cwd")
+    invocation_cwd = Path(raw_cwd).resolve() if raw_cwd else Path.cwd().resolve()
+    return path if path.is_absolute() else (invocation_cwd / path).resolve()
+
+
 def _print_score(score, heading: str) -> None:
     """Print a consistent score summary for eval output."""
     click.echo(f"\n{heading}")
@@ -211,6 +266,14 @@ def _print_score(score, heading: str) -> None:
     )
     for warning in getattr(score, "warnings", []):
         click.echo(click.style(f"  Warning:   {warning}", fg="yellow"))
+
+
+def _read_best_score(path: Path) -> float:
+    """Read a persisted best score, treating missing or empty files as zero."""
+    if not path.exists():
+        return 0.0
+    raw_score = path.read_text(encoding="utf-8").strip()
+    return float(raw_score) if raw_score else 0.0
 
 
 def _score_to_dict(score) -> dict:
@@ -920,10 +983,15 @@ def init_project(
     if with_synthetic_data:
         click.echo(
             click.style("  ✓ ", fg="green")
-            + "Synthetic data: "
+            + "Seeded synthetic conversations: "
             + f"{synthetic_summary.get('conversation_count', 0)} conversations, "
             + f"{synthetic_summary.get('eval_case_count', 0)} eval cases"
         )
+
+    click.echo(
+        click.style("  ✓ ", fg="green")
+        + f"Starter runbooks: {summary.get('runbook_count', 0)} runbooks"
+    )
 
     if demo:
         demo_summary = summary.get("demo_summary", {}) or {}
@@ -942,6 +1010,7 @@ def init_project(
     click.echo("")
     click.echo(click.style("  Next step:", bold=True))
     click.echo("    autoagent status")
+    click.echo("    autoagent quickstart")
     click.echo("    autoagent build \"Build a support agent for order tracking\"")
     click.echo("    autoagent eval run")
     click.echo("")
@@ -1486,9 +1555,7 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
 
     # Track all-time best score
     best_score_file = Path(".autoagent/best_score.txt")
-    all_time_best = 0.0
-    if best_score_file.exists():
-        all_time_best = float(best_score_file.read_text().strip())
+    all_time_best = _read_best_score(best_score_file)
 
     json_cycle_results: list[dict] = []
 
@@ -1599,13 +1666,55 @@ def optimize(cycles: int, mode: str | None, strategy: str | None, db: str, confi
                 )
 
 
+@cli.group("improve")
+def improve_group() -> None:
+    """Improvement workflows and compatibility aliases."""
+
+
+@improve_group.command("optimize")
+@click.option("--cycles", default=1, show_default=True, type=int, help="Number of optimization cycles.")
+@click.option("--mode", default=None, type=click.Choice(["standard", "advanced", "research"]),
+              help="Optimization mode (replaces --strategy).")
+@click.option("--strategy", default=None, hidden=True, help="[DEPRECATED] Use --mode instead.")
+@click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
+@click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
+@click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
+@click.option("--full-auto", is_flag=True, default=False,
+              help="Danger mode: auto-promote accepted configs without manual review.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def improve_optimize(
+    ctx: click.Context,
+    cycles: int,
+    mode: str | None,
+    strategy: str | None,
+    db: str,
+    configs_dir: str,
+    memory_db: str,
+    full_auto: bool,
+    json_output: bool = False,
+) -> None:
+    """Compatibility alias for `autoagent optimize`."""
+    ctx.invoke(
+        optimize,
+        cycles=cycles,
+        mode=mode,
+        strategy=strategy,
+        db=db,
+        configs_dir=configs_dir,
+        memory_db=memory_db,
+        full_auto=full_auto,
+        json_output=json_output,
+    )
+
+
 # ---------------------------------------------------------------------------
 # autoagent config (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("config")
 def config_group() -> None:
-    """Manage agent config versions."""
+    """Manage agent config versions and related edit, pin, and unpin workflows."""
 
 
 @config_group.command("list")
@@ -1632,7 +1741,12 @@ def config_list(configs_dir: str, json_output: bool = False) -> None:
             click.echo("Run: autoagent init")
         return
 
-    active = deployer.version_manager.manifest.get("active_version")
+    workspace = _workspace_for_configs_dir(configs_dir)
+    active = (
+        workspace.metadata.active_config_version
+        if workspace is not None and workspace.metadata.active_config_version is not None
+        else deployer.version_manager.manifest.get("active_version")
+    )
     canary = deployer.version_manager.manifest.get("canary_version")
 
     if json_output:
@@ -1684,6 +1798,7 @@ def config_show(version: str | None, configs_dir: str, json_output: bool = False
 
     store = ConversationStore(db_path=DB_PATH)
     deployer = Deployer(configs_dir=configs_dir, store=store)
+    workspace = _workspace_for_configs_dir(configs_dir)
 
     # FR-08: resolve selectors
     resolved_version: int | None = None
@@ -1693,7 +1808,10 @@ def config_show(version: str | None, configs_dir: str, json_output: bool = False
             if version.lower() in ("latest",):
                 resolved_version = history[-1]["version"] if history else None
             elif version.lower() in ("active", "current"):
-                resolved_version = deployer.version_manager.manifest.get("active_version")
+                if workspace is not None and workspace.metadata.active_config_version is not None:
+                    resolved_version = workspace.metadata.active_config_version
+                else:
+                    resolved_version = deployer.version_manager.manifest.get("active_version")
             elif version.lower() == "pending":
                 for v in reversed(history):
                     if v["status"] in ("canary", "candidate", "imported"):
@@ -1701,7 +1819,8 @@ def config_show(version: str | None, configs_dir: str, json_output: bool = False
                         break
         else:
             try:
-                resolved_version = int(version)
+                normalized_version = version[1:] if version.lower().startswith("v") else version
+                resolved_version = int(normalized_version)
             except ValueError:
                 click.echo(f"Invalid version: {version}")
                 return
@@ -1926,6 +2045,7 @@ def config_migrate(input_file: str, output: str | None) -> None:
 @click.option("--credentials", default=None, help="Path to service account JSON for CX calls.")
 @click.option("--output", default=None, help="Output path for CX export package JSON.")
 @click.option("--push/--no-push", default=False, show_default=True, help="Push to CX now (otherwise package only).")
+@click.option("--yes", "acknowledge", is_flag=True, default=False, help="Skip interactive deployment confirmation.")
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def deploy(
     workflow: str | None,
@@ -1941,14 +2061,16 @@ def deploy(
     credentials: str | None,
     output: str | None,
     push: bool,
+    acknowledge: bool,
     json_output: bool = False,
 ) -> None:
-    """Deploy a config version.
+    """Deploy a config version with canary, release, and rollback-friendly workflows.
 
     Examples:
       autoagent deploy canary
       autoagent deploy --config-version 5 --strategy canary
       autoagent deploy --strategy immediate
+      autoagent deploy canary --yes
       autoagent deploy --target cx-studio
     """
     if workflow is not None:
@@ -2056,6 +2178,12 @@ def deploy(
 
     scores = found.get("scores", {"composite": 0.0})
 
+    if not json_output and not acknowledge:
+        click.confirm(
+            f"Deploy v{config_version:03d} using the {strategy} strategy?",
+            abort=True,
+        )
+
     if strategy == "immediate":
         deployer.version_manager.promote(config_version)
         if json_output:
@@ -2063,7 +2191,8 @@ def deploy(
         else:
             click.echo(f"Deployed v{config_version:03d} immediately (promoted to active).")
     else:
-        result = deployer.deploy(config, scores)
+        deployer.version_manager.mark_canary(config_version)
+        result = f"Deployed v{config_version:03d} as canary (10% traffic)"
         if json_output:
             click.echo(json_response("ok", {"version": config_version, "strategy": "canary", "result": str(result)}, next_cmd="autoagent status"))
         else:
@@ -2809,9 +2938,33 @@ def unpin_surface(surface: str) -> None:
 # autoagent autofix (subgroup)
 # ---------------------------------------------------------------------------
 
-@cli.group("autofix")
-def autofix_group() -> None:
+@cli.group("autofix", invoke_without_command=True)
+@click.pass_context
+def autofix_group(ctx: click.Context) -> None:
     """AutoFix Copilot — reviewable improvement proposals."""
+    if ctx.invoked_subcommand is not None:
+        return
+
+    from optimizer.autofix import AutoFixStore
+
+    store = AutoFixStore()
+    proposals = store.list_proposals(status="pending", limit=1)
+    if not proposals:
+        click.echo("No pending autofix proposals.")
+        return
+
+    proposal = proposals[0]
+    click.echo(f"\nPending AutoFix proposal: {proposal.proposal_id}")
+    click.echo(f"  Mutation: {proposal.mutation_name}")
+    click.echo(f"  Surface:  {proposal.surface}")
+    click.echo(f"  Preview:  {proposal.diff_preview or 'n/a'}")
+    action = click.prompt("Action", type=click.Choice(["apply", "reject", "skip"]), default="skip")
+    if action == "apply":
+        if click.confirm("Apply this proposal?", default=False):
+            ctx.invoke(autofix_apply, proposal_id=proposal.proposal_id, json_output=False)
+    elif action == "reject":
+        store.update_status(proposal.proposal_id, "rejected")
+        click.echo(f"Rejected proposal {proposal.proposal_id}.")
 
 
 @autofix_group.command("suggest")
@@ -3192,8 +3345,22 @@ def context_report() -> None:
 @click.pass_context
 def review_group(ctx: click.Context) -> None:
     """Review proposed change cards from the optimizer."""
-    if ctx.invoked_subcommand is None:
-        ctx.invoke(review_list)
+    if ctx.invoked_subcommand is not None:
+        return
+
+    from optimizer.change_card import ChangeCardStore
+
+    store = ChangeCardStore()
+    cards = store.list_pending(limit=1)
+    if not cards:
+        click.echo("No pending change cards.")
+        return
+
+    card = cards[0]
+    click.echo(card.to_terminal())
+    if click.confirm("Approve this change?", default=False):
+        store.update_status(card.card_id, "applied")
+        click.echo(f"Applied change card {card.card_id}: {card.title}")
 
 
 @review_group.command("list")
@@ -4777,7 +4944,11 @@ def scorer_show(name: str) -> None:
     scorer = _make_nl_scorer()
     spec = scorer.get(name)
     if spec is None:
-        click.echo(f"Scorer '{name}' not found.")
+        suggestions = difflib.get_close_matches(name, [item.name for item in scorer.list()], n=1)
+        message = f"Scorer '{name}' not found."
+        if suggestions:
+            message += f" Did you mean '{suggestions[0]}'?"
+        click.echo(message)
         raise SystemExit(1)
     click.echo(json.dumps(spec.to_dict(), indent=2, default=str))
 
@@ -5019,9 +5190,7 @@ def quickstart(
 
     # Track all-time best score for quickstart
     best_score_file = workspace_paths["best_score_file"]
-    all_time_best = 0.0
-    if best_score_file.exists():
-        all_time_best = float(best_score_file.read_text().strip())
+    all_time_best = _read_best_score(best_score_file)
 
     best_score = baseline_score.composite
     for cycle in range(1, 4):
@@ -5201,9 +5370,7 @@ def demo_quickstart(
 
     # Track all-time best score for demo
     best_score_file = workspace_paths["best_score_file"]
-    all_time_best = 0.0
-    if best_score_file.exists():
-        all_time_best = float(best_score_file.read_text().strip())
+    all_time_best = _read_best_score(best_score_file)
 
     report = observer_mod_observe(store)
     current_config = _ensure_active_config(deployer)
@@ -6465,8 +6632,23 @@ def dataset_stats(dataset_id: str, json_output: bool = False) -> None:
     """Show dataset statistics."""
     from cli.stream2_helpers import json_response
     from data.dataset_service import DatasetService
+
     svc = DatasetService()
-    stats = svc.stats(dataset_id)
+    resolved_dataset_id = dataset_id
+    if svc.get(dataset_id) is None:
+        datasets = svc.list_datasets()
+        exact_name = next((dataset for dataset in datasets if dataset.name == dataset_id), None)
+        if exact_name is not None:
+            resolved_dataset_id = exact_name.dataset_id
+        else:
+            suggestions = difflib.get_close_matches(dataset_id, [dataset.name for dataset in datasets], n=1)
+            message = f"Dataset '{dataset_id}' not found."
+            if suggestions:
+                message += f" Did you mean '{suggestions[0]}'?"
+            click.echo(message)
+            raise SystemExit(1)
+
+    stats = svc.stats(resolved_dataset_id)
     if json_output:
         click.echo(json_response("ok", stats))
     else:
@@ -6900,12 +7082,18 @@ def import_transcript_group() -> None:
 
 
 @import_transcript_group.command("upload")
-@click.argument("archive", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("archive", type=click.Path(dir_okay=False, path_type=Path))
 def import_transcript_upload(archive: Path) -> None:
     """Upload a transcript archive and persist the generated report."""
     import base64
 
     from optimizer.transcript_intelligence import TranscriptIntelligenceService
+
+    archive = _resolve_invocation_input_path(archive)
+    if not archive.exists():
+        raise click.ClickException(f"File does not exist: {archive}")
+    if archive.is_dir():
+        raise click.ClickException(f"Expected a file, got directory: {archive}")
 
     service = TranscriptIntelligenceService()
     archive_base64 = base64.b64encode(archive.read_bytes()).decode("ascii")
