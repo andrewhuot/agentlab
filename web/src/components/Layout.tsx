@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { CommandPalette } from './CommandPalette';
 import { ToastViewport } from './ToastViewport';
 import { MockModeBanner } from './MockModeBanner';
+import { getBreadcrumbForPath, getRouteTitle } from '../lib/navigation';
 import { wsClient } from '../lib/websocket';
 
 export interface BreadcrumbItem {
@@ -17,102 +18,39 @@ export interface RouteContext {
   breadcrumbs: BreadcrumbItem[];
 }
 
-const staticRouteContexts: Record<string, RouteContext> = {
-  '/': { title: 'Builder', breadcrumbs: [{ label: 'Build' }] },
-  '/build': { title: 'Builder', breadcrumbs: [{ label: 'Build' }] },
-  '/builder': { title: 'Builder', breadcrumbs: [{ label: 'Build' }] },
-  '/builder/demo': { title: 'Builder', breadcrumbs: [{ label: 'Build' }] },
-  '/dashboard': { title: 'Dashboard', breadcrumbs: [{ label: 'Operate' }] },
-  '/demo': { title: 'Demo', breadcrumbs: [{ label: 'Operate' }] },
-  '/assistant': { title: 'Builder', breadcrumbs: [{ label: 'Build' }] },
-  '/evals': { title: 'Eval Runs', breadcrumbs: [{ label: 'Operate' }] },
-  '/optimize': { title: 'Optimize', breadcrumbs: [{ label: 'Improve' }] },
-  '/live-optimize': { title: 'Live Optimize', breadcrumbs: [{ label: 'Improve' }] },
-  '/configs': { title: 'Config Versions', breadcrumbs: [{ label: 'Governance' }] },
-  '/conversations': { title: 'Conversations', breadcrumbs: [{ label: 'Operate' }] },
-  '/deploy': { title: 'Deploy', breadcrumbs: [{ label: 'Operate' }] },
-  '/loop': { title: 'Loop Monitor', breadcrumbs: [{ label: 'Operate' }] },
-  '/opportunities': { title: 'Opportunities', breadcrumbs: [{ label: 'Improve' }] },
-  '/changes': {
-    title: 'Change Review',
-    breadcrumbs: [{ label: 'Improve' }, { label: 'Change Review' }],
-  },
-  '/experiments': { title: 'Experiments', breadcrumbs: [{ label: 'Improve' }] },
-  '/traces': { title: 'Traces', breadcrumbs: [{ label: 'Operate' }] },
-  '/events': { title: 'Event Log', breadcrumbs: [{ label: 'Operate' }] },
-  '/autofix': { title: 'AutoFix', breadcrumbs: [{ label: 'Improve' }] },
-  '/judge-ops': { title: 'Judge Ops', breadcrumbs: [{ label: 'Governance' }] },
-  '/context': { title: 'Context Workbench', breadcrumbs: [{ label: 'Analysis' }] },
-  '/intelligence': {
-    title: 'Intelligence Studio',
-    breadcrumbs: [{ label: 'Build' }],
-  },
-  '/runbooks': { title: 'Runbooks', breadcrumbs: [{ label: 'Governance' }] },
-  '/skills': { title: 'Skills', breadcrumbs: [{ label: 'Analysis' }] },
-  '/registry': { title: 'Registry Browser', breadcrumbs: [{ label: 'Analysis' }] },
-  '/memory': { title: 'Project Memory', breadcrumbs: [{ label: 'Governance' }] },
-  '/blame': { title: 'Blame Map', breadcrumbs: [{ label: 'Analysis' }] },
-  '/scorer-studio': { title: 'Scorer Studio', breadcrumbs: [{ label: 'Governance' }] },
-  '/adk/import': {
-    title: 'ADK Import',
-    breadcrumbs: [{ label: 'Integrations' }, { label: 'ADK Import' }],
-  },
-  '/adk/deploy': {
-    title: 'ADK Deploy',
-    breadcrumbs: [{ label: 'Integrations' }, { label: 'ADK Deploy' }],
-  },
-  '/cx/import': {
-    title: 'CX Import',
-    breadcrumbs: [{ label: 'Integrations' }, { label: 'CX Import' }],
-  },
-  '/cx/deploy': {
-    title: 'CX Deploy',
-    breadcrumbs: [{ label: 'Integrations' }, { label: 'CX Deploy' }],
-  },
-  '/agent-skills': { title: 'Agent Skills', breadcrumbs: [{ label: 'Analysis' }] },
-  '/agent-studio': {
-    title: 'Builder',
-    breadcrumbs: [{ label: 'Build' }],
-  },
-  '/notifications': { title: 'Notifications', breadcrumbs: [{ label: 'Governance' }] },
-  '/sandbox': { title: 'Sandbox', breadcrumbs: [{ label: 'Analysis' }] },
-  '/knowledge': { title: 'Knowledge', breadcrumbs: [{ label: 'Analysis' }] },
-  '/what-if': { title: 'What-If Replay', breadcrumbs: [{ label: 'Analysis' }] },
-  '/reviews': { title: 'Collaborative Review', breadcrumbs: [{ label: 'Analysis' }] },
-  '/reward-studio': { title: 'Reward Studio', breadcrumbs: [{ label: 'Policy Optimization' }] },
-  '/preference-inbox': {
-    title: 'Preference Inbox',
-    breadcrumbs: [{ label: 'Policy Optimization' }],
-  },
-  '/policy-candidates': {
-    title: 'Policy Candidates',
-    breadcrumbs: [{ label: 'Policy Optimization' }],
-  },
-  '/reward-audit': { title: 'Reward Audit', breadcrumbs: [{ label: 'Policy Optimization' }] },
-  '/settings': { title: 'Settings', breadcrumbs: [{ label: 'Governance' }] },
-};
+function toBreadcrumbItems(labels: string[]): BreadcrumbItem[] {
+  return labels.map((label, index) => {
+    if (label === 'Eval Runs' && index > 0) {
+      return { label, href: '/evals' };
+    }
+
+    return { label };
+  });
+}
 
 export function getRouteContext(pathname: string): RouteContext {
-  if (pathname.startsWith('/evals/')) {
+  const normalizedPathname = pathname.split('?')[0]?.split('#')[0] ?? pathname;
+
+  if (normalizedPathname.startsWith('/evals/')) {
     const runId = pathname.split('/')[2] || '';
     return {
       title: 'Eval Detail',
       breadcrumbs: [
-        { label: 'Operate' },
+        { label: 'Eval' },
         { label: 'Eval Runs', href: '/evals' },
         { label: `Run ${runId.slice(0, 8)}` },
       ],
     };
   }
 
-  if (pathname.startsWith('/builder/')) {
-    return { title: 'Builder', breadcrumbs: [{ label: 'Build' }] };
+  const title = getRouteTitle(normalizedPathname);
+  const breadcrumbs = toBreadcrumbItems(getBreadcrumbForPath(normalizedPathname));
+
+  if (title === 'AutoAgent' && breadcrumbs.length === 0) {
+    return { title, breadcrumbs };
   }
 
-  return staticRouteContexts[pathname] ?? {
-    title: 'AutoAgent',
-    breadcrumbs: [],
-  };
+  return { title, breadcrumbs };
 }
 
 function useGlobalShortcuts() {

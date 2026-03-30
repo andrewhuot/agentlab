@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -10,6 +10,7 @@ import { Configs } from './pages/Configs';
 import { Conversations } from './pages/Conversations';
 import { Deploy } from './pages/Deploy';
 import { LoopMonitor } from './pages/LoopMonitor';
+import { Setup } from './pages/Setup';
 import { Settings } from './pages/Settings';
 import { Opportunities } from './pages/Opportunities';
 import { Experiments } from './pages/Experiments';
@@ -25,7 +26,6 @@ import { ChangeReview } from './pages/ChangeReview';
 import { Runbooks } from './pages/Runbooks';
 import { Skills } from './pages/Skills';
 import { ProjectMemory } from './pages/ProjectMemory';
-import { IntelligenceStudio } from './pages/IntelligenceStudio';
 import { CxImport } from './pages/CxImport';
 import { CxDeploy } from './pages/CxDeploy';
 import { LiveOptimize } from './pages/LiveOptimize';
@@ -41,7 +41,8 @@ import { RewardStudio } from './pages/RewardStudio';
 import { PreferenceInbox } from './pages/PreferenceInbox';
 import { PolicyCandidates } from './pages/PolicyCandidates';
 import { RewardAudit } from './pages/RewardAudit';
-import { Builder } from './pages/Builder';
+import { Build } from './pages/Build';
+import { getRouteRedirect } from './lib/navigation';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,13 @@ const queryClient = new QueryClient({
   },
 });
 
+function LegacyRouteRedirect() {
+  const location = useLocation();
+  const redirectTo = getRouteRedirect(location.pathname) ?? '/build';
+
+  return <Navigate to={redirectTo} replace />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -59,12 +67,13 @@ export default function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<Navigate to="/build" replace />} />
-            <Route path="/build" element={<Builder />} />
-            <Route path="/builder" element={<Navigate to="/build" replace />} />
-            <Route path="/builder/demo" element={<Navigate to="/build" replace />} />
-            <Route path="/builder/*" element={<Navigate to="/build" replace />} />
-            <Route path="/agent-studio" element={<Navigate to="/build" replace />} />
-            <Route path="/assistant" element={<Navigate to="/build" replace />} />
+            <Route path="/build" element={<Build />} />
+            <Route path="/intelligence" element={<LegacyRouteRedirect />} />
+            <Route path="/builder" element={<LegacyRouteRedirect />} />
+            <Route path="/builder/demo" element={<LegacyRouteRedirect />} />
+            <Route path="/builder/*" element={<LegacyRouteRedirect />} />
+            <Route path="/agent-studio" element={<LegacyRouteRedirect />} />
+            <Route path="/assistant" element={<LegacyRouteRedirect />} />
 
             {/* Dashboard moved to /dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
@@ -78,6 +87,7 @@ export default function App() {
             <Route path="/conversations" element={<Conversations />} />
             <Route path="/deploy" element={<Deploy />} />
             <Route path="/loop" element={<LoopMonitor />} />
+            <Route path="/setup" element={<Setup />} />
             <Route path="/opportunities" element={<Opportunities />} />
             <Route path="/experiments" element={<Experiments />} />
             <Route path="/traces" element={<Traces />} />
@@ -88,7 +98,6 @@ export default function App() {
             <Route path="/changes" element={<ChangeReview />} />
             <Route path="/runbooks" element={<Runbooks />} />
             <Route path="/skills" element={<Skills />} />
-            <Route path="/intelligence" element={<IntelligenceStudio />} />
             <Route path="/memory" element={<ProjectMemory />} />
             <Route path="/registry" element={<Registry />} />
             <Route path="/blame" element={<BlameMap />} />

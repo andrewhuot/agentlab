@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useConfigs, useConversations, useEvalRuns } from '../lib/api';
+import { getNavigationSections } from '../lib/navigation';
 import { formatTimestamp, truncate } from '../lib/utils';
 
 type PaletteItem = {
@@ -9,7 +10,7 @@ type PaletteItem = {
   label: string;
   description?: string;
   href: string;
-  group: 'Actions' | 'Eval Runs' | 'Configs' | 'Conversations' | 'Smart Results';
+  group: 'Navigation' | 'Actions' | 'Eval Runs' | 'Configs' | 'Conversations' | 'Smart Results';
 };
 
 const SMART_SEARCH_MAP: Array<{
@@ -75,6 +76,22 @@ const SMART_SEARCH_MAP: Array<{
 ];
 
 const staticItems: PaletteItem[] = [
+  ...getNavigationSections().map((section) => ({
+    id: `nav-${section.group}`,
+    label: section.label,
+    description: section.description,
+    href: section.items[0]?.path ?? '/build',
+    group: 'Navigation' as const,
+  })),
+  ...getNavigationSections().flatMap((section) =>
+    section.items.map((item) => ({
+      id: `nav-item-${section.group}-${item.path}`,
+      label: item.label,
+      description: `${section.label} · ${section.description}`,
+      href: item.path,
+      group: 'Navigation' as const,
+    }))
+  ),
   {
     id: 'action-dashboard',
     label: 'Go to Dashboard',
@@ -302,6 +319,7 @@ export function CommandPalette() {
                   <button
                     key={entry.id}
                     onClick={() => handleNavigate(entry.href)}
+                    aria-label={entry.label}
                     className={`flex w-full items-center gap-3 px-3.5 py-2 text-left text-sm transition-colors ${
                       currentIndex === selectedIndex
                         ? 'bg-gray-100 text-gray-900'

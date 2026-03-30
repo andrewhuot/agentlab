@@ -33,6 +33,7 @@ import {
   Target,
   ShieldCheck,
 } from 'lucide-react';
+import { getNavigationSections } from '../lib/navigation';
 import { classNames } from '../lib/utils';
 
 interface NavItem {
@@ -46,78 +47,56 @@ interface NavSection {
   items: NavItem[];
 }
 
-const navSections: NavSection[] = [
-  {
-    title: 'Build',
-    items: [
-      { to: '/build', label: 'Builder', icon: Hammer },
-      { to: '/intelligence', label: 'Intelligence Studio', icon: BrainCircuit },
-    ],
-  },
-  {
-    title: 'Operate',
-    items: [
-      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/demo', label: 'Demo', icon: Sparkles },
-      { to: '/evals', label: 'Eval Runs', icon: FlaskConical },
-      { to: '/conversations', label: 'Conversations', icon: MessageSquare },
-      { to: '/loop', label: 'Loop Monitor', icon: RefreshCw },
-      { to: '/deploy', label: 'Deploy', icon: Rocket },
-      { to: '/traces', label: 'Traces', icon: Activity },
-      { to: '/events', label: 'Event Log', icon: ScrollText },
-    ],
-  },
-  {
-    title: 'Improve',
-    items: [
-      { to: '/optimize', label: 'Optimize', icon: Zap },
-      { to: '/live-optimize', label: 'Live Optimize', icon: Sparkles },
-      { to: '/opportunities', label: 'Opportunities', icon: Flag },
-      { to: '/changes', label: 'Changes', icon: GitPullRequest },
-      { to: '/experiments', label: 'Experiments', icon: TestTubes },
-      { to: '/autofix', label: 'AutoFix', icon: Wrench },
-    ],
-  },
-  {
-    title: 'Integrations',
-    items: [
-      { to: '/adk/import', label: 'ADK Import', icon: Download },
-      { to: '/adk/deploy', label: 'ADK Deploy', icon: Upload },
-      { to: '/cx/import', label: 'CX Import', icon: Download },
-      { to: '/cx/deploy', label: 'CX Deploy', icon: Upload },
-    ],
-  },
-  {
-    title: 'Governance',
-    items: [
-      { to: '/judge-ops', label: 'Judge Ops', icon: Scale },
-      { to: '/configs', label: 'Configs', icon: Settings2 },
-      { to: '/memory', label: 'Memory', icon: Brain },
-      { to: '/runbooks', label: 'Runbooks', icon: Library },
-      { to: '/scorer-studio', label: 'Scorer Studio', icon: Sparkles },
-      { to: '/notifications', label: 'Notifications', icon: Bell },
-    ],
-  },
-  {
-    title: 'Analysis',
-    items: [
-      { to: '/context', label: 'Context Workbench', icon: Layers },
-      { to: '/skills', label: 'Skills', icon: Zap },
-      { to: '/registry', label: 'Registry', icon: BookOpen },
-      { to: '/agent-skills', label: 'Agent Skills', icon: Sparkles },
-      { to: '/blame', label: 'Blame Map', icon: MapPin },
-    ],
-  },
-  {
-    title: 'Policy Optimization',
-    items: [
-      { to: '/reward-studio', label: 'Reward Studio', icon: Award },
-      { to: '/preference-inbox', label: 'Preference Inbox', icon: Inbox },
-      { to: '/policy-candidates', label: 'Policy Candidates', icon: Target },
-      { to: '/reward-audit', label: 'Reward Audit', icon: ShieldCheck },
-    ],
-  },
-];
+const ICON_BY_PATH: Record<string, LucideIcon> = {
+  '/build': Hammer,
+  '/intelligence': BrainCircuit,
+  '/cx/import': Download,
+  '/adk/import': Download,
+  '/evals': FlaskConical,
+  '/optimize': Zap,
+  '/live-optimize': Sparkles,
+  '/experiments': TestTubes,
+  '/changes': GitPullRequest,
+  '/reviews': GitPullRequest,
+  '/opportunities': Flag,
+  '/deploy': Rocket,
+  '/dashboard': LayoutDashboard,
+  '/conversations': MessageSquare,
+  '/traces': Activity,
+  '/events': ScrollText,
+  '/blame': MapPin,
+  '/context': Layers,
+  '/loop': RefreshCw,
+  '/configs': Settings2,
+  '/judge-ops': Scale,
+  '/runbooks': Library,
+  '/skills': Wrench,
+  '/memory': Brain,
+  '/registry': BookOpen,
+  '/scorer-studio': Sparkles,
+  '/notifications': Bell,
+  '/reward-studio': Award,
+  '/preference-inbox': Inbox,
+  '/policy-candidates': Target,
+  '/reward-audit': ShieldCheck,
+  '/cx/deploy': Upload,
+  '/adk/deploy': Upload,
+  '/agent-skills': Sparkles,
+  '/sandbox': Layers,
+  '/what-if': RefreshCw,
+  '/knowledge': BookOpen,
+  '/setup': Settings2,
+  '/settings': Settings,
+};
+
+const navSections: NavSection[] = getNavigationSections().map((section) => ({
+  title: section.label,
+  items: section.items.map((item) => ({
+    to: item.path,
+    label: item.label,
+    icon: ICON_BY_PATH[item.path] ?? Sparkles,
+  })),
+}));
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -166,7 +145,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                   <NavLink
                     key={to}
                     to={to}
-                    end={to === '/dashboard' || to === '/build'}
+                    end={to !== '/evals'}
                     onClick={onClose}
                     className={({ isActive }) =>
                       classNames(
@@ -185,24 +164,6 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             </div>
           ))}
         </nav>
-
-        <div className="space-y-0.5 px-3 py-2">
-          <NavLink
-            to="/settings"
-            onClick={onClose}
-            className={({ isActive }) =>
-              classNames(
-                'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-all duration-150',
-                isActive
-                  ? 'bg-gray-900 font-medium text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              )
-            }
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            <span>Settings</span>
-          </NavLink>
-        </div>
 
         <div className="border-t border-gray-100 px-5 py-3">
           <kbd className="text-[11px] text-gray-400">&#8984;K</kbd>
