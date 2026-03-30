@@ -64,7 +64,7 @@ class TestBareAutoagentStatusHome:
 
             assert result.exit_code == 0, result.output
             assert "AutoAgent Status" in result.output
-            assert "Next action:" in result.output
+            assert "Next step:" in result.output
 
 
 class TestGrammarStandardization:
@@ -317,11 +317,11 @@ class TestStreamBQuickWins:
             tracker = CostTracker(db_path=".autoagent/cost_tracker.db")
             tracker.record_cycle("cycle-001", spent_dollars=0.42, improvement_delta=0.05)
 
-            result = runner.invoke(cli, ["status"])
+            result = runner.invoke(cli, ["status", "--verbose"])
 
             assert result.exit_code == 0, result.output
-            assert "Last eval tokens" in result.output
-            assert "Last optimize cost" in result.output
+            assert "Last eval:" in result.output
+            assert "Last optimize:" in result.output
 
     def test_edit_interactive_shows_workspace_help_and_quit_hints(self, runner: CliRunner) -> None:
         """Interactive edit should introduce workspace context and help affordances."""
@@ -566,6 +566,20 @@ class TestWorkflowCommands:
             version_two = next(entry for entry in manifest["versions"] if entry["version"] == 2)
             assert manifest["canary_version"] is None
             assert version_two["status"] == "rolled_back"
+
+    def test_deploy_status_reports_active_and_canary_versions(self, runner: CliRunner) -> None:
+        """`deploy status` should surface the current deployment state for the workspace."""
+        with runner.isolated_filesystem():
+            init_result = runner.invoke(cli, ["init", "--dir", "."])
+            assert init_result.exit_code == 0, init_result.output
+            _seed_config_version(Path("."), model_name="status-model-v2", status="canary")
+
+            result = runner.invoke(cli, ["deploy", "status"])
+
+            assert result.exit_code == 0, result.output
+            assert "Deployment status" in result.output
+            assert "v001" in result.output
+            assert "v002" in result.output
 
     def test_config_rollback_promotes_requested_version(self, runner: CliRunner) -> None:
         """`config rollback` should promote the requested prior version to active."""

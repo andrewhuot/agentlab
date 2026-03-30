@@ -270,9 +270,17 @@ class TestStatusNextAction:
         from observer.metrics import HealthReport, HealthMetrics
         return HealthReport(metrics=HealthMetrics(), failure_buckets=buckets)
 
-    def test_no_attempts_prefers_quickstart(self):
+    def test_no_attempts_prefers_eval_run_without_latest_eval(self, monkeypatch):
         report = self._make_report({})
-        assert _status_next_action(report, attempts_count=0, accepted_count=0) == "autoagent quickstart"
+        monkeypatch.setattr("runner._latest_eval_result_file", lambda: None)
+        assert _status_next_action(report, attempts_count=0, accepted_count=0) == "autoagent eval run"
+
+    def test_no_attempts_prefers_optimize_when_latest_eval_exists(self, monkeypatch, tmp_path):
+        report = self._make_report({})
+        latest = tmp_path / "eval_results_latest.json"
+        latest.write_text("{}", encoding="utf-8")
+        monkeypatch.setattr("runner._latest_eval_result_file", lambda: latest)
+        assert _status_next_action(report, attempts_count=0, accepted_count=0) == "autoagent optimize --cycles 3"
 
     def test_failures_prefers_runbook(self):
         report = self._make_report({"timeout": 3})
@@ -308,16 +316,16 @@ class TestStatusCommand:
         assert "Safety:" in result.output
 
     def test_status_shows_cycles(self, runner):
-        result = runner.invoke(cli, ["status"])
+        result = runner.invoke(cli, ["status", "--verbose"])
         assert "Cycles run:" in result.output
 
     def test_status_shows_loop(self, runner):
-        result = runner.invoke(cli, ["status"])
+        result = runner.invoke(cli, ["status", "--verbose"])
         assert "Loop:" in result.output
 
     def test_status_shows_next_action(self, runner):
         result = runner.invoke(cli, ["status"])
-        assert "Next action:" in result.output
+        assert "Next step:" in result.output
 
 
 # ---------------------------------------------------------------------------

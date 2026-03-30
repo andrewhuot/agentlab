@@ -84,6 +84,7 @@ from cli.intelligence import (
 )
 from cli.mcp_setup import mcp_group
 from cli.mode import mode_group, summarize_mode_state
+from cli.permissions import permissions_group
 from cli.providers import (
     configured_providers,
     default_api_key_env_for,
@@ -453,6 +454,50 @@ def _score_to_dict(score) -> dict:
     }
 
 
+def _build_eval_result_payload(
+    *,
+    score,
+    config_path: str | None,
+    category: str | None,
+    dataset: str | None,
+    dataset_split: str,
+) -> dict:
+    """Serialize an eval result into the shared on-disk payload shape."""
+    return {
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        "config_path": config_path,
+        "category": category,
+        "dataset": dataset,
+        "split": dataset_split,
+        "run_id": score.run_id,
+        "provenance": score.provenance,
+        "scores": _score_to_dict(score),
+        "passed": score.passed_cases,
+        "total": score.total_cases,
+        "results": [
+            {
+                "case_id": r.case_id,
+                "category": r.category,
+                "passed": r.passed,
+                "quality_score": r.quality_score,
+                "safety_passed": r.safety_passed,
+                "latency_ms": r.latency_ms,
+                "details": r.details,
+            }
+            for r in score.results
+        ],
+    }
+
+
+def _latest_eval_output_path() -> Path:
+    """Return the default path used to persist the latest eval result snapshot."""
+    workspace = discover_workspace()
+    if workspace is not None:
+        workspace.autoagent_dir.mkdir(parents=True, exist_ok=True)
+        return workspace.autoagent_dir / "eval_results_latest.json"
+    return Path("eval_results_latest.json")
+
+
 def _unwrap_eval_payload(data: dict) -> dict:
     """Return the embedded eval payload when a JSON envelope wraps the result."""
     payload = data.get("data")
@@ -690,6 +735,23 @@ def _format_relative_time(epoch: float) -> str:
     return f"{int(delta / 86400)}d ago"
 
 
+def _format_eval_timestamp(value: float | str | None) -> str:
+    """Format eval timestamps stored as epochs or ISO strings for status surfaces."""
+    if value is None:
+        return "never"
+    if isinstance(value, (int, float)):
+        return _format_relative_time(float(value))
+    text = str(value).strip()
+    if not text:
+        return "never"
+    try:
+        normalized = text.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(normalized)
+        return _format_relative_time(dt.timestamp())
+    except ValueError:
+        return text
+
+
 # ---------------------------------------------------------------------------
 # Magic UX helpers (Features 1, 2, 4, 5)
 # ---------------------------------------------------------------------------
@@ -777,7 +839,7 @@ def _status_next_action(report, attempts_count: int, accepted_count: int) -> str
     """Return a single next-best-action command for status/UX surfaces."""
     total_failures = sum(report.failure_buckets.values()) if report.failure_buckets else 0
     if attempts_count == 0:
-        return "autoagent quickstart"
+        return "autoagent eval run" if _latest_eval_result_file() is None else "autoagent optimize --cycles 3"
     if total_failures > 0:
         recs = _generate_recommendations(report, None)
         if recs:
@@ -1317,6 +1379,7 @@ def cli(ctx: click.Context, quiet: bool, no_banner: bool) -> None:
 cli.add_command(mode_group)
 cli.add_command(mcp_group)
 cli.add_command(intelligence_group)
+cli.add_command(permissions_group)
 from cli.model import model_group
 from cli.usage import usage_command
 
@@ -1758,6 +1821,8 @@ def build_agent(
     progress.phase_started("build", message="Generate build artifact from prompt")
 
     target = Path(output_dir).resolve()
+    workspace = discover_workspace()
+    register_in_workspace = workspace is not None and target == workspace.root
     target.mkdir(parents=True, exist_ok=True)
     (target / ".autoagent").mkdir(parents=True, exist_ok=True)
     (target / "configs").mkdir(parents=True, exist_ok=True)
@@ -1773,9 +1838,22 @@ def build_agent(
     artifact["source_prompt"] = prompt
 
     config = _artifact_to_seed_config(prompt, artifact)
-    config_path = _next_built_config_path(target / "configs")
     config_yaml = yaml.safe_dump(config, sort_keys=False)
-    config_path.write_text(config_yaml, encoding="utf-8")
+    built_version: int | None = None
+    if register_in_workspace and workspace is not None:
+        store = ConversationStore(db_path=str(workspace.conversation_db))
+        deployer = Deployer(configs_dir=str(workspace.configs_dir), store=store)
+        saved_version = deployer.version_manager.save_version(
+            config,
+            scores={"composite": 0.0},
+            status="active",
+        )
+        built_version = saved_version.version
+        config_path = workspace.configs_dir / saved_version.filename
+        workspace.set_active_config(saved_version.version, filename=saved_version.filename)
+    else:
+        config_path = _next_built_config_path(target / "configs")
+        config_path.write_text(config_yaml, encoding="utf-8")
     progress.artifact_written("config", path=str(config_path))
 
     eval_path = target / "evals" / "cases" / "generated_build.yaml"
@@ -1841,11 +1919,16 @@ def build_agent(
     click.echo("")
     click.echo(click.style("Generated handoff files", bold=True))
     click.echo(f"  Config:   {config_path}")
+    if built_version is not None:
+        click.echo(f"  Active:   v{built_version:03d}")
     click.echo(f"  Evals:    {eval_path}")
     click.echo(f"  Artifact: {artifact_path}")
     click.echo("")
     click.echo(click.style("Next step:", bold=True))
-    click.echo(f"  autoagent eval run --config {config_path}")
+    if register_in_workspace:
+        click.echo("  autoagent eval run")
+    else:
+        click.echo(f"  autoagent eval run --config {config_path}")
     click.echo("  autoagent diagnose --interactive")
     click.echo("  autoagent loop --max-cycles 5")
     click.echo("  autoagent deploy --target cx-studio")
@@ -2024,60 +2107,47 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         score = runner.run_category(category, config=config, dataset_path=dataset, split=dataset_split)
         progress.phase_completed("eval", message=f"Category '{category}' complete")
         progress.next_action("autoagent improve")
-        if resolved_output_format == "stream-json":
-            return
-        if resolved_output_format == "json":
-            click.echo(json_response("ok", _score_to_dict(score), next_cmd="autoagent improve"))
-            return
-        _print_score(score, f"Category: {category}")
+        score_heading = f"Category: {category}"
     else:
         score = runner.run(config=config, dataset_path=dataset, split=dataset_split)
         progress.phase_completed("eval", message="Full eval suite complete")
         progress.next_action("autoagent improve")
-        if resolved_output_format == "stream-json":
-            return
-        if resolved_output_format == "json":
-            click.echo(json_response("ok", _score_to_dict(score), next_cmd="autoagent improve"))
-            return
-        _print_score(score, "Full eval suite")
+        score_heading = "Full eval suite"
 
     if resolved_output_format == "text":
-        click.echo(click.style(f"\n  Mood: {_score_mood(score.composite)}", fg="magenta"))
-        _print_next_actions(
-            [
-                "autoagent optimize --cycles 3",
-                "autoagent status",
-            ],
-        )
+        _print_score(score, score_heading)
+
+    result = _build_eval_result_payload(
+        score=score,
+        config_path=config_path,
+        category=category,
+        dataset=dataset,
+        dataset_split=dataset_split,
+    )
+    latest_output = _latest_eval_output_path()
+    latest_output.parent.mkdir(parents=True, exist_ok=True)
+    latest_output.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    progress.artifact_written("eval_results_latest", path=str(latest_output))
 
     if output:
-        result = {
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-            "config_path": config_path,
-            "category": category,
-            "dataset": dataset,
-            "split": dataset_split,
-            "run_id": score.run_id,
-            "provenance": score.provenance,
-            "scores": _score_to_dict(score),
-            "passed": score.passed_cases,
-            "total": score.total_cases,
-            "results": [
-                {
-                    "case_id": r.case_id,
-                    "category": r.category,
-                    "passed": r.passed,
-                    "quality_score": r.quality_score,
-                    "safety_passed": r.safety_passed,
-                    "latency_ms": r.latency_ms,
-                    "details": r.details,
-                }
-                for r in score.results
-            ],
-        }
         Path(output).write_text(json.dumps(result, indent=2), encoding="utf-8")
         progress.artifact_written("eval_results", path=output)
         click.echo(f"\nResults written to {output}")
+
+    if resolved_output_format == "stream-json":
+        return
+
+    if resolved_output_format == "json":
+        click.echo(json_response("ok", _score_to_dict(score), next_cmd="autoagent improve"))
+        return
+
+    click.echo(click.style(f"\n  Mood: {_score_mood(score.composite)}", fg="magenta"))
+    _print_next_actions(
+        [
+            "autoagent optimize --cycles 3",
+            "autoagent status",
+        ],
+    )
 
 
 @eval_group.command("results")
@@ -2111,7 +2181,7 @@ def eval_results(run_id: str | None, results_file: str | None) -> None:
     elif run_id:
         click.echo(f"Run ID lookup requires the API server. Use: autoagent server")
     else:
-        click.echo("Provide --file or --run-id. Use 'autoagent eval run --output results.json' first.")
+        click.echo("Provide --file or --run-id. Use `autoagent eval show latest` for the latest local result.")
 
 
 @eval_group.command("show")
@@ -2138,7 +2208,7 @@ def eval_show(selector: str, results_file: str | None, json_output: bool = False
             click.echo(json_response("error", {"message": "No eval results found"}))
         else:
             click.echo("No eval results found.")
-            click.echo("Run: autoagent eval run --output results.json")
+            click.echo("Run: autoagent eval run")
         return
 
     if json_output:
@@ -3506,7 +3576,7 @@ def _open_in_editor(file_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 @cli.command("deploy")
-@click.argument("workflow", required=False, type=click.Choice(["canary", "immediate", "release", "rollback"]))
+@click.argument("workflow", required=False, type=click.Choice(["canary", "immediate", "release", "rollback", "status"]))
 @click.option("--config-version", type=int, default=None,
               help="Config version to deploy. Defaults to latest accepted.")
 @click.option("--strategy", type=click.Choice(["canary", "immediate"]),
@@ -3662,6 +3732,19 @@ def deploy(
     store = ConversationStore(db_path=db)
     deployer = Deployer(configs_dir=configs_dir, store=store)
     history = deployer.version_manager.get_version_history()
+
+    if workflow == "status":
+        snapshot = deployer.status()
+        if json_output:
+            click.echo(json_response("ok", snapshot, next_cmd="autoagent status"))
+        else:
+            active_version = snapshot.get("active_version")
+            canary_version = snapshot.get("canary_version")
+            click.echo("\nDeployment status")
+            click.echo(f"  Active:  {f'v{active_version:03d}' if active_version is not None else 'none'}")
+            click.echo(f"  Canary:  {f'v{canary_version:03d}' if canary_version is not None else 'none'}")
+            click.echo(f"  Versions: {snapshot.get('total_versions', 0)} tracked")
+        return
 
     if not history:
         if json_output:
@@ -4103,7 +4186,8 @@ def loop_run(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--memory-db", default=MEMORY_DB, show_default=True, help="Optimizer memory DB.")
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
-def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False) -> None:
+@click.option("--verbose", "-v", is_flag=True, help="Show extra details (conversations, cycles, token usage).")
+def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False, verbose: bool = False) -> None:
     """Show system health, config versions, and recent activity.
 
     Examples:
@@ -4136,6 +4220,18 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
     memory_snapshot = load_layered_project_context(workspace.root).summary()
     mcp_snapshot = mcp_status_snapshot(workspace.root)
     model_snapshot = effective_model_surface(workspace.root)
+    latest_eval_score: float | None = latest.score_after if latest else None
+    latest_eval_timestamp: float | str | None = latest.timestamp if latest else None
+    latest_eval_file = _latest_eval_result_file()
+    if latest_eval_score is None and latest_eval_file is not None:
+        try:
+            latest_eval_payload = json.loads(latest_eval_file.read_text(encoding="utf-8"))
+            latest_eval_data = _unwrap_eval_payload(latest_eval_payload)
+            latest_eval_score = _extract_eval_scores(latest_eval_data).get("composite")
+            latest_eval_timestamp = latest_eval_data.get("timestamp") or latest_eval_payload.get("timestamp")
+        except (json.JSONDecodeError, OSError):
+            latest_eval_score = None
+            latest_eval_timestamp = None
     pending_review_cards = 0
     pending_autofix_proposals = 0
 
@@ -4178,8 +4274,8 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
             "config_version": active_version,
             "active_config_summary": workspace.summarize_config(resolved.config if resolved is not None else None),
             "conversations": total_conversations,
-            "eval_score": latest.score_after if latest else None,
-            "eval_timestamp": latest.timestamp if latest else None,
+            "eval_score": latest_eval_score,
+            "eval_timestamp": latest_eval_timestamp,
             "safety_violation_rate": metrics.safety_violation_rate,
             "cycles_run": len(all_attempts),
             "failure_buckets": buckets,
@@ -4206,8 +4302,8 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
         mode_label=mode_summary["effective_mode"].upper(),
         active_config_label=f"v{active_version:03d}" if active_version is not None else "none",
         active_config_summary=workspace.summarize_config(resolved.config if resolved is not None else None),
-        eval_score_label=f"{latest.score_after:.4f}" if latest else "n/a",
-        eval_timestamp_label=_format_relative_time(latest.timestamp) if latest else "never",
+        eval_score_label=f"{latest_eval_score:.4f}" if latest_eval_score is not None else "n/a",
+        eval_timestamp_label=_format_eval_timestamp(latest_eval_timestamp),
         conversations_label=str(total_conversations),
         safety_label=f"{metrics.safety_violation_rate:.3f}",
         cycles_run_label=str(len(all_attempts)),
@@ -4230,7 +4326,7 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False)
         last_optimize_cost_label=f"${float((usage_snapshot.get('last_optimize') or {}).get('spent_dollars', 0.0)):.2f}",
         next_action=next_action,
     )
-    render_status_home(snapshot)
+    render_status_home(snapshot, verbose=verbose)
 
 
 # ---------------------------------------------------------------------------
@@ -5351,18 +5447,30 @@ def review_show(card_id: str, json_output: bool = False) -> None:
 def review_apply(card_id: str, output_format: str = "text") -> None:
     """Apply (accept) a change card.
 
+    Supports selectors: pending, latest.
+
     Examples:
       autoagent review apply abc12345
+      autoagent review apply pending
     """
     from cli.output import resolve_output_format
     from cli.permissions import PermissionManager
     from cli.progress import ProgressRenderer
+    from cli.stream2_helpers import is_selector
     from optimizer.change_card import ChangeCardStore
 
     resolved_output_format = resolve_output_format(output_format)
     progress = ProgressRenderer(output_format=resolved_output_format, render_text=False)
-    progress.phase_started("review-apply", message=f"Apply change card {card_id}")
     store = ChangeCardStore()
+
+    if is_selector(card_id):
+        cards = store.list_pending(limit=1)
+        if not cards:
+            click.echo(f"No {card_id} change cards found.")
+            raise SystemExit(1)
+        card_id = cards[0].card_id
+
+    progress.phase_started("review-apply", message=f"Apply change card {card_id}")
     card = store.get(card_id)
     if card is None:
         click.echo(f"Change card not found: {card_id}")
@@ -5390,12 +5498,24 @@ def review_apply(card_id: str, output_format: str = "text") -> None:
 def review_reject(card_id: str, reason: str) -> None:
     """Reject a change card with an optional reason.
 
+    Supports selectors: pending, latest.
+
     Examples:
       autoagent review reject abc12345 --reason "Too risky"
+      autoagent review reject pending
     """
+    from cli.stream2_helpers import is_selector
     from optimizer.change_card import ChangeCardStore
 
     store = ChangeCardStore()
+
+    if is_selector(card_id):
+        cards = store.list_pending(limit=1)
+        if not cards:
+            click.echo(f"No {card_id} change cards found.")
+            raise SystemExit(1)
+        card_id = cards[0].card_id
+
     card = store.get(card_id)
     if card is None:
         click.echo(f"Change card not found: {card_id}")
