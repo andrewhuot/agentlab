@@ -94,3 +94,36 @@ def test_loop_honors_max_budget_flag_before_running(runner: CliRunner) -> None:
         assert result.exit_code == 0, result.output
         assert "budget" in result.output.lower()
         assert "0.00" in result.output
+
+
+def test_usage_reads_eval_run_style_scores_payload(runner: CliRunner) -> None:
+    """Usage should parse tokens and cost from nested `scores` payloads written by eval run."""
+    with runner.isolated_filesystem():
+        init_result = runner.invoke(cli, ["init", "--dir", "."])
+        assert init_result.exit_code == 0, init_result.output
+
+        Path(".autoagent/eval_results_latest.json").write_text(
+            json.dumps(
+                {
+                    "timestamp": "2026-03-30T00:00:00Z",
+                    "scores": {
+                        "quality": 0.82,
+                        "safety": 1.0,
+                        "latency": 0.91,
+                        "cost": 0.88,
+                        "composite": 0.86,
+                        "total_tokens": 444,
+                        "estimated_cost_usd": 0.23,
+                    },
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(cli, ["usage", "--json"])
+
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["data"]["last_eval"]["total_tokens"] == 444
+        assert payload["data"]["last_eval"]["estimated_cost_usd"] == 0.23

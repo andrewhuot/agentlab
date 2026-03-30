@@ -40,12 +40,16 @@ def load_latest_eval_usage(root: str | Path = ".") -> dict[str, Any] | None:
     latest = max(candidates, key=lambda path: path.stat().st_mtime)
     payload = json.loads(latest.read_text(encoding="utf-8"))
     data = _unwrap_eval_payload(payload)
+    raw_scores = data.get("scores") if isinstance(data.get("scores"), dict) else {}
+    total_tokens = data.get("total_tokens", raw_scores.get("total_tokens", 0))
+    estimated_cost_usd = data.get("estimated_cost_usd", raw_scores.get("estimated_cost_usd", 0.0))
+    composite = data.get("composite", raw_scores.get("composite", 0.0))
     return {
         "path": str(latest),
         "run_id": data.get("run_id"),
-        "total_tokens": int(data.get("total_tokens", 0) or 0),
-        "estimated_cost_usd": float(data.get("estimated_cost_usd", 0.0) or 0.0),
-        "composite": float(data.get("composite", 0.0) or 0.0),
+        "total_tokens": int(total_tokens or 0),
+        "estimated_cost_usd": float(estimated_cost_usd or 0.0),
+        "composite": float(composite or 0.0),
     }
 
 

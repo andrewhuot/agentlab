@@ -567,6 +567,20 @@ class TestWorkflowCommands:
             assert manifest["canary_version"] is None
             assert version_two["status"] == "rolled_back"
 
+    def test_deploy_status_reports_active_and_canary_versions(self, runner: CliRunner) -> None:
+        """`deploy status` should surface the current deployment state for the workspace."""
+        with runner.isolated_filesystem():
+            init_result = runner.invoke(cli, ["init", "--dir", "."])
+            assert init_result.exit_code == 0, init_result.output
+            _seed_config_version(Path("."), model_name="status-model-v2", status="canary")
+
+            result = runner.invoke(cli, ["deploy", "status"])
+
+            assert result.exit_code == 0, result.output
+            assert "Deployment status" in result.output
+            assert "v001" in result.output
+            assert "v002" in result.output
+
     def test_config_rollback_promotes_requested_version(self, runner: CliRunner) -> None:
         """`config rollback` should promote the requested prior version to active."""
         with runner.isolated_filesystem():

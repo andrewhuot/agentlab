@@ -12,7 +12,26 @@ Requirements: Python 3.11+, macOS / Linux / WSL.
 
 > **From Source**: Clone the repo, then `pip install -e .` inside a virtualenv.
 
-## 2. Create a Workspace
+## 2. Choose a Starter Template
+
+AutoAgent ships with bundled starter templates. List them first:
+
+```bash
+autoagent template list
+```
+
+You should see templates like:
+
+```
+Starter templates
+=================
+- customer-support
+- it-helpdesk
+- sales-qualification
+- healthcare-intake
+```
+
+## 3. Create a Workspace
 
 ```bash
 autoagent new my-project --template customer-support --demo
@@ -42,9 +61,14 @@ AutoAgent Status
 **Mock vs Live**: AutoAgent starts in **mock mode** — all LLM calls are simulated so you can explore without API keys. Switch to live mode when you are ready:
 
 ```bash
-autoagent mode set live   # requires OPENAI_API_KEY or equivalent
-autoagent mode show       # verify current mode and provider status
+autoagent provider configure          # interactive provider setup
+export OPENAI_API_KEY=sk-...          # set your API key
+autoagent provider test               # verify credentials work
+autoagent mode set live               # switch to real providers
+autoagent mode show                   # verify current mode and provider status
 ```
+
+> `provider configure` writes `.autoagent/providers.json` and updates `autoagent.yaml`. `provider test` checks whether the required environment variable is actually set. `mode set live` will fail if no configured provider credential is available.
 
 Your workspace looks like this:
 
@@ -71,7 +95,7 @@ my-project/
 - **Review card** — a proposed change awaiting approval
 - **Release** — a promoted config snapshot ready for deployment
 
-## 3. Build Your First Agent
+## 4. Build Your First Agent
 
 ```bash
 autoagent build "Build a customer support agent for order tracking, refunds, and cancellations"
@@ -110,7 +134,7 @@ autoagent build show latest
 
 **Starting points**: You can build from a prompt (shown above), from transcripts (`intelligence import` then `intelligence generate-agent`), or by importing an existing config (`config import my-config.yaml`).
 
-## 4. Run Evals
+## 5. Run Evals
 
 ```bash
 autoagent eval run
@@ -145,7 +169,7 @@ autoagent eval show latest
 
 The **composite score** (0.0–1.0) blends quality, safety, latency, and cost. Higher is better. A score above 0.85 is production-ready for most use cases.
 
-## 5. Improve the Agent
+## 6. Improve the Agent
 
 ### One-shot improvement
 
@@ -194,7 +218,7 @@ This runs multiple rounds of diagnose-propose-evaluate-accept/reject. Each accep
 autoagent compare candidates
 ```
 
-## 6. Review and Deploy
+## 7. Review and Deploy
 
 ### Quick ship (review + canary deploy in one step)
 
@@ -229,7 +253,7 @@ Create a release for audit trail:
 autoagent release create --experiment-id exp-001
 ```
 
-## 7. Interactive Shell
+## 8. Interactive Shell
 
 Launch an interactive shell session inside your workspace:
 
@@ -273,7 +297,7 @@ autoagent session list           # list all sessions
 autoagent session delete <id>    # delete a session
 ```
 
-## 8. Models, Usage, and Providers
+## 9. Models, Usage, and Providers
 
 ### See which models are active
 
@@ -317,7 +341,7 @@ autoagent provider configure    # interactive provider setup
 autoagent provider list         # show configured providers
 ```
 
-## 9. MCP Integration
+## 10. MCP Integration
 
 Connect workspace-scoped MCP servers for tool use:
 
@@ -328,7 +352,7 @@ autoagent mcp inspect my-tool   # inspect a specific server
 autoagent mcp remove my-tool    # remove a server
 ```
 
-## 10. Diagnostics
+## 11. Diagnostics
 
 Run `doctor` to check workspace health:
 
@@ -339,7 +363,7 @@ autoagent doctor --fix          # auto-repair fixable issues
 
 Doctor checks: workspace structure, config state, API keys, mock/live mode, memory sources, MCP runtime, data stores, and eval history.
 
-## 11. Permissions
+## 12. Permissions
 
 AutoAgent supports permission modes that control which actions require confirmation:
 
@@ -360,7 +384,26 @@ View or change the permission mode in `.autoagent/settings.json`:
 }
 ```
 
-## 12. Next Steps
+## 13. Recommended Daily Flow
+
+Once your workspace exists, the normal loop is:
+
+```bash
+autoagent status
+autoagent build "Describe the next refinement"
+autoagent eval run
+autoagent optimize --cycles 3
+autoagent deploy canary --yes
+autoagent deploy status
+```
+
+Use the shell when you want an interactive control surface:
+
+```bash
+autoagent shell
+```
+
+## 14. Next Steps
 
 - **[Skills & Registry Guide](guides/skills-and-registry.md)** — install and manage reusable agent skills
 - **[Scoring & Judges Guide](guides/scoring-and-judges.md)** — create custom scorers and calibrate judges

@@ -11,6 +11,7 @@ from typing import Any
 import click
 
 from cli.errors import click_error
+from cli.json_envelope import render_json_envelope
 
 
 SETTINGS_FILENAME = "settings.json"
@@ -168,3 +169,64 @@ class PermissionManager:
     @staticmethod
     def _matches(action: str, patterns: list[str]) -> bool:
         return any(fnmatch(action, pattern) for pattern in patterns)
+
+
+def _require_workspace_root(root: str | Path = ".") -> Path:
+    """Return the workspace root path or raise when `.autoagent` is missing."""
+    workspace_root = Path(root)
+    if not (workspace_root / ".autoagent").exists():
+        raise click_error("No AutoAgent workspace found.")
+    return workspace_root
+
+
+@click.group("permissions")
+def permissions_group() -> None:
+    """Inspect or change the workspace permission mode."""
+
+
+@permissions_group.command("show")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
+def show_permissions(json_output: bool = False) -> None:
+    """Show the active permission mode plus the effective defaults."""
+    workspace_root = _require_workspace_root()
+    manager = PermissionManager(root=workspace_root)
+    data = {
+        "mode": manager.mode,
+        "path": str(settings_path(workspace_root)),
+        "rules": manager.explicit_rules,
+        "examples": {
+            "config.write": manager.decision_for("config.write"),
+            "review.apply": manager.decision_for("review.apply"),
+            "deploy.canary": manager.decision_for("deploy.canary"),
+            "model.write": manager.decision_for("model.write"),
+        },
+    }
+    if json_output:
+        click.echo(render_json_envelope("ok", data, next_command="autoagent permissions set <mode>"))
+        return
+
+    click.echo("Workspace permissions")
+    click.echo(f"  Mode: {data['mode']}")
+    click.echo(f"  Path: {data['path']}")
+    click.echo("  Effective decisions:")
+    for action, decision in data["examples"].items():
+        click.echo(f"    {action:<14} {decision}")
+    if data["rules"]:
+        click.echo("  Explicit rules:")
+        for decision in ("allow", "ask", "deny"):
+            values = data["rules"].get(decision, [])
+            if values:
+                click.echo(f"    {decision}: {', '.join(values)}")
+
+
+@permissions_group.command("set")
+@click.argument("mode", type=click.Choice(PERMISSION_MODES, case_sensitive=False))
+def set_permissions(mode: str) -> None:
+    """Persist a workspace permission mode such as `acceptEdits` or `dontAsk`."""
+    workspace_root = _require_workspace_root()
+    normalized_mode = next(
+        candidate for candidate in PERMISSION_MODES if candidate.lower() == mode.lower()
+    )
+    path = update_workspace_settings({"permissions": {"mode": normalized_mode}}, root=workspace_root)
+    click.echo(f"Saved permission mode: {normalized_mode}")
+    click.echo(f"  Path: {path}")

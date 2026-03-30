@@ -158,3 +158,45 @@ def test_review_apply_uses_permission_gate(
         assert result.exit_code == 0, result.output
         assert prompts
         assert card.card_id in result.output
+
+
+def test_review_apply_pending_resolves_selector(
+    runner: CliRunner,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`review apply pending` should resolve the newest pending change card."""
+    with runner.isolated_filesystem():
+        init_result = runner.invoke(cli, ["init", "--dir", "."])
+        assert init_result.exit_code == 0, init_result.output
+        card = _seed_pending_change_card(Path("."))
+
+        prompts: list[str] = []
+
+        def _confirm(text: str, abort: bool = False, default: bool = False) -> bool:
+            del abort, default
+            prompts.append(text)
+            return True
+
+        monkeypatch.setattr("runner.click.confirm", _confirm)
+        result = runner.invoke(cli, ["review", "apply", "pending"])
+
+        assert result.exit_code == 0, result.output
+        assert prompts
+        assert card.card_id in result.output
+
+
+def test_permissions_show_and_set_surface_workspace_mode(runner: CliRunner) -> None:
+    """The permissions command should make workspace confirmation mode discoverable."""
+    with runner.isolated_filesystem():
+        init_result = runner.invoke(cli, ["init", "--dir", "."])
+        assert init_result.exit_code == 0, init_result.output
+
+        show_result = runner.invoke(cli, ["permissions", "show"])
+        set_result = runner.invoke(cli, ["permissions", "set", "acceptEdits"])
+
+        assert show_result.exit_code == 0, show_result.output
+        assert "default" in show_result.output
+        assert set_result.exit_code == 0, set_result.output
+
+        settings = json.loads((Path(".autoagent") / "settings.json").read_text(encoding="utf-8"))
+        assert settings["permissions"]["mode"] == "acceptEdits"

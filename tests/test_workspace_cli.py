@@ -236,6 +236,125 @@ def test_eval_run_uses_active_config_by_default(
     assert captured["config"]["model"] == "demo-model-v2"
 
 
+def test_build_inside_workspace_registers_and_activates_generated_config(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`build` should promote its generated config into the workspace version flow."""
+    workspace = tmp_path / "build-workspace"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+    assert init_result.exit_code == 0, init_result.output
+
+    monkeypatch.chdir(workspace)
+    result = runner.invoke(
+        cli,
+        ["build", "Build a support agent for order tracking and refunds"],
+    )
+
+    assert result.exit_code == 0, result.output
+    metadata = _workspace_metadata(workspace)
+    manifest = json.loads((workspace / "configs" / "manifest.json").read_text(encoding="utf-8"))
+    assert metadata["active_config_version"] == 2
+    assert manifest["active_version"] == 2
+    assert (workspace / "configs" / "v002.yaml").exists()
+
+
+def test_status_recommends_eval_before_any_optimization_attempts(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A fresh workspace status screen should guide the user to the first eval run."""
+    workspace = tmp_path / "status-workspace"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+    assert init_result.exit_code == 0, init_result.output
+
+    monkeypatch.chdir(workspace)
+    result = runner.invoke(cli, ["status"])
+
+    assert result.exit_code == 0, result.output
+    assert "Next step:" in result.output
+    assert "autoagent eval run" in result.output
+
+
+def test_eval_run_persists_latest_results_for_eval_show(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A normal eval run should save a latest-results artifact that `eval show latest` can read."""
+    workspace = tmp_path / "eval-results"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+    assert init_result.exit_code == 0, init_result.output
+
+    monkeypatch.chdir(workspace)
+
+    fake_score = SimpleNamespace(
+        quality=0.81,
+        safety=1.0,
+        latency=0.9,
+        cost=0.95,
+        composite=0.88,
+        confidence_intervals={},
+        safety_failures=0,
+        total_cases=3,
+        passed_cases=3,
+        total_tokens=123,
+        estimated_cost_usd=0.01,
+        warnings=[],
+        provenance={},
+        run_id="run-persisted",
+        results=[],
+    )
+
+    class _FakeEvalRunner:
+        """Return a deterministic score for eval-result persistence tests."""
+
+        def run(self, config=None, dataset_path=None, split="all"):
+            del config, dataset_path, split
+            return fake_score
+
+    monkeypatch.setattr(runner_module, "_build_eval_runner", lambda runtime, **kwargs: _FakeEvalRunner())
+    monkeypatch.setattr(runner_module, "_warn_mock_modes", lambda **kwargs: None)
+
+    run_result = runner.invoke(cli, ["eval", "run"])
+    show_result = runner.invoke(cli, ["eval", "show", "latest"])
+
+    assert run_result.exit_code == 0, run_result.output
+    assert (workspace / ".autoagent" / "eval_results_latest.json").exists()
+    assert show_result.exit_code == 0, show_result.output
+    assert "3/3 passed" in show_result.output
+
+
+def test_status_uses_latest_eval_result_when_no_optimize_history(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Status should surface the latest eval snapshot even before any optimize cycles exist."""
+    workspace = tmp_path / "status-eval"
+    init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+    assert init_result.exit_code == 0, init_result.output
+
+    monkeypatch.chdir(workspace)
+    (workspace / ".autoagent" / "eval_results_latest.json").write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-03-30T16:00:00+00:00",
+                "scores": {"composite": 0.87},
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(cli, ["status"])
+
+    assert result.exit_code == 0, result.output
+    assert "0.8700" in result.output
+
+
 def test_eval_generate_handles_workspace_style_config_and_writes_suite(
     runner: CliRunner,
     tmp_path: Path,

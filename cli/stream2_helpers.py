@@ -226,7 +226,18 @@ def get_latest_build_artifact(autoagent_dir: str = ".autoagent") -> dict | None:
 
 def get_latest_eval_result() -> dict | None:
     """Find the most recent eval results file."""
-    results_files = sorted(Path(".").glob("*results*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    candidates: list[Path] = []
+    seen: set[Path] = set()
+    for root in (Path("."), Path(".autoagent")):
+        if not root.exists():
+            continue
+        for path in sorted(root.glob("*results*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+            resolved = path.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            candidates.append(path)
+    results_files = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
     if not results_files:
         return None
     try:
