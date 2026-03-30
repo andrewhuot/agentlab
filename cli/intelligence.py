@@ -179,7 +179,13 @@ def _load_replayed_report(
 
 @click.group("intelligence")
 def intelligence_group() -> None:
-    """Run transcript intelligence workflows directly from the CLI."""
+    """Run transcript intelligence workflows directly from the CLI.
+
+    Examples:
+      autoagent intelligence upload support-archive.zip
+      autoagent intelligence report list
+      autoagent intelligence generate-agent <report-id> --output configs/v003_transcript.yaml
+    """
 
 
 @intelligence_group.command("upload")

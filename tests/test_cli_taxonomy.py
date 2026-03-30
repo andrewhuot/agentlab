@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -89,6 +90,34 @@ def test_help_exposes_task_oriented_groups() -> None:
     assert result.exit_code == 0
     for group_name in ["build", "import", "eval", "trace", "improve", "config", "deploy", "integrations", "dev"]:
         assert group_name in result.output
+
+
+@pytest.mark.parametrize(
+    ("argv", "example_snippet"),
+    [
+        (["review", "--help"], "autoagent review show pending"),
+        (["eval", "--help"], "autoagent eval run"),
+        (["config", "--help"], "autoagent config list"),
+        (["intelligence", "--help"], "autoagent intelligence upload"),
+        (["mcp", "--help"], "autoagent mcp init codex"),
+        (["judges", "--help"], "autoagent judges list"),
+        (["mode", "--help"], "autoagent mode show"),
+        (["context", "--help"], "autoagent context analyze --trace"),
+        (["release", "--help"], "autoagent release create --experiment-id"),
+        (["trace", "--help"], "autoagent trace show latest"),
+        (["autofix", "--help"], "autoagent autofix suggest"),
+        (["registry", "--help"], "autoagent registry list"),
+        (["skill", "--help"], "autoagent skill list"),
+        (["scorer", "--help"], "autoagent scorer create"),
+    ],
+)
+def test_guide_relevant_group_help_includes_examples(argv: list[str], example_snippet: str) -> None:
+    result = _runner().invoke(cli, argv)
+    normalized_output = " ".join(result.output.split())
+
+    assert result.exit_code == 0
+    assert "Examples:" in result.output
+    assert example_snippet in normalized_output
 
 
 def test_config_group_includes_edit_pin_and_unpin() -> None:
@@ -202,4 +231,3 @@ def test_deploy_canary_supports_interactive_confirmation() -> None:
         assert result.exit_code == 0
         manifest = json.loads(Path("configs/manifest.json").read_text(encoding="utf-8"))
         assert manifest["canary_version"] == 1
-

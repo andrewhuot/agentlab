@@ -1131,7 +1131,13 @@ def build_show(selector: str, json_output: bool = False) -> None:
 @cli.group("eval", invoke_without_command=True)
 @click.pass_context
 def eval_group(ctx: click.Context) -> None:
-    """Evaluate agent configs against test suites."""
+    """Evaluate agent configs against test suites.
+
+    Examples:
+      autoagent eval run
+      autoagent eval show latest
+      autoagent eval generate --config configs/v001.yaml --output generated_eval_suite.json
+    """
     if ctx.invoked_subcommand is None:
         ctx.invoke(
             eval_run,
@@ -1714,7 +1720,13 @@ def improve_optimize(
 
 @cli.group("config")
 def config_group() -> None:
-    """Manage agent config versions and related edit, pin, and unpin workflows."""
+    """Manage agent config versions and related edit, pin, and unpin workflows.
+
+    Examples:
+      autoagent config list
+      autoagent config show active
+      autoagent config diff 1 2
+    """
 
 
 @config_group.command("list")
@@ -2941,7 +2953,13 @@ def unpin_surface(surface: str) -> None:
 @cli.group("autofix", invoke_without_command=True)
 @click.pass_context
 def autofix_group(ctx: click.Context) -> None:
-    """AutoFix Copilot — reviewable improvement proposals."""
+    """AutoFix Copilot — reviewable improvement proposals.
+
+    Examples:
+      autoagent autofix suggest
+      autoagent autofix show pending
+      autoagent autofix apply pending
+    """
     if ctx.invoked_subcommand is not None:
         return
 
@@ -3152,7 +3170,13 @@ def autofix_history(limit: int, json_output: bool = False) -> None:
 
 @cli.group("judges")
 def judges_group() -> None:
-    """Judge Ops — monitoring, calibration, and human feedback."""
+    """Judge Ops — monitoring, calibration, and human feedback.
+
+    Examples:
+      autoagent judges list
+      autoagent judges calibrate --sample 10
+      autoagent judges drift
+    """
 
 
 @judges_group.command("list")
@@ -3246,7 +3270,13 @@ def judges_drift() -> None:
 
 @cli.group("context")
 def context_group() -> None:
-    """Context Engineering Workbench — diagnose and tune agent context."""
+    """Context Engineering Workbench — diagnose and tune agent context.
+
+    Examples:
+      autoagent context simulate --strategy balanced
+      autoagent context report
+      autoagent context analyze --trace trace_demo_fail_001
+    """
 
 
 @context_group.command("analyze")
@@ -3344,7 +3374,15 @@ def context_report() -> None:
 @cli.group("review", invoke_without_command=True)
 @click.pass_context
 def review_group(ctx: click.Context) -> None:
-    """Review proposed change cards from the optimizer."""
+    """Review proposed change cards from the optimizer.
+
+    Running `autoagent review` opens an interactive approval prompt.
+
+    Examples:
+      autoagent review
+      autoagent review list
+      autoagent review show pending
+    """
     if ctx.invoked_subcommand is not None:
         return
 
@@ -4103,7 +4141,13 @@ def _get_registry(registry_type: str, store: object) -> object:
 
 @cli.group("registry")
 def registry_group() -> None:
-    """Modular registry — skills, policies, tool contracts, handoff schemas."""
+    """Modular registry — skills, policies, tool contracts, handoff schemas.
+
+    Examples:
+      autoagent registry list
+      autoagent registry list --type skills
+      autoagent registry import registry_export.yaml
+    """
 
 
 @registry_group.command("list")
@@ -4244,7 +4288,13 @@ def registry_import(path: str, db: str) -> None:
 
 @cli.group("skill")
 def skill_group() -> None:
-    """Unified skill management — build-time and run-time skills."""
+    """Unified skill management — build-time and run-time skills.
+
+    Examples:
+      autoagent skill list
+      autoagent skill recommend --json
+      autoagent skill show returns_handling
+    """
 
 
 # Register all skill commands from cli.skills module
@@ -4648,7 +4698,13 @@ def _parse_window(window: str) -> float:
 
 @cli.group("trace")
 def trace_group() -> None:
-    """Trace analysis — grading, blame maps, and graphs."""
+    """Trace analysis — grading, blame maps, and graphs.
+
+    Examples:
+      autoagent trace show latest
+      autoagent trace blame --window 24h
+      autoagent trace promote latest
+    """
 
 
 @trace_group.command("show")
@@ -4873,7 +4929,13 @@ def trace_promote(trace_id: str, eval_cases_dir: str, db: str, json_output: bool
 
 @cli.group("scorer")
 def scorer_group() -> None:
-    """NL Scorer — create eval scorers from natural language descriptions."""
+    """NL Scorer — create eval scorers from natural language descriptions.
+
+    Examples:
+      autoagent scorer create "Reward verified account changes" --name account_safety
+      autoagent scorer list
+      autoagent scorer show account_safety
+    """
 
 
 @scorer_group.command("create")
@@ -6685,7 +6747,12 @@ def outcomes_import(source: str, file_path: str | None) -> None:
 
 @cli.group()
 def release() -> None:
-    """Manage signed release objects."""
+    """Manage signed release objects.
+
+    Examples:
+      autoagent release create --experiment-id exp-demo
+      autoagent release list
+    """
     pass
 
 

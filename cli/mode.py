@@ -143,7 +143,13 @@ def _render_provider_lines(providers: list[dict[str, Any]]) -> list[str]:
 
 @click.group("mode")
 def mode_group() -> None:
-    """Show or set explicit CLI execution mode."""
+    """Show or set explicit CLI execution mode.
+
+    Examples:
+      autoagent mode show
+      autoagent mode set mock
+      autoagent mode set live
+    """
 
 
 @mode_group.command("show")
