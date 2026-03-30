@@ -227,6 +227,44 @@ Review the optimization log:
 autoagent replay
 ```
 
+### Continuous Optimization
+
+Run optimization indefinitely until you press Ctrl+C — ideal for overnight or unattended runs:
+
+```bash
+autoagent optimize --continuous --full-auto
+```
+
+Each cycle appends a row to `.autoagent/experiment_log.tsv`. A live status line shows progress:
+
+```
+Cycle 14 | Best: 0.82 | Last: keep (+0.03) | Press Ctrl+C to stop
+```
+
+When you stop, you get a summary:
+
+```
+Ran 42 experiments: 12 kept, 28 discarded, 2 skipped. Best score: 0.85
+Experiment log saved to .autoagent/experiment_log.tsv
+```
+
+### Experiment Log
+
+View your optimization history:
+
+```bash
+autoagent experiment log
+autoagent experiment log --tail 10
+autoagent experiment log --summary
+autoagent experiment log --json
+```
+
+The `--summary` flag gives a one-liner:
+
+```
+24 experiments: 8 kept, 12 discarded, 4 skipped. Best: 0.82 (cycle 17, +0.10 from first)
+```
+
 What persists here:
 
 - New candidate configs in `configs/`
@@ -624,6 +662,9 @@ autoagent trace promote latest
 ```bash
 autoagent optimize --cycles 3
 autoagent optimize --mode advanced --cycles 2
+autoagent optimize --continuous --full-auto
+autoagent experiment log --summary
+autoagent experiment log --tail 5
 autoagent edit "Reduce verbosity in support answers"
 autoagent replay
 autoagent autofix suggest
