@@ -336,3 +336,48 @@ Legend:
 - Fixed the guide flow so the nested-directory example returns to the workspace root before file-path commands.
 - Made the reference section self-contained by adding missing setup steps, state resets, and variable lookups.
 - Replaced repeated destructive selector examples in the reference section with non-destructive `show` examples where needed.
+
+## Second Pass
+
+Test date: 2026-03-29
+
+Scope:
+
+- Re-ran the updated `docs/QUICKSTART_GUIDE.md` top to bottom from a clean `my-project/`.
+- Re-ran the command-reference blocks from their documented starting directories.
+- Exercised wrong-directory, out-of-order, missing-prereq, `--help`, tab-completion, and documented `--json` paths.
+
+### New issues found on the second pass
+
+| Area | Status in guide | Root cause | Fix |
+|---|---|---|---|
+| `autoagent review` in Section 11 and the deploy cheat-sheet block | FAIL | The bare `review` command is interactive and traps a pasted shell at `Approve this change? [y/N]:` | Guide updated to use `autoagent review list` / `autoagent review show pending`; `review --help` now documents the interactive default and non-interactive examples |
+| `autoagent deploy canary` and `autoagent deploy immediate` in copy-paste blocks | FAIL | Deploy confirmation is interactive unless `--yes` is passed | Guide updated to use `--yes` in copy-paste flows; deploy help already documented that flag |
+| `autoagent mcp init codex` followed by `autoagent mcp status` | FAIL | The Codex TOML writer dropped required quotes around keys like `[projects."/Users/..."]` and `"gpt-5.3-codex"` | Fixed `cli/mcp_setup.py` to quote TOML keys safely and added regression coverage |
+
+### Edge-case notes
+
+- Shell completion works through Click’s `_AUTOAGENT_COMPLETE` mechanism even though there is no root `autoagent --show-completion` flag.
+- Wrong-directory and out-of-order flows are mostly usable:
+  - `autoagent status` outside a workspace: `Error: No AutoAgent workspace found. Run autoagent init`
+  - `autoagent config show` outside a workspace: `No active config. Run: autoagent init`
+  - `autoagent eval show latest` before any eval run: `No eval results found. Run: autoagent eval run --output results.json`
+- `autoagent build` intentionally works outside a workspace by creating local artifacts in the current directory.
+- Added example blocks to the guide-relevant group help pages: `review`, `eval`, `config`, `intelligence`, `mcp`, `judges`, `mode`, `context`, `release`, `trace`, `autofix`, `registry`, `skill`, and `scorer`.
+
+### Re-verification
+
+- Targeted regression tests:
+  - `pytest -q tests/test_cli_integrations.py -k 'mcp_init_codex_preserves_quoted_keys'`
+  - `pytest -q tests/test_cli_taxonomy.py -k 'guide_relevant_group_help_includes_examples'`
+  - `pytest -q tests/test_cli_integrations.py tests/test_cli_taxonomy.py -k 'mcp or guide_relevant_group_help_includes_examples or review_without_args_runs_interactive_browser or deploy_canary_supports_interactive_confirmation'`
+- Live CLI re-checks passed after the fixes:
+  - `autoagent review list`
+  - `autoagent review show pending`
+  - `autoagent deploy canary --yes`
+  - `autoagent deploy immediate --yes`
+  - `autoagent mcp init codex`
+  - `autoagent mcp status`
+- Full suite:
+  - `./.venv/bin/python -m pytest --tb=short -q 2>&1 | tail -20`
+  - Result: `3195 passed, 19 warnings in 50.28s`

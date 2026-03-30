@@ -368,10 +368,10 @@ Important defaults:
 
 ## 11. Deploy
 
-Start with the review queue:
+Start with the non-interactive review queue commands:
 
 ```bash
-autoagent review
+autoagent review list
 autoagent review show pending
 ```
 
@@ -385,7 +385,7 @@ autoagent review apply "$CARD_ID"
 Run the canary deploy workflow:
 
 ```bash
-autoagent deploy canary
+autoagent deploy canary --yes
 ```
 
 Create a durable release object:
@@ -661,10 +661,10 @@ autoagent config migrate ../docs/samples/legacy_autoagent.yaml --output migrated
 
 ```bash
 autoagent demo seed
-autoagent review
+autoagent review list
 autoagent review show pending
-autoagent deploy canary
-autoagent deploy immediate
+autoagent deploy canary --yes
+autoagent deploy immediate --yes
 autoagent release create --experiment-id exp-demo
 autoagent release list
 autoagent deploy --target cx-studio --no-push
@@ -744,5 +744,7 @@ Troubleshooting:
 
 - If `autoagent` is not found, re-run `source .venv/bin/activate` and `python3 -m pip install -e .`.
 - If you are following the repo examples, run them from the workspace root unless a block explicitly changes directories.
+- If `autoagent review` is waiting for input, that is the interactive approval browser. In copy-paste shell flows, use `autoagent review list` or `autoagent review show pending` instead.
+- If `autoagent deploy canary` or `autoagent deploy immediate` is waiting for confirmation, re-run with `--yes`.
 - If `autoagent diagnose --interactive` is waiting for input, type `quit`.
 - If `autoagent mode set live` fails, export at least one real provider credential first.
