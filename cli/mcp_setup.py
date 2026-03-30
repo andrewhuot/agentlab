@@ -7,6 +7,7 @@ the target client config files so users do not need to hand-edit JSON/TOML.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -154,6 +155,13 @@ def _format_toml_value(value: Any) -> str:
     return json.dumps(str(value))
 
 
+def _format_toml_key(key: str) -> str:
+    """Render a TOML key, quoting names that cannot be emitted bare."""
+    if re.fullmatch(r"[A-Za-z0-9_-]+", key):
+        return key
+    return json.dumps(key)
+
+
 def _dump_toml(data: dict[str, Any]) -> str:
     """Serialize a nested dict into TOML suitable for the Codex config file."""
     lines: list[str] = []
@@ -163,9 +171,9 @@ def _dump_toml(data: dict[str, Any]) -> str:
         children = {key: value for key, value in table.items() if isinstance(value, dict)}
 
         if prefix:
-            lines.append(f"[{'.'.join(prefix)}]")
+            lines.append(f"[{'.'.join(_format_toml_key(part) for part in prefix)}]")
         for key, value in scalars.items():
-            lines.append(f"{key} = {_format_toml_value(value)}")
+            lines.append(f"{_format_toml_key(key)} = {_format_toml_value(value)}")
         if prefix and (scalars or children):
             lines.append("")
 
@@ -176,7 +184,7 @@ def _dump_toml(data: dict[str, Any]) -> str:
     root_children = {key: value for key, value in data.items() if isinstance(value, dict)}
 
     for key, value in root_scalars.items():
-        lines.append(f"{key} = {_format_toml_value(value)}")
+        lines.append(f"{_format_toml_key(key)} = {_format_toml_value(value)}")
     if root_scalars and root_children:
         lines.append("")
 
@@ -254,13 +262,25 @@ def _write_local_project_configs() -> list[Path]:
 
 @click.group("mcp")
 def mcp_group() -> None:
-    """Configure AutoAgent MCP integration for supported coding tools."""
+    """Configure AutoAgent MCP integration for supported coding tools.
+
+    Examples:
+      autoagent mcp init claude-code
+      autoagent mcp init codex
+      autoagent mcp status
+    """
 
 
 @mcp_group.command("init")
 @click.argument("client_name", required=False, type=click.Choice(tuple(_client_specs().keys()), case_sensitive=False))
 def init_client(client_name: str | None) -> None:
-    """Write AutoAgent MCP config for a supported client."""
+    """Write AutoAgent MCP config for a supported client.
+
+    Examples:
+      autoagent mcp init
+      autoagent mcp init codex
+      autoagent mcp init cursor
+    """
     if client_name is None:
         written_paths = _write_local_project_configs()
         click.echo("Configured AutoAgent MCP for local project files.")
@@ -282,7 +302,11 @@ def init_client(client_name: str | None) -> None:
 
 @mcp_group.command("status")
 def mcp_status() -> None:
-    """Show which supported clients currently expose AutoAgent MCP config."""
+    """Show which supported clients currently expose AutoAgent MCP config.
+
+    Examples:
+      autoagent mcp status
+    """
     click.echo("MCP client status")
     for name, spec in _client_specs().items():
         status = "configured" if _has_autoagent_entry(spec) else "not configured"

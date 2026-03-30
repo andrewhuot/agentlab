@@ -163,6 +163,50 @@ class TestMCPSetupCLI:
         assert "codex" in status_result.output.lower()
         assert "configured" in status_result.output.lower()
 
+    def test_mcp_init_codex_preserves_quoted_keys_in_existing_toml(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        runner = CliRunner()
+        home_dir = tmp_path / "home"
+        home_dir.mkdir()
+        workspace_dir = tmp_path / "workspace"
+        workspace_dir.mkdir()
+        monkeypatch.chdir(workspace_dir)
+
+        codex_dir = home_dir / ".codex"
+        codex_dir.mkdir(parents=True)
+        config_path = codex_dir / "config.toml"
+        config_path.write_text(
+            """
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+
+[projects."/Users/example/project"]
+trust_level = "trusted"
+
+[notice.model_migrations]
+"gpt-5.3-codex" = "gpt-5.4"
+""".strip()
+            + "\n",
+            encoding="utf-8",
+        )
+
+        env = {"HOME": str(home_dir)}
+        init_result = runner.invoke(cli, ["mcp", "init", "codex"], env=env)
+
+        assert init_result.exit_code == 0, init_result.output
+        rewritten = config_path.read_text(encoding="utf-8")
+        assert '[projects."/Users/example/project"]' in rewritten
+        assert '"gpt-5.3-codex" = "gpt-5.4"' in rewritten
+
+        status_result = runner.invoke(cli, ["mcp", "status"], env=env)
+        assert status_result.exit_code == 0, status_result.output
+        assert "codex" in status_result.output.lower()
+        assert "configured" in status_result.output.lower()
+
 
 class TestModeCLI:
     def test_mode_set_mock_persists_workspace_preference_and_show_reports_mock(
