@@ -244,6 +244,11 @@ def _enter_discovered_workspace(command_name: str | None) -> AutoAgentWorkspace 
     return workspace
 
 
+def _is_tty() -> bool:
+    """Return True when stdin is connected to an interactive terminal."""
+    return hasattr(sys.stdin, "isatty") and sys.stdin.isatty()
+
+
 def _require_workspace(command_name: str | None = None) -> AutoAgentWorkspace:
     """Return the current workspace or raise a helpful CLI error."""
     from cli.errors import click_error
@@ -1266,7 +1271,46 @@ def cli(ctx: click.Context, quiet: bool, no_banner: bool) -> None:
     ctx.obj = ctx.obj or {}
     ctx.obj["workspace"] = _enter_discovered_workspace(ctx.invoked_subcommand)
     if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
-        ctx.invoke(status, db=DB_PATH, configs_dir=CONFIGS_DIR, memory_db=MEMORY_DB, json_output=False)
+        workspace = ctx.obj.get("workspace")
+        if _is_tty():
+            if workspace is not None:
+                from cli.repl import run_shell
+
+                run_shell(workspace)
+            else:
+                from cli.onboarding import run_onboarding
+
+                choice = run_onboarding()
+                if choice == "demo":
+                    ctx.invoke(
+                        init_project,
+                        template="customer-support",
+                        target_dir=".",
+                        name=None,
+                        agent_name="My Agent",
+                        platform="Google ADK",
+                        with_synthetic_data=True,
+                        demo=True,
+                    )
+                elif choice == "empty":
+                    ctx.invoke(
+                        init_project,
+                        template="minimal",
+                        target_dir=".",
+                        name=None,
+                        agent_name="My Agent",
+                        platform="Google ADK",
+                        with_synthetic_data=False,
+                        demo=False,
+                    )
+        else:
+            ctx.invoke(
+                status,
+                db=DB_PATH,
+                configs_dir=CONFIGS_DIR,
+                memory_db=MEMORY_DB,
+                json_output=False,
+            )
         return
 
 
@@ -1278,6 +1322,132 @@ from cli.usage import usage_command
 
 cli.add_command(model_group)
 cli.add_command(usage_command)
+
+
+# ---------------------------------------------------------------------------
+# autoagent shell — interactive REPL
+# ---------------------------------------------------------------------------
+
+@cli.command("shell")
+@click.pass_context
+def shell_command(ctx: click.Context) -> None:
+    """Launch the interactive AutoAgent shell."""
+    from cli.repl import run_shell
+
+    workspace = ctx.obj.get("workspace")
+    run_shell(workspace)
+
+
+# ---------------------------------------------------------------------------
+# autoagent continue — resume last session
+# ---------------------------------------------------------------------------
+
+@cli.command("continue")
+@click.pass_context
+def continue_command(ctx: click.Context) -> None:
+    """Resume the most recent shell session."""
+    from cli.repl import run_shell
+    from cli.sessions import SessionStore
+
+    workspace = ctx.obj.get("workspace")
+    if workspace is None:
+        raise click.ClickException("No workspace found. Run: autoagent init")
+
+    store = SessionStore(workspace.root)
+    latest = store.latest()
+    if latest is None:
+        click.echo("No previous session found. Starting a new shell.")
+        run_shell(workspace, session_store=store)
+        return
+
+    click.echo(f"Resuming session: {latest.title} ({latest.session_id})")
+    click.echo(f"  Goal: {latest.active_goal or '(none)'}")
+    click.echo(f"  Commands: {len(latest.command_history)}")
+    click.echo(f"  Transcript entries: {len(latest.transcript)}")
+    run_shell(workspace, session_store=store)
+
+
+# ---------------------------------------------------------------------------
+# autoagent session — session management
+# ---------------------------------------------------------------------------
+
+@cli.group("session")
+def session_group() -> None:
+    """Manage shell sessions."""
+
+
+@session_group.command("list")
+@click.option("--limit", default=20, show_default=True, help="Maximum sessions to list.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+@click.pass_context
+def session_list(ctx: click.Context, limit: int, json_output: bool) -> None:
+    """List recent shell sessions."""
+    import json as json_mod
+
+    from cli.sessions import SessionStore
+
+    workspace = ctx.obj.get("workspace")
+    if workspace is None:
+        raise click.ClickException("No workspace found. Run: autoagent init")
+
+    store = SessionStore(workspace.root)
+    sessions = store.list_sessions(limit=limit)
+
+    if json_output:
+        click.echo(json_mod.dumps([session.to_dict() for session in sessions], indent=2))
+        return
+
+    if not sessions:
+        click.echo("No sessions found.")
+        return
+
+    click.echo(f"\nRecent sessions ({len(sessions)}):")
+    for session in sessions:
+        timestamp = time.strftime("%Y-%m-%d %H:%M", time.localtime(session.updated_at))
+        goal = session.active_goal[:40] if session.active_goal else "(no goal)"
+        click.echo(f"  {session.session_id}  {timestamp}  {session.title:<30}  {goal}")
+    click.echo("")
+
+
+@session_group.command("resume")
+@click.argument("session_id")
+@click.pass_context
+def session_resume(ctx: click.Context, session_id: str) -> None:
+    """Resume a specific shell session by ID."""
+    from cli.repl import run_shell
+    from cli.sessions import SessionStore
+
+    workspace = ctx.obj.get("workspace")
+    if workspace is None:
+        raise click.ClickException("No workspace found. Run: autoagent init")
+
+    store = SessionStore(workspace.root)
+    session = store.get(session_id)
+    if session is None:
+        raise click.ClickException(f"Session not found: {session_id}")
+
+    click.echo(f"Resuming session: {session.title} ({session.session_id})")
+    click.echo(f"  Goal: {session.active_goal or '(none)'}")
+    click.echo(f"  Commands: {len(session.command_history)}")
+    run_shell(workspace, session_store=store)
+
+
+@session_group.command("delete")
+@click.argument("session_id")
+@click.pass_context
+def session_delete(ctx: click.Context, session_id: str) -> None:
+    """Delete a shell session by ID."""
+    from cli.sessions import SessionStore
+
+    workspace = ctx.obj.get("workspace")
+    if workspace is None:
+        raise click.ClickException("No workspace found. Run: autoagent init")
+
+    store = SessionStore(workspace.root)
+    if store.delete(session_id):
+        click.echo(f"Deleted session: {session_id}")
+        return
+    raise click.ClickException(f"Session not found: {session_id}")
 
 
 # ---------------------------------------------------------------------------
@@ -3301,6 +3471,34 @@ def config_migrate(input_file: str, output: str | None) -> None:
         click.echo(f"Migrated config written to {output}")
     else:
         click.echo(output_yaml)
+
+
+@config_group.command("edit")
+def config_edit() -> None:
+    """Open the active config file in the user's editor."""
+    workspace = _require_workspace("config")
+    active = workspace.resolve_active_config()
+    if active is None:
+        raise click.ClickException("No active config. Run: autoagent init")
+    _open_in_editor(active.path)
+
+
+def _open_in_editor(file_path: Path) -> None:
+    """Open *file_path* in the configured editor, or print the path."""
+    import subprocess
+
+    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
+    if editor is None:
+        for candidate in ("code", "vim", "vi", "nano"):
+            if shutil.which(candidate):
+                editor = candidate
+                break
+
+    if editor:
+        click.echo(f"Opening {file_path} in {editor}")
+        subprocess.run([editor, str(file_path)], check=False)
+        return
+    click.echo(f"Edit this file: {file_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -5559,7 +5757,7 @@ def memory_where() -> None:
 @click.argument("target", default="shared")
 @click.option("--append", "append_text", default=None, help="Append markdown content instead of opening an editor.")
 def memory_edit(target: str, append_text: str | None) -> None:
-    """Edit a layered memory target by appending markdown or printing the path."""
+    """Edit a layered memory target by appending markdown or opening an editor."""
     from cli.permissions import PermissionManager
     from core.project_memory import append_memory_text, resolve_memory_target
 
@@ -5572,7 +5770,10 @@ def memory_edit(target: str, append_text: str | None) -> None:
         path = append_memory_text(".", target, append_text)
         click.echo(f"Updated memory target: {path}")
         return
-    click.echo(f"Edit this file: {resolve_memory_target('.', target)}")
+    memory_path = resolve_memory_target(".", target)
+    if not memory_path.exists():
+        raise click.ClickException(f"No memory file found at {memory_path}. Use --append or run autoagent init")
+    _open_in_editor(memory_path)
 
 
 @memory_group.command("summarize-session")
