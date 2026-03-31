@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
+from typing import Any
 
 from core.types import MetricLayer, METRIC_REGISTRY, get_metrics_by_layer
 
@@ -111,6 +112,9 @@ class CompositeScore:
     total_tokens: int = 0
     estimated_cost_usd: float = 0.0
     warnings: list[str] = field(default_factory=list)
+    evaluation: Any | None = None
+    run_result: Any | None = None
+    evaluation_run: Any | None = None
 
     @property
     def global_dimensions(self) -> dict[str, float]:

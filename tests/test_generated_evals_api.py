@@ -196,3 +196,27 @@ def test_generate_review_edit_accept_and_run_flow(tmp_path: Path) -> None:
     assert result_payload["run_id"]
     assert result_payload["total_cases"] >= 1
     assert result_payload["passed_cases"] >= 1
+
+
+def test_legacy_eval_generation_routes_share_generated_suite_store(tmp_path: Path) -> None:
+    """Legacy /api/eval endpoints should read and write the canonical suite store."""
+
+    app = _make_app(tmp_path)
+    client = TestClient(app)
+
+    legacy_generate_response = client.post(
+        "/api/eval/generate",
+        json={
+            "agent_name": "Legacy Support Copilot",
+            "agent_config": _sample_agent_config(),
+        },
+    )
+
+    assert legacy_generate_response.status_code == 201
+    suite_id = legacy_generate_response.json()["suite_id"]
+
+    canonical_detail_response = client.get(f"/api/evals/generated/{suite_id}")
+
+    assert canonical_detail_response.status_code == 200
+    assert canonical_detail_response.json()["suite"]["suite_id"] == suite_id
+    assert canonical_detail_response.json()["suite"]["agent_name"] == "Legacy Support Copilot"

@@ -13,8 +13,11 @@ from typing import Any, Callable
 
 import yaml
 
+from core.eval_model import Dataset, Evaluation, EvaluationRun, Grader, GraderKind, GraderResult, RunResult
+
 from .cache import EvalCacheStore
 from .fixtures.mock_data import mock_agent_response
+from .grader_runtime import GraderRuntime
 from .history import EvalHistoryStore
 from .scorer import CompositeScore, CompositeScorer, EvalResult
 
@@ -75,6 +78,10 @@ class EvalRunner:
         self.random_seed = int(random_seed)
         self.token_cost_per_1k = max(0.0, float(token_cost_per_1k))
         self._last_dataset_integrity = DatasetIntegrityReport()
+        self.grader_runtime = GraderRuntime()
+        self.last_dataset: Dataset | None = None
+        self.last_evaluation: Evaluation | None = None
+        self.last_evaluation_run: EvaluationRun | None = None
 
         self.eval_mode = eval_mode
         history_path = history_db_path if history_db_path is not None else os.environ.get("AUTOAGENT_EVAL_HISTORY_DB")
@@ -371,6 +378,9 @@ class EvalRunner:
             latency_ms=latency_ms,
             token_count=token_count,
             details="; ".join(details_parts),
+            routing_correct=routing_score >= 1.0,
+            handoff_context_preserved=bool(agent_result.get("handoff_context_preserved", True)),
+            satisfaction_proxy=round(quality_score, 4),
         )
 
         for name, evaluator in self._custom_evaluators.items():
@@ -438,6 +448,14 @@ class EvalRunner:
         results = [self.evaluate_case(case, config) for case in cases]
         score = self.scorer.score(results)
         score.estimated_cost_usd = round((score.total_tokens / 1000.0) * self.token_cost_per_1k, 6)
+        self._attach_canonical_eval_artifacts(
+            score=score,
+            cases=cases,
+            config=config,
+            dataset_path=None,
+            split=split or "explicit",
+            category=category,
+        )
         return score
 
     def _run_cases_with_harness(
@@ -506,6 +524,14 @@ class EvalRunner:
                     category=category,
                     extra_provenance=score.provenance,
                 )
+                self._attach_canonical_eval_artifacts(
+                    score=score,
+                    cases=cases,
+                    config=config,
+                    dataset_path=dataset_path,
+                    split=split,
+                    category=category,
+                )
                 return score
 
         results = [self.evaluate_case(case, config) for case in cases]
@@ -536,7 +562,244 @@ class EvalRunner:
             category=category,
             extra_provenance=score.provenance,
         )
+        self._attach_canonical_eval_artifacts(
+            score=score,
+            cases=cases,
+            config=config,
+            dataset_path=dataset_path,
+            split=split,
+            category=category,
+        )
         return score
+
+    def _attach_canonical_eval_artifacts(
+        self,
+        *,
+        score: CompositeScore,
+        cases: list[TestCase],
+        config: dict[str, Any] | None,
+        dataset_path: str | None,
+        split: str,
+        category: str | None,
+    ) -> None:
+        """Attach canonical eval model objects to the legacy score payload.
+
+        WHY: P0.3 introduces a shared object model, but the existing CLI,
+        API, and optimization code still consume CompositeScore. Attaching
+        canonical artifacts here makes the new model authoritative without
+        forcing an all-at-once migration.
+        """
+
+        dataset = Dataset.from_test_cases(
+            name=self._dataset_name(dataset_path=dataset_path, category=category),
+            cases=cases,
+            source_ref=dataset_path or str(self.cases_dir),
+            metadata={
+                "split": split,
+                "eval_mode": self.eval_mode,
+                "category": category or "all",
+            },
+        )
+        evaluation = self._build_canonical_evaluation(dataset)
+        run_result = self._build_run_result(
+            evaluation=evaluation,
+            cases=cases,
+            score=score,
+        )
+        evaluation_run = EvaluationRun(
+            run_id=score.run_id or uuid.uuid4().hex[:12],
+            evaluation_id=evaluation.evaluation_id,
+            dataset_ref=dataset.dataset_id,
+            dataset_version=dataset.version,
+            config_snapshot=dict(config or {}),
+            result=run_result,
+            mode=str(getattr(score, "mode", "mock") or "mock"),
+            warnings=list(score.warnings),
+            metadata={
+                "dataset_path": dataset_path or "evals/cases/*.yaml",
+                "split": split,
+                "category": category or "all",
+                "eval_mode": self.eval_mode,
+            },
+        )
+
+        self.last_dataset = dataset
+        self.last_evaluation = evaluation
+        self.last_evaluation_run = evaluation_run
+        score.evaluation = evaluation
+        score.run_result = run_result
+        score.evaluation_run = evaluation_run
+
+    @staticmethod
+    def _dataset_name(*, dataset_path: str | None, category: str | None) -> str:
+        """Return a stable dataset label for canonical Evaluation objects."""
+
+        if dataset_path:
+            return Path(dataset_path).stem or "dataset"
+        if category:
+            return f"{category}_eval_cases"
+        return "eval_cases"
+
+    def _build_canonical_evaluation(self, dataset: Dataset) -> Evaluation:
+        """Build the reusable canonical Evaluation definition for a run."""
+
+        graders = [
+            Grader(
+                grader_id="quality",
+                grader_type=GraderKind.composite,
+                name="Legacy quality heuristic",
+                config={"source_metric": "quality_score"},
+            ),
+            Grader(
+                grader_id="safety",
+                grader_type=GraderKind.deterministic,
+                name="Safety compliance",
+                required=True,
+                config={"source_metric": "safety_passed"},
+            ),
+            Grader(
+                grader_id="tool_use_accuracy",
+                grader_type=GraderKind.classification,
+                name="Tool use accuracy",
+                config={"source_metric": "tool_use_accuracy"},
+            ),
+            Grader(
+                grader_id="routing_accuracy",
+                grader_type=GraderKind.classification,
+                name="Routing accuracy",
+                config={"source_metric": "routing_correct"},
+            ),
+        ]
+        evaluation_hash = self._fingerprint_payload(
+            {
+                "dataset_id": dataset.dataset_id,
+                "dataset_version": dataset.version,
+                "metrics": ["quality", "safety", "latency", "cost", "tool_use_accuracy", "routing_accuracy"],
+            }
+        )
+        return Evaluation(
+            evaluation_id=f"eval_{evaluation_hash[:12]}",
+            name=f"{dataset.name} evaluation",
+            dataset_ref=dataset.dataset_id,
+            dataset_version=dataset.version,
+            metrics=[
+                "quality",
+                "safety",
+                "latency",
+                "cost",
+                "tool_use_accuracy",
+                "routing_accuracy",
+                "composite",
+            ],
+            graders=graders,
+            metadata={"source": "eval_runner"},
+        )
+
+    def _build_run_result(
+        self,
+        *,
+        evaluation: Evaluation,
+        cases: list[TestCase],
+        score: CompositeScore,
+    ) -> RunResult:
+        """Project legacy EvalResult objects into the canonical RunResult."""
+
+        per_example_results: list[dict[str, Any]] = []
+        for case, result in zip(cases, score.results, strict=False):
+            grader_results = self._build_legacy_grader_results(case, result)
+            per_example_results.append(
+                {
+                    "example_id": result.case_id,
+                    "score": result.quality_score,
+                    "passed": result.passed,
+                    "grader_results": grader_results,
+                    "metadata": {
+                        "category": result.category,
+                        "latency_ms": result.latency_ms,
+                        "token_count": result.token_count,
+                        "details": result.details,
+                        "split": case.split,
+                    },
+                }
+            )
+
+        run_result = RunResult.from_example_results(
+            evaluation_id=evaluation.evaluation_id,
+            per_example_results=per_example_results,
+            warnings=list(score.warnings),
+            run_id=score.run_id or None,
+            metadata={"source": "eval_runner"},
+        )
+        run_result.summary_stats.update(
+            {
+                "quality": round(score.quality, 4),
+                "safety": round(score.safety, 4),
+                "latency": round(score.latency, 4),
+                "cost": round(score.cost, 4),
+                "composite": round(score.composite, 4),
+                "tool_use_accuracy": round(score.tool_use_accuracy, 4),
+                "total_tokens": score.total_tokens,
+                "estimated_cost_usd": round(score.estimated_cost_usd, 6),
+            }
+        )
+        return run_result
+
+    def _build_legacy_grader_results(
+        self,
+        case: TestCase,
+        result: EvalResult,
+    ) -> list[GraderResult]:
+        """Convert legacy per-case metrics into canonical grader outputs."""
+
+        example_id = result.case_id
+        routing_result = self.grader_runtime.run_sync(
+            Grader(
+                grader_id="routing_accuracy",
+                grader_type=GraderKind.classification,
+                config={"expected_field": "expected_label", "predicted_field": "predicted_label"},
+            ),
+            {
+                "example_id": example_id,
+                "expected_label": case.expected_specialist,
+                "predicted_label": case.expected_specialist if result.routing_correct else "mismatch",
+            },
+        )
+        tool_use_result = GraderResult(
+            grader_id="tool_use_accuracy",
+            grader_type=GraderKind.classification,
+            example_id=example_id,
+            score=round(result.tool_use_accuracy, 4),
+            passed=result.tool_use_accuracy >= 0.5,
+            reasoning=(
+                "Tool usage matched the expected tool."
+                if result.tool_use_accuracy >= 1.0
+                else f"Expected tool '{case.expected_tool}' was not observed."
+            ),
+            metadata={"expected_tool": case.expected_tool},
+        )
+        quality_result = GraderResult(
+            grader_id="quality",
+            grader_type=GraderKind.composite,
+            example_id=example_id,
+            score=round(result.quality_score, 4),
+            passed=result.quality_score >= 0.5,
+            reasoning=result.details or "Legacy quality heuristic computed for the example.",
+            metadata={"category": result.category},
+        )
+        safety_result = GraderResult(
+            grader_id="safety",
+            grader_type=GraderKind.deterministic,
+            example_id=example_id,
+            score=1.0 if result.safety_passed else 0.0,
+            passed=result.safety_passed,
+            reasoning=(
+                "Safety checks passed."
+                if result.safety_passed
+                else result.details or "Safety checks failed."
+            ),
+            metadata={"safety_probe": case.safety_probe},
+        )
+        return [quality_result, safety_result, tool_use_result, routing_result]
 
     def _persist_history(
         self,

@@ -29,6 +29,16 @@ from core.types import (
     MetricLayer,
     LayeredMetric,
 )
+from core.eval_model import (
+    Annotation,
+    Dataset,
+    Evaluation,
+    EvaluationRun,
+    Grader,
+    GraderKind,
+    GraderResult,
+    RunResult,
+)
 from core.handoff import HandoffArtifact, HandoffComparator
 
 __all__ = [
@@ -54,6 +64,14 @@ __all__ = [
     "JudgeVerdict",
     "MetricLayer",
     "LayeredMetric",
+    "Annotation",
+    "Dataset",
+    "Evaluation",
+    "EvaluationRun",
+    "Grader",
+    "GraderKind",
+    "GraderResult",
+    "RunResult",
     "HandoffArtifact",
     "HandoffComparator",
 ]
