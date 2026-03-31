@@ -17,6 +17,16 @@ pip install -e .
 ```bash
 autoagent new my-agent --template customer-support --demo
 cd my-agent
+autoagent instruction show
+```
+
+New workspaces now start with an XML default instruction in `prompts.root`.
+
+If you want to generate or replace that draft from a short brief:
+
+```bash
+autoagent instruction generate --brief "customer support agent for order tracking and refunds" --apply
+autoagent instruction validate
 ```
 
 `--demo` seeds extra review data so the full walkthrough includes review and autofix surfaces on a brand-new workspace.
@@ -26,6 +36,8 @@ cd my-agent
 ```bash
 autoagent build "customer support agent for order tracking, refunds, and cancellations"
 ```
+
+The Build page also includes an XML Instruction Studio with raw XML editing, form editing, inline validation, and guide snippets.
 
 ## Test it
 
@@ -48,8 +60,11 @@ autoagent deploy --auto-review --yes
 ## What's next?
 
 - `autoagent status` — see workspace health
+- `autoagent instruction edit` — open the active XML instruction in your editor
+- `autoagent instruction migrate` — convert an older plain-text prompt to XML
 - `autoagent shell` — interactive mode
 - `autoagent doctor` — troubleshoot issues
+- See the [XML Instructions Guide](xml-instructions.md) for the full XML workflow
 - See the [Detailed Guide](DETAILED_GUIDE.md) for the full walkthrough
 
 ## Troubleshooting
