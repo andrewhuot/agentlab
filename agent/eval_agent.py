@@ -22,6 +22,7 @@ MOCK_MODE_BANNER_MESSAGE = "Running in mock mode — add API keys for live optim
 LEGACY_EVAL_MOCK_MESSAGE = (
     "Eval harness is using mock_agent_response, so eval scores remain simulated until a real agent_fn is wired in."
 )
+LIVE_FALLBACK_MESSAGE_PREFIX = "Eval agent provider failed; falling back to deterministic mock responses."
 
 
 def _load_default_config() -> dict[str, Any]:
@@ -83,18 +84,27 @@ class ConfiguredEvalAgent:
         validated = validate_config(resolved_config)
         specialist = self._route_specialist(validated, user_message)
         tool_calls = self._build_tool_calls(specialist, user_message, validated)
-        response = self.llm_router.generate(
-            LLMRequest(
-                prompt=self._build_prompt(validated, specialist, user_message, tool_calls),
-                system=self._build_system_prompt(validated, specialist),
-                temperature=0.2,
-                max_tokens=500,
-                metadata={
-                    "task": "eval_agent_response",
-                    "specialist": specialist,
-                },
+        try:
+            response = self.llm_router.generate(
+                LLMRequest(
+                    prompt=self._build_prompt(validated, specialist, user_message, tool_calls),
+                    system=self._build_system_prompt(validated, specialist),
+                    temperature=0.2,
+                    max_tokens=500,
+                    metadata={
+                        "task": "eval_agent_response",
+                        "specialist": specialist,
+                    },
+                )
             )
-        )
+        except Exception as exc:
+            # Keep eval loops alive when a live provider is rate-limited or unavailable.
+            self.mock_mode = True
+            if not self.mock_reason:
+                self.mock_reason = (
+                    f"{LIVE_FALLBACK_MESSAGE_PREFIX} {type(exc).__name__}: {exc}"
+                )
+            return mock_agent_response(user_message, resolved_config)
 
         response_text = response.text.strip() or "I can help with that request."
         return {

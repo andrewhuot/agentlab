@@ -66,6 +66,11 @@ from cli.branding import (
     get_autoagent_version,
     render_startup_banner,
 )
+from cli.config_resolve import (
+    persist_config_lockfile,
+    render_config_resolution,
+    resolve_config_snapshot,
+)
 from cli.experiment_log import (
     append_entry as append_experiment_log_entry,
     best_score_entry as best_experiment_log_entry,
@@ -309,6 +314,11 @@ def _make_nl_scorer():
 
 def _ensure_active_config(deployer: Deployer) -> dict:
     """Return active config; bootstrap from base config if none exists yet."""
+    workspace = discover_workspace()
+    if workspace is not None:
+        resolved = workspace.resolve_active_config()
+        if resolved is not None:
+            return resolved.config
     current = deployer.get_active_config()
     if current is not None:
         return current
@@ -713,6 +723,145 @@ def _build_failure_samples(store: ConversationStore, limit: int = 25) -> list[di
     return samples
 
 
+def _default_eval_suite_dir(explicit_suite: str | None = None) -> str | None:
+    """Resolve the default eval suite to the workspace-local cases directory when available."""
+    if explicit_suite:
+        return explicit_suite
+    workspace = discover_workspace()
+    if workspace is not None and workspace.cases_dir.exists():
+        return str(workspace.cases_dir)
+    return None
+
+
+def _latest_eval_payload() -> tuple[Path | None, dict | None]:
+    """Return the latest eval result payload, if any."""
+    latest = _latest_eval_result_file()
+    if latest is None:
+        return None, None
+    try:
+        return latest, json.loads(latest.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return latest, None
+
+
+def _paths_match(left: Path | None, right: Path | None) -> bool:
+    """Return True when both paths exist and resolve to the same filesystem location."""
+    if left is None or right is None:
+        return False
+    try:
+        return left.resolve() == right.resolve()
+    except OSError:
+        return False
+
+
+def _latest_eval_payload_for_active_config(active_config_path: Path | None) -> tuple[Path | None, dict | None]:
+    """Return the latest eval payload only when it targets the currently active config."""
+    latest_path, latest_payload = _latest_eval_payload()
+    if latest_path is None or latest_payload is None or active_config_path is None:
+        return latest_path, None
+
+    payload = _unwrap_eval_payload(latest_payload)
+    config_path_raw = payload.get("config_path") or latest_payload.get("config_path")
+    if not config_path_raw:
+        return latest_path, None
+
+    try:
+        eval_config_path = Path(str(config_path_raw))
+    except TypeError:
+        return latest_path, None
+
+    if not _paths_match(eval_config_path, active_config_path):
+        return latest_path, None
+    return latest_path, latest_payload
+
+
+def _normalize_eval_failure_bucket(result: dict) -> str:
+    """Map eval-result failures into optimizer-friendly failure families."""
+    category = str(result.get("category", "")).strip().lower()
+    details = str(result.get("details", "")).strip().lower()
+
+    if category == "safety" or "safety check failed" in details:
+        return "safety_violation"
+    if "routing:" in details:
+        return "routing_error"
+    if "tool_use:" in details:
+        return "tool_failure"
+    if "timeout" in details or category == "timeout":
+        return "timeout"
+    return "unhelpful_response"
+
+
+def _build_eval_failure_clusters(data: dict) -> dict[str, int]:
+    """Derive optimizer failure buckets from the latest eval payload."""
+    failures: dict[str, int] = {}
+    payload = _unwrap_eval_payload(data)
+    results = payload.get("results") if isinstance(payload.get("results"), list) else []
+    for result in results:
+        if not isinstance(result, dict) or result.get("passed", True):
+            continue
+        label = _normalize_eval_failure_bucket(result)
+        failures[label] = failures.get(label, 0) + 1
+    return failures
+
+
+def _build_eval_failure_samples(data: dict) -> list[dict]:
+    """Convert failed eval cases into failure samples for the optimizer/proposer."""
+    payload = _unwrap_eval_payload(data)
+    results = payload.get("results") if isinstance(payload.get("results"), list) else []
+    samples: list[dict] = []
+    for result in results:
+        if not isinstance(result, dict) or result.get("passed", True):
+            continue
+        samples.append(
+            {
+                "case_id": result.get("case_id"),
+                "category": result.get("category"),
+                "failure_bucket": _normalize_eval_failure_bucket(result),
+                "failure_description": result.get("details", ""),
+                "quality_score": result.get("quality_score", 0.0),
+                "safety_passed": result.get("safety_passed", True),
+            }
+        )
+    return samples
+
+
+def _health_report_from_eval(data: dict):
+    """Build a lightweight HealthReport from the most recent eval result."""
+    from observer.metrics import HealthMetrics, HealthReport
+
+    payload = _unwrap_eval_payload(data)
+    scores = _extract_eval_scores(payload)
+    total_cases = int(payload.get("total") or len(payload.get("results") or []))
+    passed_cases = int(payload.get("passed") or 0)
+    success_rate = (passed_cases / total_cases) if total_cases else 0.0
+    failure_buckets = _build_eval_failure_clusters(payload)
+    failed_case_ids = [
+        str(item.get("case_id"))
+        for item in payload.get("results", [])
+        if isinstance(item, dict) and not item.get("passed", True)
+    ]
+
+    metrics = HealthMetrics(
+        success_rate=success_rate,
+        avg_latency_ms=0.0,
+        error_rate=max(0.0, 1.0 - success_rate),
+        safety_violation_rate=max(0.0, 1.0 - scores.get("safety", 0.0)),
+        avg_cost=float(payload.get("scores", {}).get("estimated_cost_usd", 0.0) or 0.0),
+        total_conversations=total_cases,
+    )
+    reason = "All latest eval cases passed."
+    if failed_case_ids:
+        reason = f"Latest eval failed {len(failed_case_ids)}/{total_cases} case(s): {', '.join(failed_case_ids[:5])}"
+
+    return HealthReport(
+        metrics=metrics,
+        anomalies=[],
+        failure_buckets=failure_buckets,
+        needs_optimization=bool(failed_case_ids),
+        reason=reason,
+    )
+
+
 def _ts(epoch: float) -> str:
     """Format epoch timestamp for display."""
     return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -909,6 +1058,8 @@ def _stream_cycle_output(
     p_value: float | None = None,
     all_time_best: float = 0.0,
     best_score_file: Path | None = None,
+    accepted: bool | None = None,
+    decision_detail: str | None = None,
 ) -> None:
     """Print rich streaming output for a single optimization cycle."""
     click.echo(f"\n  Cycle {cycle_num}/{total}")
@@ -937,9 +1088,10 @@ def _stream_cycle_output(
     # Result step
     if score_after is not None and score_before is not None:
         improvement = score_after - score_before
-        if improvement > 0:
+        accepted_candidate = accepted if accepted is not None else improvement > 0
+        p_str = f" (p={p_value:.2f})" if p_value is not None else ""
+        if accepted_candidate:
             sparkle = " ✨" if score_after > all_time_best else ""
-            p_str = f" (p={p_value:.2f})" if p_value is not None else ""
             click.echo(click.style(
                 f"    ↳ ✓ composite={score_after:.4f} (+{improvement:.4f}){sparkle}{p_str}", fg="green"
             ))
@@ -954,11 +1106,15 @@ def _stream_cycle_output(
             )
         else:
             click.echo(click.style(
-                f"    ↳ ✗ composite={score_after:.4f} ({improvement:+.4f})", fg="yellow"
+                f"    ↳ ✗ composite={score_after:.4f} ({improvement:+.4f}){p_str}", fg="yellow"
             ))
             click.echo(click.style("    → Rejected", fg="yellow"))
     else:
         click.echo(click.style("    ↳ No change applied", fg="yellow"))
+
+    if decision_detail:
+        detail_color = "green" if (accepted if accepted is not None else False) else "yellow"
+        click.echo(click.style(f"    ↳ {decision_detail}", fg=detail_color))
 
     if proposal_desc:
         click.echo(click.style(f"    → {proposal_desc}", fg="cyan"))
@@ -1034,6 +1190,7 @@ def _build_eval_runner(
         random_seed=runtime.eval.random_seed,
         token_cost_per_1k=runtime.eval.token_cost_per_1k,
     )
+    eval_runner.eval_agent = eval_agent
     trace_store = TraceStore(db_path=trace_db_path or os.environ.get("AUTOAGENT_TRACE_DB", TRACE_DB))
     instrument_eval_runner(eval_runner, trace_store, agent_path="eval", branch="cli")
     eval_runner.mock_mode_messages = (
@@ -1138,7 +1295,7 @@ def _build_runtime_components() -> tuple[
 
     runtime = load_runtime_with_mode_preference()
     runtime = apply_model_overrides(runtime)
-    eval_runner = _build_eval_runner(runtime)
+    eval_runner = _build_eval_runner(runtime, cases_dir=_default_eval_suite_dir())
     router = build_router_from_runtime_config(runtime.optimizer)
     proposer = Proposer(
         use_mock=router.mock_mode,
@@ -2183,8 +2340,10 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
             ],
         )
 
+    resolved_suite = _default_eval_suite_dir(suite)
     config = None
     if config_path:
+        config_path = str(_resolve_invocation_input_path(Path(config_path)))
         config = _load_config_dict(config_path)
         if resolved_output_format == "text":
             click.echo(f"Evaluating config: {config_path}")
@@ -2200,12 +2359,16 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         if config is None and resolved_output_format == "text":
             click.echo("Evaluating with default config")
 
+    resolution = resolve_config_snapshot(config_path=config_path, command="eval run")
+    persist_config_lockfile(resolution)
+
     runner = _build_eval_runner(
         runtime,
-        cases_dir=suite,
+        cases_dir=resolved_suite,
         use_real_agent=real_agent,
         default_agent_config=config,
     )
+    initial_mock_messages = list(getattr(runner, "mock_mode_messages", []) or [])
     _warn_mock_modes(eval_runner=runner, json_output=(resolved_output_format == "json"))
 
     if category:
@@ -2218,6 +2381,16 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         progress.phase_completed("eval", message="Full eval suite complete")
         progress.next_action("autoagent improve")
         score_heading = "Full eval suite"
+
+    live_eval_agent = getattr(runner, "eval_agent", None)
+    if live_eval_agent is not None:
+        refreshed_mock_messages = list(getattr(live_eval_agent, "mock_mode_messages", []) or [])
+        runner.mock_mode_messages = refreshed_mock_messages
+        late_mock_messages = [
+            message for message in refreshed_mock_messages if message not in initial_mock_messages
+        ]
+        if late_mock_messages:
+            score.warnings = list(dict.fromkeys(list(getattr(score, "warnings", []) or []) + late_mock_messages))
 
     if resolved_output_format == "text":
         _print_score(score, score_heading)
@@ -2519,6 +2692,90 @@ def eval_breakdown(json_output: bool = False) -> None:
         click.echo(f"    {count:>3}x {cluster}")
 
 
+def _summarize_failed_eval_cases(data: dict, limit: int = 3) -> list[str]:
+    """Return short, human-readable summaries of failed eval cases."""
+    payload = _unwrap_eval_payload(data)
+    summaries: list[str] = []
+    for result in payload.get("results", []):
+        if not isinstance(result, dict) or result.get("passed", True):
+            continue
+        case_id = str(result.get("case_id", "unknown"))
+        category = str(result.get("category", "unknown"))
+        details = str(result.get("details", "")).strip()
+        if details:
+            summaries.append(f"{case_id} [{category}] — {details}")
+        else:
+            summaries.append(f"{case_id} [{category}]")
+        if len(summaries) >= limit:
+            break
+    return summaries
+
+
+def _persist_candidate_config(
+    deployer: Deployer,
+    *,
+    candidate_config: dict,
+    candidate_scores: dict[str, float],
+) -> tuple[int, Path]:
+    """Save an accepted optimizer candidate as a reviewable config version."""
+    saved = deployer.version_manager.save_version(
+        candidate_config,
+        candidate_scores,
+        status="candidate",
+    )
+    candidate_path = deployer.version_manager.configs_dir / saved.filename
+    return saved.version, candidate_path
+
+
+def _build_reviewable_change_card(
+    *,
+    attempt,
+    baseline_eval_data: dict,
+    candidate_score,
+    candidate_version: int,
+    candidate_path: Path,
+    source_eval_path: Path | None,
+):
+    """Create a pending change card that links an accepted optimization to a saved candidate config."""
+    from optimizer.change_card import ConfidenceInfo, DiffHunk, ProposedChangeCard
+
+    failed_cases = _summarize_failed_eval_cases(baseline_eval_data)
+    why = "Linked to latest eval failures."
+    if failed_cases:
+        why = "Linked to latest eval failures: " + "; ".join(failed_cases)
+
+    return ProposedChangeCard(
+        title=str(attempt.change_description or "Accepted optimization candidate"),
+        why=why,
+        diff_hunks=[
+            DiffHunk(
+                hunk_id=str(uuid.uuid4())[:8],
+                surface=str(attempt.config_section or "config"),
+                old_value="(see diff)",
+                new_value=str(attempt.config_diff or ""),
+                status="pending",
+            )
+        ],
+        metrics_before=_extract_eval_scores(baseline_eval_data),
+        metrics_after=_score_to_dict(candidate_score),
+        confidence=ConfidenceInfo(
+            p_value=float(getattr(attempt, "significance_p_value", 1.0) or 1.0),
+            effect_size=float(getattr(attempt, "significance_delta", 0.0) or 0.0),
+            n_eval_cases=int(getattr(candidate_score, "total_cases", 0) or 0),
+        ),
+        risk_class="low",
+        rollout_plan="Review diff -> apply locally -> re-run evals -> deploy canary if metrics hold",
+        rollback_condition=(
+            f"Rollback if composite drops below baseline {float(getattr(attempt, 'score_before', 0.0) or 0.0):.4f}"
+        ),
+        experiment_card_id=str(getattr(attempt, "attempt_id", "")),
+        candidate_config_version=candidate_version,
+        candidate_config_path=str(candidate_path),
+        source_eval_path=str(source_eval_path) if source_eval_path is not None else "",
+        status="pending",
+    )
+
+
 def _run_optimize_cycle(
     *,
     cycle_number: int,
@@ -2539,18 +2796,52 @@ def _run_optimize_cycle(
 ) -> tuple[dict, float]:
     """Run one optimize iteration and persist a matching experiment-log entry."""
     try:
-        report = observer.observe()
+        workspace = discover_workspace()
+        active_config = workspace.resolve_active_config() if workspace is not None else None
+        latest_eval_path, latest_eval_data = _latest_eval_payload_for_active_config(
+            active_config.path if active_config is not None else None
+        )
+        if latest_eval_path is None or latest_eval_data is None:
+            entry = make_experiment_log_entry(
+                cycle=cycle_number,
+                status="skip",
+                description="No eval results found for the active config. Run `autoagent eval run` first.",
+                score_before=None,
+                score_after=None,
+            )
+            append_experiment_log_entry(entry, path=log_path)
+            if not json_output and not continuous and display_total is not None:
+                click.echo(
+                    f"\n  Cycle {display_cycle}/{display_total} — No eval results found for the active config. "
+                    "Run `autoagent eval run` first."
+                )
+            return (
+                {
+                    "cycle": cycle_number if continuous else display_cycle,
+                    "experiment_cycle": cycle_number,
+                    "total_cycles": None if continuous else display_total,
+                    "status": entry.status,
+                    "accepted": False,
+                    "score_before": entry.score_before,
+                    "score_after": entry.score_after,
+                    "delta": entry.delta,
+                    "change_description": entry.description,
+                },
+                all_time_best,
+            )
+
+        report = _health_report_from_eval(latest_eval_data)
 
         if not report.needs_optimization:
             if not json_output and not continuous and display_total is not None:
                 click.echo(
-                    f"\n  Cycle {display_cycle}/{display_total} — System healthy; skipping optimization."
+                    f"\n  Cycle {display_cycle}/{display_total} — Latest eval passed; no optimization needed."
                 )
 
             entry = make_experiment_log_entry(
                 cycle=cycle_number,
                 status="skip",
-                description="System healthy; no optimization needed",
+                description="Latest eval passed; no optimization needed",
                 score_before=None,
                 score_after=None,
             )
@@ -2571,7 +2862,7 @@ def _run_optimize_cycle(
             )
 
         current_config = _ensure_active_config(deployer)
-        failure_samples = _build_failure_samples(store)
+        failure_samples = _build_eval_failure_samples(latest_eval_data)
         new_config, opt_status = optimizer.optimize(
             report,
             current_config,
@@ -2592,14 +2883,8 @@ def _run_optimize_cycle(
             score_after=score_after,
         )
         description = proposal_desc or opt_status
-        entry = make_experiment_log_entry(
-            cycle=cycle_number,
-            status=normalized_status,
-            description=description,
-            score_before=score_before,
-            score_after=score_after,
-        )
-        append_experiment_log_entry(entry, path=log_path)
+        if proposal_desc and new_config is None and opt_status:
+            description = f"{proposal_desc} ({opt_status})"
 
         if not json_output and not continuous and display_total is not None:
             _stream_cycle_output(
@@ -2612,6 +2897,8 @@ def _run_optimize_cycle(
                 p_value=p_value,
                 all_time_best=all_time_best,
                 best_score_file=best_score_file,
+                accepted=new_config is not None,
+                decision_detail=opt_status if new_config is None else None,
             )
         else:
             all_time_best = _persist_best_score(
@@ -2625,14 +2912,50 @@ def _run_optimize_cycle(
             all_time_best = score_after
 
         if new_config is not None:
+            from optimizer.change_card import ChangeCardStore
+
             score = eval_runner.run(config=new_config)
-            deploy_result = deployer.deploy(new_config, _score_to_dict(score))
+            candidate_scores = _score_to_dict(score)
+            candidate_version, candidate_path = _persist_candidate_config(
+                deployer,
+                candidate_config=new_config,
+                candidate_scores=candidate_scores,
+            )
+            latest = memory.recent(limit=1)[0]
+            change_card = _build_reviewable_change_card(
+                attempt=latest,
+                baseline_eval_data=latest_eval_data,
+                candidate_score=score,
+                candidate_version=candidate_version,
+                candidate_path=candidate_path,
+                source_eval_path=latest_eval_path,
+            )
+            ChangeCardStore().save(change_card)
+            description = f"{description} (review {change_card.card_id}, candidate v{candidate_version:03d})"
+            entry = make_experiment_log_entry(
+                cycle=cycle_number,
+                status=normalized_status,
+                description=description,
+                score_before=score_before,
+                score_after=score_after,
+            )
+            append_experiment_log_entry(entry, path=log_path)
+
             if not json_output and not continuous:
-                click.echo(f"  Deploy: {deploy_result}")
+                click.echo(f"  Review: saved {change_card.card_id} for v{candidate_version:03d}")
             if full_auto:
                 promoted = _promote_latest_version(deployer)
                 if not json_output and not continuous and promoted is not None:
                     click.echo(click.style(f"  FULL AUTO: promoted v{promoted:03d} to active", fg="yellow"))
+
+        entry = make_experiment_log_entry(
+            cycle=cycle_number,
+            status=normalized_status,
+            description=description,
+            score_before=score_before,
+            score_after=score_after,
+        )
+        append_experiment_log_entry(entry, path=log_path)
 
         return (
             {
@@ -2806,6 +3129,8 @@ def optimize(
         adversarial_simulator,
         skill_autolearner,
     ) = _build_runtime_components()
+    resolution = resolve_config_snapshot(command="optimize")
+    persist_config_lockfile(resolution)
     _warn_mock_modes(proposer=proposer, json_output=(resolved_output_format == "json"))
     store = ConversationStore(db_path=db)
     observer = Observer(store)
@@ -2825,6 +3150,7 @@ def optimize(
         significance_alpha=runtime.eval.significance_alpha,
         significance_min_effect_size=runtime.eval.significance_min_effect_size,
         significance_iterations=runtime.eval.significance_iterations,
+        significance_min_pairs=runtime.eval.significance_min_pairs,
         skill_engine=skill_engine,
         use_skills=True,
         skill_selection_strategy="auto",
@@ -3265,6 +3591,51 @@ def config_group() -> None:
       autoagent config show active
       autoagent config diff 1 2
     """
+
+
+@config_group.command("resolve")
+@click.option("--config", "config_path", default=None, help="Path to the agent config YAML.")
+@click.option("--runtime-config", default=None, help="Path to the runtime config YAML.")
+@click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
+def config_resolve(
+    config_path: str | None,
+    runtime_config: str | None,
+    json_output: bool = False,
+) -> None:
+    """Resolve the effective workspace config and persist an `autoagent.lock` snapshot."""
+    from cli.stream2_helpers import json_response
+
+    resolved_config_path = (
+        str(_resolve_invocation_input_path(Path(config_path)))
+        if config_path is not None
+        else None
+    )
+    resolved_runtime_path = (
+        str(_resolve_invocation_input_path(Path(runtime_config)))
+        if runtime_config is not None
+        else None
+    )
+    resolution = resolve_config_snapshot(
+        config_path=resolved_config_path,
+        runtime_config_path=resolved_runtime_path,
+        command="config resolve",
+    )
+    persist_config_lockfile(resolution)
+    payload = resolution.to_dict()
+
+    if json_output:
+        click.echo(json_response("ok", payload, next_cmd="autoagent eval run"))
+        return
+
+    click.echo(click.style("\n✦ Config Resolve", fg="cyan", bold=True))
+    click.echo(render_config_resolution(resolution))
+    click.echo("")
+    _print_next_actions(
+        [
+            "autoagent eval run",
+            "autoagent optimize --cycles 1",
+        ],
+    )
 
 
 @config_group.command("list")
@@ -3900,8 +4271,24 @@ def deploy(
             click.echo(click.style(f"Applied: rolled back canary v{rollback_version:03d}", fg="green"))
         return
 
+    active_version = deployer.version_manager.manifest.get("active_version")
     if config_version is None:
-        config_version = history[-1]["version"]
+        deployable_candidates = [
+            entry["version"]
+            for entry in history
+            if entry["version"] != active_version
+            and entry.get("status") in {"candidate", "evaluated", "canary", "imported"}
+        ]
+        if strategy == "canary":
+            if not deployable_candidates:
+                raise click.ClickException(
+                    "No candidate config version available to deploy. "
+                    "Run `autoagent optimize --cycles 1`, review/apply a candidate, "
+                    "or pass --config-version."
+                )
+            config_version = max(deployable_candidates)
+        else:
+            config_version = history[-1]["version"]
         if not json_output:
             click.echo(f"Deploying latest version: v{config_version:03d}")
 
@@ -3916,6 +4303,12 @@ def deploy(
         else:
             click.echo(f"Version {config_version} not found.")
         return
+
+    if strategy == "canary" and config_version == active_version:
+        raise click.ClickException(
+            f"Cannot deploy active version v{config_version:03d} as its own canary. "
+            "Choose a non-active candidate version."
+        )
 
     filepath = Path(configs_dir) / found["filename"]
     with filepath.open("r", encoding="utf-8") as f:
@@ -4084,6 +4477,7 @@ def loop_run(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode
         significance_alpha=runtime.eval.significance_alpha,
         significance_min_effect_size=runtime.eval.significance_min_effect_size,
         significance_iterations=runtime.eval.significance_iterations,
+        significance_min_pairs=runtime.eval.significance_min_pairs,
         skill_engine=skill_engine,
         use_skills=True,
         skill_selection_strategy="auto",
@@ -4366,18 +4760,15 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False,
     memory_snapshot = load_layered_project_context(workspace.root).summary()
     mcp_snapshot = mcp_status_snapshot(workspace.root)
     model_snapshot = effective_model_surface(workspace.root)
-    latest_eval_score: float | None = latest.score_after if latest else None
-    latest_eval_timestamp: float | str | None = latest.timestamp if latest else None
-    latest_eval_file = _latest_eval_result_file()
-    if latest_eval_score is None and latest_eval_file is not None:
-        try:
-            latest_eval_payload = json.loads(latest_eval_file.read_text(encoding="utf-8"))
-            latest_eval_data = _unwrap_eval_payload(latest_eval_payload)
-            latest_eval_score = _extract_eval_scores(latest_eval_data).get("composite")
-            latest_eval_timestamp = latest_eval_data.get("timestamp") or latest_eval_payload.get("timestamp")
-        except (json.JSONDecodeError, OSError):
-            latest_eval_score = None
-            latest_eval_timestamp = None
+    latest_eval_score: float | None = None
+    latest_eval_timestamp: float | str | None = None
+    latest_eval_file, latest_eval_payload = _latest_eval_payload_for_active_config(
+        resolved.path if resolved is not None else None
+    )
+    if latest_eval_payload is not None:
+        latest_eval_data = _unwrap_eval_payload(latest_eval_payload)
+        latest_eval_score = _extract_eval_scores(latest_eval_data).get("composite")
+        latest_eval_timestamp = latest_eval_data.get("timestamp") or latest_eval_payload.get("timestamp")
     pending_review_cards = 0
     pending_autofix_proposals = 0
 
@@ -5458,6 +5849,36 @@ def context_report() -> None:
 # autoagent review (change cards)
 # ---------------------------------------------------------------------------
 
+
+def _apply_change_card_to_workspace(card_id: str):
+    """Mark a change card applied and make its candidate config the active local config."""
+    from optimizer.change_card import ChangeCardStore
+
+    workspace = _require_workspace("review")
+    store = ChangeCardStore()
+    card = store.get(card_id)
+    if card is None:
+        raise click.ClickException(f"Change card not found: {card_id}")
+    if card.status != "pending":
+        raise click.ClickException(f"Card is not pending (status={card.status})")
+    if card.candidate_config_version is None:
+        store.update_status(card_id, "applied")
+        return card, None, None
+
+    candidate_path = workspace.resolve_config_path(card.candidate_config_version)
+    if candidate_path is None and card.candidate_config_path:
+        explicit_path = Path(card.candidate_config_path)
+        if explicit_path.exists():
+            candidate_path = explicit_path
+    if candidate_path is None:
+        raise click.ClickException(
+            f"Candidate config for card {card_id} is missing (expected v{card.candidate_config_version:03d})."
+        )
+
+    store.update_status(card_id, "applied")
+    workspace.set_active_config(card.candidate_config_version, filename=candidate_path.name)
+    return card, card.candidate_config_version, candidate_path
+
 @cli.group("review", invoke_without_command=True)
 @click.pass_context
 def review_group(ctx: click.Context) -> None:
@@ -5484,8 +5905,14 @@ def review_group(ctx: click.Context) -> None:
     card = cards[0]
     click.echo(card.to_terminal())
     if click.confirm("Approve this change?", default=False):
-        store.update_status(card.card_id, "applied")
-        click.echo(f"Applied change card {card.card_id}: {card.title}")
+        applied_card, candidate_version, candidate_path = _apply_change_card_to_workspace(card.card_id)
+        if candidate_version is None or candidate_path is None:
+            click.echo(f"Applied change card {applied_card.card_id}: {applied_card.title}")
+        else:
+            click.echo(
+                f"Applied change card {applied_card.card_id}: {applied_card.title} "
+                f"(active config v{candidate_version:03d} -> {candidate_path})"
+            )
 
 
 @review_group.command("list")
@@ -5630,12 +6057,15 @@ def review_apply(card_id: str, output_format: str = "text") -> None:
         prompt=f"Apply change card {card_id}?",
         default=False,
     )
-    store.update_status(card_id, "applied")
+    applied_card, candidate_version, candidate_path = _apply_change_card_to_workspace(card_id)
     progress.phase_completed("review-apply", message=f"Applied change card {card_id}")
-    progress.next_action("autoagent status")
+    progress.next_action("autoagent eval run")
     if resolved_output_format == "stream-json":
         return
-    click.echo(f"Applied change card {card_id}: {card.title}")
+    click.echo(f"Applied change card {applied_card.card_id}: {applied_card.title}")
+    if candidate_version is not None and candidate_path is not None:
+        click.echo(f"  Active config: v{candidate_version:03d}")
+        click.echo(f"  Path: {candidate_path}")
 
 
 @review_group.command("reject")
@@ -5747,19 +6177,18 @@ def changes_show(card_id: str) -> None:
 @click.argument("card_id")
 def changes_approve(card_id: str) -> None:
     """Approve/apply a change card (alias for `autoagent review apply`)."""
-    from optimizer.change_card import ChangeCardStore
-
-    Path(".autoagent").mkdir(parents=True, exist_ok=True)
-    store = ChangeCardStore()
-    card = store.get(card_id)
-    if card is None:
-        click.echo(f"Change card not found: {card_id}")
-        raise SystemExit(1)
-    if card.status != "pending":
-        click.echo(f"Card is not pending (status={card.status})")
-        raise SystemExit(1)
-    store.update_status(card_id, "applied")
-    click.echo(f"Applied change card {card_id}: {card.title}")
+    try:
+        card, candidate_version, candidate_path = _apply_change_card_to_workspace(card_id)
+    except click.ClickException as exc:
+        click.echo(str(exc))
+        raise SystemExit(1) from exc
+    if candidate_version is None or candidate_path is None:
+        click.echo(f"Applied change card {card.card_id}: {card.title}")
+    else:
+        click.echo(
+            f"Applied change card {card.card_id}: {card.title} "
+            f"(active config v{candidate_version:03d} -> {candidate_path})"
+        )
 
 
 @changes_group.command("reject")
@@ -6248,6 +6677,7 @@ def run_optimize(db: str, configs_dir: str, memory_db: str) -> None:
         significance_alpha=runtime.eval.significance_alpha,
         significance_min_effect_size=runtime.eval.significance_min_effect_size,
         significance_iterations=runtime.eval.significance_iterations,
+        significance_min_pairs=runtime.eval.significance_min_pairs,
         skill_engine=skill_engine,
         use_skills=True,
         skill_selection_strategy="auto",
@@ -6298,6 +6728,7 @@ def run_loop(cycles: int, db: str, configs_dir: str, memory_db: str, delay: floa
         significance_alpha=runtime.eval.significance_alpha,
         significance_min_effect_size=runtime.eval.significance_min_effect_size,
         significance_iterations=runtime.eval.significance_iterations,
+        significance_min_pairs=runtime.eval.significance_min_pairs,
         skill_engine=skill_engine,
         use_skills=True,
         skill_selection_strategy="auto",
@@ -7512,6 +7943,7 @@ def quickstart(
         significance_alpha=runtime.eval.significance_alpha,
         significance_min_effect_size=runtime.eval.significance_min_effect_size,
         significance_iterations=runtime.eval.significance_iterations,
+        significance_min_pairs=runtime.eval.significance_min_pairs,
         skill_engine=skill_engine,
         use_skills=True,
         skill_selection_strategy="auto",
@@ -7549,6 +7981,8 @@ def quickstart(
             p_value=p_val,
             all_time_best=all_time_best,
             best_score_file=best_score_file,
+            accepted=new_config is not None,
+            decision_detail=qs_status if new_config is None else None,
         )
 
         # Update all_time_best if we got a new score
@@ -7692,6 +8126,7 @@ def demo_quickstart(
         significance_alpha=runtime.eval.significance_alpha,
         significance_min_effect_size=runtime.eval.significance_min_effect_size,
         significance_iterations=runtime.eval.significance_iterations,
+        significance_min_pairs=runtime.eval.significance_min_pairs,
         skill_engine=skill_engine,
         use_skills=True,
         skill_selection_strategy="auto",
@@ -7727,6 +8162,8 @@ def demo_quickstart(
         p_value=p_val,
         all_time_best=all_time_best,
         best_score_file=best_score_file,
+        accepted=new_config is not None,
+        decision_detail=demo_status if new_config is None else None,
     )
 
     if new_config is not None:

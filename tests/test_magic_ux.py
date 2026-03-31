@@ -236,6 +236,28 @@ class TestStreamCycleOutput:
         result = runner.invoke(_cmd, [])
         assert "Rejected" in result.output
 
+    def test_prints_rejected_when_improvement_fails_acceptance_gate(self, runner):
+        report = self._make_report({"safety_violation": 1})
+
+        @__import__("click").command()
+        def _cmd():
+            _stream_cycle_output(
+                1,
+                1,
+                report,
+                "Added explicit safety refusal instruction to root prompt",
+                0.8989,
+                0.7747,
+                p_value=0.24,
+                accepted=False,
+                decision_detail="REJECTED (rejected_not_significant): Improvement not statistically significant",
+            )
+
+        result = runner.invoke(_cmd, [])
+        assert "Rejected" in result.output
+        assert "Accepted" not in result.output
+        assert "rejected_not_significant" in result.output
+
     def test_prints_proposal_desc(self, runner):
         report = self._make_report({})
 

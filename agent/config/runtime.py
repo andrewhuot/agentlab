@@ -136,6 +136,7 @@ class EvalRuntimeConfig(BaseModel):
     significance_alpha: float = Field(0.05, ge=0.0001, le=0.5)
     significance_min_effect_size: float = Field(0.005, ge=0.0, le=1.0)
     significance_iterations: int = Field(2000, ge=100, le=50000)
+    significance_min_pairs: int = Field(5, ge=1, le=10000)
 
 
 class BudgetRuntimeConfig(BaseModel):

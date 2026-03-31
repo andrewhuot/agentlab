@@ -87,6 +87,7 @@ class Optimizer:
         adversarial_simulator: AdversarialSimulator | None = None,
         skill_autolearner: SkillAutoLearner | None = None,
         auto_learn_skills: bool = True,
+        significance_min_pairs: int = 5,
     ) -> None:
         self.eval_runner = eval_runner
         self.memory = memory or OptimizationMemory()
@@ -96,6 +97,7 @@ class Optimizer:
         self.significance_min_effect_size = significance_min_effect_size
         self.significance_iterations = significance_iterations
         self.require_statistical_significance = require_statistical_significance
+        self.significance_min_pairs = significance_min_pairs
 
         # Production controls
         self.cost_tracker = cost_tracker
@@ -498,7 +500,12 @@ class Optimizer:
                 significance_p_value = significance.p_value
                 significance_delta = significance.observed_delta
                 significance_n = significance.n_pairs
-                if not significance.is_significant:
+                if significance_n < self.significance_min_pairs:
+                    reason = (
+                        f"{reason}; significance advisory only "
+                        f"(n={significance_n} < min_pairs={self.significance_min_pairs})"
+                    )
+                elif not significance.is_significant:
                     accepted = False
                     status = "rejected_not_significant"
                     reason = (

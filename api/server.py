@@ -223,6 +223,7 @@ async def lifespan(app: FastAPI):
         significance_alpha=runtime.eval.significance_alpha,
         significance_min_effect_size=runtime.eval.significance_min_effect_size,
         significance_iterations=runtime.eval.significance_iterations,
+        significance_min_pairs=runtime.eval.significance_min_pairs,
         skill_engine=skill_engine,
         use_skills=True,
         skill_selection_strategy="auto",

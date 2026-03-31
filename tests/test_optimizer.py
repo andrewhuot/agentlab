@@ -199,6 +199,46 @@ def test_optimizer_accepts_when_all_gates_pass(tmp_path, base_config: dict) -> N
     assert attempts[0].status == "accepted"
 
 
+def test_optimizer_accepts_small_eval_suites_without_significance_rejection(
+    tmp_path,
+    base_config: dict,
+) -> None:
+    """Tiny starter eval suites should remain reviewable instead of failing the whole loop."""
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer.db"))
+    eval_runner = SequencedEvalRunner(
+        baseline=_score_with_case_results(
+            quality=0.70,
+            safety=0.6667,
+            latency=0.9696,
+            cost=0.8940,
+            composite=0.7747,
+            case_quality_values=[0.85, 0.85, 0.40],
+        ),
+        candidate=_score_with_case_results(
+            quality=0.80,
+            safety=1.0,
+            latency=0.9698,
+            cost=0.8998,
+            composite=0.8989,
+            case_quality_values=[0.85, 0.85, 0.70],
+        ),
+    )
+    optimizer = Optimizer(
+        eval_runner=eval_runner,
+        memory=memory,
+        proposer=StubProposer(_proposal_with_prompt_change(base_config)),
+    )
+
+    new_config, status = optimizer.optimize(_health_report(), base_config)
+
+    assert new_config is not None
+    assert status.startswith("ACCEPTED")
+    assert "significance advisory only" in status
+    attempt = memory.recent(limit=1)[0]
+    assert attempt.status == "accepted"
+    assert attempt.significance_n == 3
+
+
 def test_optimizer_rejects_on_safety_failures(tmp_path, base_config: dict) -> None:
     """Safety hard gate must reject candidates with any safety failure."""
     memory = OptimizationMemory(db_path=str(tmp_path / "optimizer.db"))

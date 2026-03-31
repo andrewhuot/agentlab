@@ -44,11 +44,97 @@ MOCK_FAQ: list[dict] = [
 ]
 
 _SAFETY_KEYWORDS = {"hack", "bomb", "weapon", "exploit", "attack", "steal", "phishing", "malware", "jailbreak", "ignore instructions", "inject", "bypass"}
+_PRIVACY_KEYWORDS = {
+    "another customer's account",
+    "another customers account",
+    "someone else's account",
+    "someone elses account",
+    "customer account",
+    "access another customer",
+    "access another user's account",
+}
+
+
+def _semantic_config_view(config: dict | None) -> dict:
+    """Return only the config surfaces that should influence deterministic mock behavior."""
+    config = config or {}
+    prompts = config.get("prompts") if isinstance(config.get("prompts"), dict) else {}
+    routing = config.get("routing") if isinstance(config.get("routing"), dict) else {}
+    thresholds = config.get("thresholds") if isinstance(config.get("thresholds"), dict) else {}
+    tools = config.get("tools") if isinstance(config.get("tools"), dict) else {}
+
+    normalized_rules: list[dict] = []
+    for rule in routing.get("rules", []) if isinstance(routing.get("rules"), list) else []:
+        if not isinstance(rule, dict):
+            continue
+        normalized_rules.append(
+            {
+                "specialist": str(rule.get("specialist", "")),
+                "keywords": sorted(str(keyword).lower() for keyword in rule.get("keywords", []) if str(keyword).strip()),
+            }
+        )
+
+    normalized_tools = {
+        name: {"enabled": bool((cfg or {}).get("enabled", False))}
+        for name, cfg in tools.items()
+        if isinstance(cfg, dict)
+    }
+
+    return {
+        "quality_boost": bool(config.get("quality_boost", False)),
+        "prompts": {
+            "root": str(prompts.get("root", "")),
+            "support": str(prompts.get("support", "")),
+            "orders": str(prompts.get("orders", "")),
+            "recommendations": str(prompts.get("recommendations", "")),
+        },
+        "routing": {"rules": normalized_rules},
+        "thresholds": {
+            "confidence_threshold": thresholds.get("confidence_threshold"),
+            "max_turns": thresholds.get("max_turns"),
+        },
+        "tools": normalized_tools,
+    }
+
+
+def _has_explicit_safety_guardrail(config: dict | None) -> bool:
+    """Detect whether the config explicitly instructs the agent to refuse unsafe requests."""
+    semantic = _semantic_config_view(config)
+    prompt_text = " ".join(semantic["prompts"].values()).lower()
+    return any(
+        phrase in prompt_text
+        for phrase in (
+            "never assist with harmful",
+            "illegal",
+            "dangerous requests",
+            "refuse unsafe",
+            "another customer's account",
+            "privacy",
+        )
+    )
+
+
+def _route_from_config(msg_lower: str, config: dict | None) -> str | None:
+    """Route using config routing rules when available."""
+    routing = _semantic_config_view(config).get("routing", {})
+    rules = routing.get("rules", [])
+    best_specialist: str | None = None
+    best_score = 0
+    for rule in rules:
+        specialist = str(rule.get("specialist", "")).strip()
+        keywords = rule.get("keywords", [])
+        if not specialist or not keywords:
+            continue
+        score = sum(1 for keyword in keywords if keyword and keyword in msg_lower)
+        if score > best_score:
+            best_specialist = specialist
+            best_score = score
+    return best_specialist if best_score > 0 else None
 
 
 def _deterministic_rng(user_message: str, config: dict | None) -> random.Random:
     """Create a deterministic RNG keyed by message and config content."""
-    config_key = json.dumps(config or {}, sort_keys=True, separators=(",", ":"))
+    config_key = json.dumps(_semantic_config_view(config), sort_keys=True, separators=(",", ":"))
     seed_material = f"{user_message.lower()}|{config_key}"
     digest = hashlib.sha256(seed_material.encode("utf-8")).hexdigest()
     seed = int(digest[:16], 16)
@@ -61,22 +147,36 @@ def mock_agent_response(user_message: str, config: dict | None = None) -> dict:
     rng = _deterministic_rng(user_message, config)
 
     # Safety check
-    safety_violation = any(kw in msg_lower for kw in _SAFETY_KEYWORDS)
+    explicit_safety_guardrail = _has_explicit_safety_guardrail(config)
+    privacy_violation = any(kw in msg_lower for kw in _PRIVACY_KEYWORDS)
+    harmful_request = any(kw in msg_lower for kw in _SAFETY_KEYWORDS)
+    unsafe_request = harmful_request or privacy_violation
 
     # Route to specialist
-    if any(kw in msg_lower for kw in ("order", "track", "cancel", "shipping", "delivery", "status")):
+    config_specialist = _route_from_config(msg_lower, config)
+    if config_specialist:
+        specialist = config_specialist
+    elif any(kw in msg_lower for kw in ("order", "track", "cancel", "shipping", "delivery", "status")):
         specialist = "orders"
-        response_text = "I can help with your order. Let me look that up for you."
     elif any(kw in msg_lower for kw in ("recommend", "suggest", "similar", "like this", "best")):
         specialist = "recommendations"
-        response_text = "Based on your preferences, here are some recommendations."
     else:
         specialist = "support"
+
+    if specialist == "orders":
+        response_text = "I can help with your order. Let me look that up for you."
+    elif specialist == "recommendations":
+        response_text = "Based on your preferences, here are some recommendations."
+    else:
         response_text = "I'm happy to help! Let me find the information you need."
 
-    if safety_violation:
+    refused_for_safety = False
+    if harmful_request or (explicit_safety_guardrail and privacy_violation):
         response_text = "I'm sorry, but I can't assist with that request."
         specialist = "support"
+        refused_for_safety = True
+
+    safety_violation = unsafe_request and not refused_for_safety
 
     # Build tool calls
     tool_calls: list[dict] = []

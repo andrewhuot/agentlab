@@ -72,6 +72,9 @@ class ProposedChangeCard:
     rollout_plan: str = "2h canary \u2192 auto-promote if metrics hold"
     rollback_condition: str = ""
     experiment_card_id: str = ""
+    candidate_config_version: int | None = None
+    candidate_config_path: str = ""
+    source_eval_path: str = ""
     memory_context: str | None = None
     status: str = "pending"  # pending, applied, rejected
     created_at: float = field(default_factory=time.time)
@@ -109,6 +112,9 @@ class ProposedChangeCard:
             "rollout_plan": self.rollout_plan,
             "rollback_condition": self.rollback_condition,
             "experiment_card_id": self.experiment_card_id,
+            "candidate_config_version": self.candidate_config_version,
+            "candidate_config_path": self.candidate_config_path,
+            "source_eval_path": self.source_eval_path,
             "memory_context": self.memory_context,
             "status": self.status,
             "created_at": self.created_at,
@@ -143,6 +149,9 @@ class ProposedChangeCard:
             rollout_plan=data.get("rollout_plan", ""),
             rollback_condition=data.get("rollback_condition", ""),
             experiment_card_id=data.get("experiment_card_id", ""),
+            candidate_config_version=data.get("candidate_config_version"),
+            candidate_config_path=data.get("candidate_config_path", ""),
+            source_eval_path=data.get("source_eval_path", ""),
             memory_context=data.get("memory_context"),
             status=data.get("status", "pending"),
             created_at=data.get("created_at", 0.0),
@@ -217,6 +226,9 @@ class ProposedChangeCard:
             latency_delta=latency_after - latency_before,
             rollback_condition=rollback,
             experiment_card_id=card.experiment_id,
+            candidate_config_version=None,
+            candidate_config_path="",
+            source_eval_path="",
             memory_context=memory_context,
         )
 
@@ -557,3 +569,7 @@ class ChangeCardStore:
                 self.save(card)
                 return True
         return False
+
+    def approve(self, card_id: str) -> bool:
+        """Compatibility helper for flows that expect an explicit approve method."""
+        return self.update_status(card_id, "applied")
