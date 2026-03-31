@@ -45,6 +45,20 @@ class ConnectImportResponse(BaseModel):
     eval_case_count: int
 
 
+@router.get("")
+async def connect_catalog() -> dict[str, object]:
+    """Return the supported connect adapters for UI and API discovery."""
+    return {
+        "adapters": [
+            {"id": "openai-agents", "label": "OpenAI Agents", "source_field": "path"},
+            {"id": "anthropic", "label": "Anthropic", "source_field": "path"},
+            {"id": "http", "label": "HTTP", "source_field": "url"},
+            {"id": "transcript", "label": "Transcript", "source_field": "file"},
+        ],
+        "count": 4,
+    }
+
+
 @router.post("/import", response_model=ConnectImportResponse, status_code=201)
 async def connect_import(body: ConnectImportRequest) -> ConnectImportResponse:
     """Create a workspace from an imported runtime or transcript export."""

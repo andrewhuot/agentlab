@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 
 from evals.scorer import CompositeScore, EvalResult
 
@@ -189,3 +190,66 @@ def test_eval_runner_persists_structured_results_after_run(tmp_path) -> None:
     assert saved is not None
     assert saved.examples[0].actual["response"].startswith("Order update:")
     assert saved.examples[0].scores["quality"].value > 0
+
+
+def test_eval_runner_refreshes_legacy_cache_entries_before_saving_results(tmp_path) -> None:
+    """Legacy cache payloads should be recomputed so explorer data stays rich."""
+    from evals.results_store import EvalResultsStore
+    from evals.runner import EvalRunner
+
+    dataset = tmp_path / "dataset.jsonl"
+    dataset.write_text(
+        json.dumps(
+            {
+                "id": "case-routing",
+                "split": "test",
+                "category": "regression",
+                "user_message": "Connect me with billing",
+                "expected_specialist": "billing",
+                "expected_behavior": "route_correctly",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def agent(message: str, config: dict | None = None) -> dict:
+        del message, config
+        return {
+            "response": "Support can help with that.",
+            "specialist_used": "support",
+            "safety_violation": False,
+            "latency_ms": 55.0,
+            "token_count": 42,
+        }
+
+    store = EvalResultsStore(db_path=str(tmp_path / "results.db"))
+    runner = EvalRunner(
+        agent_fn=agent,
+        cache_enabled=True,
+        cache_db_path=str(tmp_path / "cache.db"),
+        results_store=store,
+    )
+
+    runner.run(dataset_path=str(dataset), split="test")
+
+    with sqlite3.connect(runner.cache_store.db_path) as conn:
+        row = conn.execute("SELECT case_payloads FROM eval_cache").fetchone()
+        case_payloads = json.loads(row[0])
+        case_payloads[0].pop("input_payload", None)
+        case_payloads[0].pop("expected_payload", None)
+        case_payloads[0].pop("actual_output", None)
+        case_payloads[0].pop("failure_reasons", None)
+        conn.execute(
+            "UPDATE eval_cache SET case_payloads = ?",
+            (json.dumps(case_payloads, sort_keys=True),),
+        )
+        conn.commit()
+
+    cached_score = runner.run(dataset_path=str(dataset), split="test")
+
+    saved = store.get_run(cached_score.run_id or "")
+    assert saved is not None
+    assert saved.examples[0].input["user_message"] == "Connect me with billing"
+    assert saved.examples[0].actual["response"] == "Support can help with that."
+    assert saved.examples[0].failure_reasons == ["routing mismatch", "behavior mismatch"]

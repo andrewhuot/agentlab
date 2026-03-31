@@ -14,6 +14,25 @@ from fastapi.testclient import TestClient
 from api.routes import connect as connect_routes
 
 
+def test_connect_route_lists_supported_adapters() -> None:
+    """The connect root route should expose the supported adapter catalog."""
+    app = FastAPI()
+    app.include_router(connect_routes.router)
+    client = TestClient(app)
+
+    response = client.get("/api/connect")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 4
+    assert [adapter["id"] for adapter in payload["adapters"]] == [
+        "openai-agents",
+        "anthropic",
+        "http",
+        "transcript",
+    ]
+
+
 def test_connect_import_route_creates_transcript_workspace(tmp_path: Path) -> None:
     """The connect API should create a transcript-backed workspace."""
 

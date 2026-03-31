@@ -540,6 +540,8 @@ class EvalRunner:
 
         if cache_allowed:
             cached = self.cache_store.get(eval_fingerprint)
+            if cached is not None and not self._cache_payload_supports_structured_results(cached):
+                cached = None
             if cached is not None:
                 score = self._score_from_cache_payload(cached)
                 score.estimated_cost_usd = round((score.total_tokens / 1000.0) * self.token_cost_per_1k, 6)
@@ -1025,6 +1027,21 @@ class EvalRunner:
             estimated_cost_usd=float(summary.get("estimated_cost_usd", 0.0)),
             warnings=list(summary.get("warnings", []) or []),
             optimization_mode=str(summary.get("optimization_mode", "weighted")),
+        )
+
+    @staticmethod
+    def _cache_payload_supports_structured_results(payload: dict[str, Any]) -> bool:
+        """Return whether cached case payloads include the fields needed by Results Explorer."""
+        case_payloads = payload.get("case_payloads", [])
+        if not isinstance(case_payloads, list):
+            return False
+        return all(
+            isinstance(item, dict)
+            and "input_payload" in item
+            and "expected_payload" in item
+            and "actual_output" in item
+            and "failure_reasons" in item
+            for item in case_payloads
         )
 
     def _run_pipeline_agent(self, user_message: str, config: dict | None = None) -> dict:
