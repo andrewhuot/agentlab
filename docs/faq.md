@@ -223,7 +223,7 @@ autoagent config show
 ```bash
 rm -f conversations.db optimizer_memory.db
 rm -rf configs
-autoagent init
+autoagent new my-project
 ```
 
 For Docker:

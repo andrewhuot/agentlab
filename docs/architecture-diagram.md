@@ -13,7 +13,7 @@ Three interfaces sit on top of a FastAPI backend that orchestrates all subsystem
 │                          User interfaces                                │
 │                                                                         │
 │   CLI                        API                   Web console          │
-│   autoagent <cmd>            200+ REST endpoints   39 pages (React)     │
+│   autoagent <cmd>            200+ REST endpoints   Web console (React)  │
 │                              WebSocket + SSE       TypeScript/Tailwind  │
 └───────────────┬──────────────────┬──────────────────────┬───────────────┘
                 │                  │                      │

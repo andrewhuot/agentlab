@@ -6,7 +6,7 @@ This guide matches the current web app as shipped:
 
 - The app root currently opens **Build** by default
 - For first-time setup, start in **Setup**
-- The recommended first run is still **mock mode**
+- AutoAgent auto-detects your environment (uses live providers if API keys are present, mock otherwise)
 
 ## 0. Start the App
 
@@ -52,7 +52,7 @@ What to look for:
 - The page header says **Setup**
 - The pill in the header says either **Workspace Detected** or **Initialization Required**
 - Status pills use labels like **Configured** / **Missing**
-- In mock mode, missing provider credentials are fine
+- Without API keys, AutoAgent auto-detects and uses mock providers — missing credentials are fine
 
 ## 2. Check the Dashboard
 
@@ -165,10 +165,10 @@ The Optimize page is a tabbed hub with five tabs:
 | Tab | Purpose | Related CLI surface |
 |-----|---------|---------------------|
 | **Run** | Launch optimization cycles | `autoagent optimize --cycles 5` |
-| **Live** | Watch live optimization state | `autoagent optimize` / `autoagent loop` |
+| **Live** | Watch live optimization state | `autoagent optimize` / `autoagent optimize --continuous` |
 | **Experiments** | Explore experiment outputs | `autoagent compare candidates` |
 | **Review** | Embedded change-review surface | `autoagent review show pending` |
-| **Opportunities** | Ranked failure clusters and opportunities | `autoagent improve` |
+| **Opportunities** | Ranked failure clusters and opportunities | `autoagent optimize` |
 
 ### Quick path: Run tab
 
@@ -231,7 +231,7 @@ Related CLI surfaces:
 
 - `autoagent deploy canary --yes`
 - `autoagent deploy status`
-- `autoagent ship --yes`
+- `autoagent deploy --auto-review`
 
 ## 8. Observe the System
 
@@ -244,7 +244,7 @@ The **Observe** section gives you six monitoring views:
 | **Event Log** | What system events have happened recently? | No exact 1:1 command; use `autoagent status`, `autoagent doctor`, and `autoagent logs` for adjacent views |
 | **Blame Map** | Which failure families matter most right now? | `autoagent trace blame` |
 | **Context** | How is context being used and where is it stressed? | `autoagent context report` / `autoagent context analyze` |
-| **Loop Monitor** | What is the continuous loop doing? | `autoagent loop`, `autoagent loop pause`, `autoagent loop resume` |
+| **Loop Monitor** | What is the continuous loop doing? | `autoagent optimize --continuous`, `autoagent pause`, `autoagent resume` |
 
 ## 9. Manage Configs and Governance
 
@@ -319,7 +319,7 @@ That is expected right now. Use the sidebar and start with **Setup** for first-r
 
 **Setup shows missing provider credentials**
 
-That is fine in mock mode. Switch to live only when you want real provider calls:
+That is fine — AutoAgent auto-detects and uses mock providers when no keys are set. To switch to live providers:
 
 ```bash
 autoagent provider configure
@@ -374,11 +374,11 @@ Use this as a closest-match map, not a strict one-to-one contract:
 | Optimize → Run | `autoagent optimize --cycles N` |
 | Optimize → Review | `autoagent review show pending`, `autoagent review apply pending` |
 | Change Review | `autoagent review show pending`, `autoagent review apply pending` |
-| Deploy | `autoagent deploy canary`, `autoagent deploy status`, `autoagent ship --yes` |
+| Deploy | `autoagent deploy canary`, `autoagent deploy status`, `autoagent deploy --auto-review` |
 | Conversations | `autoagent logs` |
 | Traces / Blame Map | `autoagent trace show latest`, `autoagent trace blame` |
 | Context | `autoagent context report`, `autoagent context analyze` |
-| Loop Monitor | `autoagent loop`, `autoagent loop pause`, `autoagent loop resume` |
+| Loop Monitor | `autoagent optimize --continuous`, `autoagent pause`, `autoagent resume` |
 | Configs | `autoagent config list`, `autoagent config show`, `autoagent config set-active` |
 | Judge Ops | `autoagent judges` |
 | Skills | `autoagent skill list` |

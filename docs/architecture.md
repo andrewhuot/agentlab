@@ -206,7 +206,7 @@ API endpoints:
 - `GracefulShutdown`
   - SIGINT/SIGTERM safe-stop for CLI loop
 
-### CLI Loop Behavior (`autoagent loop`)
+### CLI Loop Behavior (`autoagent optimize --continuous`)
 
 The CLI loop is now production-oriented:
 

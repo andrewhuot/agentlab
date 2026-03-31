@@ -344,7 +344,7 @@ Integrate AutoAgent into your deployment pipeline. Run evals as a CI check, gate
 
 ## Web console
 
-39 pages served at `http://localhost:8000`, organized by workflow:
+The web console is served at `http://localhost:5173` (dev) or `http://localhost:8000` (production), organized by workflow:
 
 ### Observe
 - **Dashboard** — Health pulse, journey timeline, metric cards, recommendations
@@ -386,7 +386,7 @@ Integrate AutoAgent into your deployment pipeline. Run evals as a CI check, gate
 
 ## CLI
 
-70+ commands across 30+ groups. Every command supports `--help`, and major commands support `--json` for structured output. See the [CLI reference](cli-reference.md) for the complete list.
+15 commands visible by default (8 primary + 7 secondary). Run `autoagent advanced` to see all commands. Every command supports `--help`, and major commands support `--json` for structured output. See the [CLI reference](cli-reference.md) for the complete list.
 
 ## API
 

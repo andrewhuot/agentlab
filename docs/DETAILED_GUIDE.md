@@ -6,9 +6,9 @@ Get from zero to a working AutoAgent workspace in under 10 minutes.
 
 This guide follows the most reliable first-run path:
 
-- Stay in **mock mode** while you learn the workflow
+- Start without API keys — AutoAgent auto-detects and uses mock providers
 - Build, eval, optimize, review, and deploy locally
-- Switch to **live mode** only after the basics make sense
+- Add API keys when you're ready for live optimization
 
 If you want the one-command version of this flow, run `autoagent quickstart`.
 
@@ -84,13 +84,13 @@ AutoAgent Status
 
 ### Mock vs Live
 
-AutoAgent starts in **mock mode**. That is the intended way to learn the product because:
+AutoAgent **auto-detects** your environment. Without API keys, it uses mock providers automatically. This is the intended way to learn the product because:
 
 - All model calls are simulated
 - The CLI is deterministic
 - You do not need credentials to complete the walkthrough below
 
-The rest of this guide assumes you stay in mock mode.
+The rest of this guide assumes you run without API keys (auto-detected mock mode).
 
 When you are ready to use real providers, configure them explicitly:
 
@@ -196,7 +196,7 @@ Evaluate the active config:
 autoagent eval run
 ```
 
-In mock mode, you will see a note that scores are simulated. A successful run looks like:
+Without API keys (auto-detected mock mode), you will see a note that scores are simulated. A successful run looks like:
 
 ```text
 ✦ Running the gauntlet. Truth comes from test cases.
@@ -237,10 +237,10 @@ The **composite score** (0.0–1.0) blends quality, safety, latency, and cost. H
 ### One-shot improvement
 
 ```bash
-autoagent improve
+autoagent optimize
 ```
 
-`improve` does four things in one pass:
+`optimize` does four things in one pass:
 
 1. Evaluates the current agent
 2. Diagnoses the biggest failure clusters
@@ -313,10 +313,10 @@ autoagent deploy status
 If you want release creation and canary deployment in one command:
 
 ```bash
-autoagent ship --yes
+autoagent deploy --auto-review --yes
 ```
 
-Typical `ship` output:
+Typical output:
 
 ```text
 ✦ Ship
@@ -483,7 +483,7 @@ autoagent deploy status
 If you already trust the current change and want the shortcut:
 
 ```bash
-autoagent ship --yes
+autoagent deploy --auto-review --yes
 ```
 
 ## 13. Next Steps
@@ -510,12 +510,12 @@ autoagent new my-project --template customer-support
 or
 
 ```bash
-autoagent init --name my-project
+autoagent new my-project
 ```
 
 **"Provider credentials missing"**
 
-Stay in mock mode while learning:
+AutoAgent auto-detects your environment. Without API keys, it uses mock providers:
 
 ```bash
 autoagent mode set mock

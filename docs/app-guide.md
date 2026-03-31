@@ -54,7 +54,7 @@ All 31 pages in the web console:
 
 ### Layout and Navigation
 
-- Left sidebar includes all 29 pages and highlights the active route.
+- Left sidebar toggles between **Simple** and **Pro** views. Simple shows core pages; Pro shows all pages.
 - Sidebar collapses into a mobile drawer on smaller screens.
 - Header includes page title plus breadcrumbs:
   - Example: `Eval Runs / Run <id>` on `/evals/:id`.

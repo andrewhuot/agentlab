@@ -23,10 +23,11 @@ This guide covers local, Docker, and Google Cloud deployment for AutoAgent VNext
 pip install -e ".[dev]"
 ```
 
-## Initialize base assets
+## Initialize a workspace
 
 ```bash
-autoagent init
+autoagent new my-project
+cd my-project
 ```
 
 ## Start API + web console
