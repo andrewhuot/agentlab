@@ -47,6 +47,9 @@ import type {
   DeepResearchReport,
   EvalMode,
   EvalResult,
+  EvalResultsDiff,
+  EvalResultsRun,
+  EvalResultsRunList,
   EvalRun,
   ExperimentCard,
   HealthReport,
@@ -62,6 +65,8 @@ import type {
   OptimizationAttempt,
   OptimizationOpportunity,
   OptimizeResult,
+  PairwiseComparison,
+  PairwiseComparisonList,
   ParetoFrontier,
   ProjectMemory,
   PromptBuildArtifact,
@@ -125,6 +130,29 @@ async function fetchApi<T>(path: string, options?: RequestOptions): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+async function fetchApiText(path: string, options?: RequestOptions): Promise<string> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      ...options?.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    let errorMessage = `Request failed: ${response.status}`;
+    try {
+      const payload = await response.json();
+      errorMessage = payload?.detail || payload?.message || JSON.stringify(payload);
+    } catch {
+      const text = await response.text().catch(() => 'Unknown error');
+      errorMessage = text || errorMessage;
+    }
+    throw new ApiRequestError(errorMessage, response.status);
+  }
+
+  return response.text();
 }
 
 function fromEpoch(value: number | string | null | undefined): string {
@@ -762,6 +790,132 @@ export function useDeleteGeneratedCase() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['generatedSuite'] });
     },
+  });
+}
+
+export function usePairwiseComparisons(limit = 20) {
+  return useQuery<PairwiseComparisonList>({
+    queryKey: ['pairwiseComparisons', limit],
+    queryFn: () => fetchApi(`/evals/compare?limit=${limit}`),
+    refetchInterval: 5000,
+  });
+}
+
+export function usePairwiseComparison(comparisonId: string | undefined) {
+  return useQuery<PairwiseComparison>({
+    queryKey: ['pairwiseComparison', comparisonId],
+    enabled: Boolean(comparisonId),
+    queryFn: () => {
+      if (!comparisonId) {
+        throw new ApiRequestError('Missing comparison ID', 400);
+      }
+      return fetchApi(`/evals/compare/${comparisonId}`);
+    },
+  });
+}
+
+export function useStartPairwiseComparison() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { comparison_id: string; message: string; summary: PairwiseComparisonList['comparisons'][number] },
+    ApiRequestError,
+    {
+      config_a_path?: string;
+      config_b_path?: string;
+      dataset_path?: string;
+      split?: 'train' | 'test' | 'all';
+      label_a?: string;
+      label_b?: string;
+      judge_strategy?: 'metric_delta' | 'llm_judge' | 'human_preference';
+    }
+  >({
+    mutationFn: (body) =>
+      fetchApi('/evals/compare', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: (payload) => {
+      queryClient.invalidateQueries({ queryKey: ['pairwiseComparisons'] });
+      queryClient.invalidateQueries({ queryKey: ['pairwiseComparison', payload.comparison_id] });
+    },
+  });
+}
+
+export function useResultRuns(limit = 20) {
+  return useQuery<EvalResultsRunList>({
+    queryKey: ['resultRuns', limit],
+    queryFn: () => fetchApi(`/evals/results?limit=${limit}`),
+    refetchInterval: 5000,
+  });
+}
+
+export function useResultsRun(runId: string | undefined) {
+  return useQuery<EvalResultsRun>({
+    queryKey: ['resultsRun', runId],
+    enabled: Boolean(runId),
+    queryFn: () => {
+      if (!runId) {
+        throw new ApiRequestError('Missing run ID', 400);
+      }
+      return fetchApi(`/evals/results/${runId}`);
+    },
+  });
+}
+
+export function useResultsDiff(
+  baselineRunId: string | undefined,
+  candidateRunId: string | undefined
+) {
+  return useQuery<EvalResultsDiff>({
+    queryKey: ['resultsDiff', baselineRunId, candidateRunId],
+    enabled: Boolean(baselineRunId && candidateRunId),
+    queryFn: () => {
+      if (!baselineRunId || !candidateRunId) {
+        throw new ApiRequestError('Both run IDs are required for a diff', 400);
+      }
+      return fetchApi(
+        `/evals/results/${baselineRunId}/diff?candidate_run_id=${encodeURIComponent(candidateRunId)}`
+      );
+    },
+  });
+}
+
+export function useAddResultAnnotation() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    EvalResultsRun['examples'][number],
+    ApiRequestError,
+    {
+      runId: string;
+      exampleId: string;
+      author: string;
+      type: string;
+      content: string;
+      score_override: number | null;
+    }
+  >({
+    mutationFn: ({ runId, exampleId, ...body }) =>
+      fetchApi(`/evals/results/${runId}/examples/${exampleId}/annotate`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: (_payload, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['resultsRun', variables.runId] });
+      queryClient.invalidateQueries({ queryKey: ['resultRuns'] });
+    },
+  });
+}
+
+export function useExportEvalResults() {
+  return useMutation<
+    string,
+    ApiRequestError,
+    { runId: string; format: 'json' | 'csv' | 'markdown' }
+  >({
+    mutationFn: ({ runId, format }) =>
+      fetchApiText(`/evals/results/${runId}/export?format=${encodeURIComponent(format)}`),
   });
 }
 

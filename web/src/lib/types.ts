@@ -187,6 +187,181 @@ export interface EvalRun {
   passed_cases: number;
 }
 
+export interface PairwiseVariantResult {
+  response: string;
+  specialist_used?: string;
+  passed?: boolean;
+  quality_score: number;
+  safety_passed: boolean;
+  latency_ms: number;
+  token_count: number;
+  composite_score: number;
+  details: string;
+  raw_output?: Record<string, unknown>;
+  custom_scores?: Record<string, number>;
+}
+
+export interface PairwiseHumanPreferenceTask {
+  task_id: string;
+  case_id: string;
+  label_a: string;
+  label_b: string;
+  prompt: string;
+  status: string;
+}
+
+export interface PairwiseCaseResult {
+  case_id: string;
+  category: string;
+  input_message: string;
+  left: PairwiseVariantResult;
+  right: PairwiseVariantResult;
+  winner: string;
+  winner_reason: string;
+  score_delta: number;
+  human_preference_task?: PairwiseHumanPreferenceTask | null;
+}
+
+export interface PairwiseSummary {
+  total_cases: number;
+  left_wins: number;
+  right_wins: number;
+  ties: number;
+  pending_human: number;
+}
+
+export interface PairwiseAnalysis {
+  label_a: string;
+  label_b: string;
+  total_cases: number;
+  mean_score_a: number;
+  mean_score_b: number;
+  mean_delta: number;
+  effect_size: number;
+  p_value: number;
+  is_significant: boolean;
+  confidence: number;
+  winner: string;
+  win_rates: Record<string, number>;
+  win_rate_confidence_intervals: Record<string, [number, number]>;
+  score_delta_confidence_interval: [number, number];
+  recommended_additional_cases: number;
+  target_sample_size: number;
+  summary_message: string;
+}
+
+export interface PairwiseComparison {
+  comparison_id: string;
+  created_at: string;
+  dataset_name: string;
+  label_a: string;
+  label_b: string;
+  judge_strategy: string;
+  summary: PairwiseSummary;
+  analysis: PairwiseAnalysis;
+  case_results: PairwiseCaseResult[];
+}
+
+export interface PairwiseComparisonListItem {
+  comparison_id: string;
+  created_at: string;
+  dataset_name: string;
+  label_a: string;
+  label_b: string;
+  judge_strategy: string;
+  winner: string;
+  total_cases: number;
+  left_wins: number;
+  right_wins: number;
+  ties: number;
+  pending_human: number;
+  p_value: number;
+  is_significant: boolean;
+}
+
+export interface PairwiseComparisonList {
+  comparisons: PairwiseComparisonListItem[];
+  count: number;
+}
+
+export interface ResultAnnotation {
+  author: string;
+  timestamp: string;
+  type: string;
+  content: string;
+  score_override: number | null;
+}
+
+export interface EvalResultsMetricScore {
+  value: number;
+  reasoning: string;
+}
+
+export interface EvalResultsMetricSummary {
+  mean: number;
+  median: number;
+  std: number;
+  min: number;
+  max: number;
+  histogram: number[];
+}
+
+export interface EvalResultExample {
+  example_id: string;
+  input: Record<string, unknown>;
+  expected: Record<string, unknown> | null;
+  actual: Record<string, unknown>;
+  scores: Record<string, EvalResultsMetricScore>;
+  passed: boolean;
+  failure_reasons: string[];
+  annotations: ResultAnnotation[];
+  category: string;
+}
+
+export interface EvalResultsSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  metrics: Record<string, EvalResultsMetricSummary>;
+}
+
+export interface EvalResultsRun {
+  run_id: string;
+  timestamp: string;
+  mode: string;
+  config_snapshot: Record<string, unknown>;
+  summary: EvalResultsSummary;
+  examples: EvalResultExample[];
+}
+
+export interface EvalResultsRunListItem {
+  run_id: string;
+  timestamp: string;
+  mode: string;
+  config_snapshot: Record<string, unknown>;
+  summary: EvalResultsSummary;
+}
+
+export interface EvalResultsRunList {
+  runs: EvalResultsRunListItem[];
+  count: number;
+}
+
+export interface EvalResultsDiffChangedExample {
+  example_id: string;
+  before_passed: boolean;
+  after_passed: boolean;
+  score_delta: number;
+}
+
+export interface EvalResultsDiff {
+  baseline_run_id: string;
+  candidate_run_id: string;
+  new_failures: number;
+  new_passes: number;
+  changed_examples: EvalResultsDiffChangedExample[];
+}
+
 // Auto-generated eval types
 export interface GeneratedEvalCase {
   case_id: string;

@@ -9,7 +9,7 @@ import os
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import yaml
 
@@ -20,6 +20,9 @@ from .fixtures.mock_data import mock_agent_response
 from .grader_runtime import GraderRuntime
 from .history import EvalHistoryStore
 from .scorer import CompositeScore, CompositeScorer, EvalResult
+
+if TYPE_CHECKING:
+    from .results_store import EvalResultsStore
 
 
 @dataclass
@@ -61,6 +64,7 @@ class EvalRunner:
         agent_fn: Callable[..., dict] | None = None,
         history_store: EvalHistoryStore | None = None,
         history_db_path: str | None = None,
+        results_store: EvalResultsStore | None = None,
         eval_mode: str = "single_agent",
         cache_store: EvalCacheStore | None = None,
         cache_enabled: bool = True,
@@ -91,6 +95,14 @@ class EvalRunner:
             self.history_store = EvalHistoryStore(db_path=history_path)
         else:
             self.history_store = None
+
+        results_path = os.environ.get("AUTOAGENT_EVAL_RESULTS_DB", ".autoagent/eval_results.db")
+        if results_store is not None:
+            self.results_store = results_store
+        else:
+            from .results_store import EvalResultsStore
+
+            self.results_store = EvalResultsStore(db_path=results_path)
 
         if cache_store is not None:
             self.cache_store = cache_store
@@ -361,12 +373,22 @@ class EvalRunner:
         passed = quality_score >= 0.5 and safety_passed
 
         details_parts: list[str] = []
+        failure_reasons: list[str] = []
         if routing_score < 1.0:
             details_parts.append(f"routing: expected={case.expected_specialist} got={specialist_used}")
+            failure_reasons.append("routing mismatch")
+        if behavior_score < 1.0:
+            details_parts.append(f"behavior: expected={case.expected_behavior}")
+            failure_reasons.append("behavior mismatch")
+        if case.expected_keywords and keyword_score < 1.0:
+            details_parts.append("keywords: missing expected keywords")
+            failure_reasons.append("missing expected keywords")
         if expected_tool and tool_use_accuracy < 1.0:
             details_parts.append(f"tool_use: expected={expected_tool}")
+            failure_reasons.append("tool mismatch")
         if not safety_passed:
             details_parts.append("safety check failed")
+            failure_reasons.append("safety check failed")
 
         eval_result = EvalResult(
             case_id=case.id,
@@ -381,6 +403,16 @@ class EvalRunner:
             routing_correct=routing_score >= 1.0,
             handoff_context_preserved=bool(agent_result.get("handoff_context_preserved", True)),
             satisfaction_proxy=round(quality_score, 4),
+            input_payload={"user_message": case.user_message},
+            expected_payload={
+                "expected_specialist": case.expected_specialist,
+                "expected_behavior": case.expected_behavior,
+                "expected_keywords": list(case.expected_keywords),
+                "expected_tool": case.expected_tool,
+                "reference_answer": case.reference_answer,
+            },
+            actual_output=dict(agent_result),
+            failure_reasons=failure_reasons,
         )
 
         for name, evaluator in self._custom_evaluators.items():
@@ -629,6 +661,35 @@ class EvalRunner:
         score.evaluation = evaluation
         score.run_result = run_result
         score.evaluation_run = evaluation_run
+        self._persist_structured_results(score=score, cases=cases, config=config)
+
+    def _persist_structured_results(
+        self,
+        *,
+        score: CompositeScore,
+        cases: list[TestCase],
+        config: dict[str, Any] | None,
+    ) -> None:
+        """Store structured eval results so CLI and web explorer share the same source."""
+
+        if self.results_store is None:
+            return
+
+        from evals.execution_mode import resolve_eval_execution_mode
+        from .results_model import EvalResultSet
+
+        mode = resolve_eval_execution_mode(
+            requested_live=bool(getattr(self, "requested_live", False)),
+            eval_agent=getattr(self, "eval_agent", None),
+        )
+        result_set = EvalResultSet.from_score(
+            run_id=score.run_id or str(uuid.uuid4())[:12],
+            score=score,
+            cases=cases,
+            mode=mode,
+            config_snapshot=dict(config or {}),
+        )
+        self.results_store.save(result_set)
 
     @staticmethod
     def _dataset_name(*, dataset_path: str | None, category: str | None) -> str:
@@ -883,6 +944,10 @@ class EvalRunner:
                 "token_count": result.token_count,
                 "custom_scores": result.custom_scores,
                 "details": result.details,
+                "input_payload": result.input_payload,
+                "expected_payload": result.expected_payload,
+                "actual_output": result.actual_output,
+                "failure_reasons": result.failure_reasons,
             }
             for result in score.results
         ]
@@ -931,6 +996,14 @@ class EvalRunner:
                 token_count=int(item.get("token_count", 0)),
                 custom_scores=item.get("custom_scores", {}) or {},
                 details=str(item.get("details", "")),
+                input_payload=dict(item.get("input_payload", {}) or {}),
+                expected_payload=(
+                    dict(item.get("expected_payload", {}) or {})
+                    if item.get("expected_payload") is not None
+                    else None
+                ),
+                actual_output=dict(item.get("actual_output", {}) or {}),
+                failure_reasons=[str(reason) for reason in list(item.get("failure_reasons", []) or [])],
             )
             for item in case_payloads
         ]

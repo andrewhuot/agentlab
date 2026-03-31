@@ -292,7 +292,7 @@ _auto_eval_generator = AutoEvalGenerator()
 @router.post("/generate", response_model=AutoEvalGenerateResponse, status_code=201)
 async def generate_eval_suite(
     body: AutoEvalGenerateRequest,
-    request: Request | None = None,
+    request: Request,
 ) -> AutoEvalGenerateResponse:
     """Analyze an agent config and generate a comprehensive eval suite."""
     suite = _resolve_generated_eval_generator(request).generate(
@@ -310,7 +310,7 @@ async def generate_eval_suite(
 @router.get("/generated/{suite_id}", response_model=GeneratedSuiteResponse)
 async def get_generated_suite(
     suite_id: str,
-    request: Request | None = None,
+    request: Request,
 ) -> GeneratedSuiteResponse:
     """Fetch a previously generated eval suite."""
     store = _resolve_generated_eval_store(request)
@@ -327,7 +327,7 @@ async def get_generated_suite(
 @router.post("/generated/{suite_id}/accept", response_model=AcceptSuiteResponse)
 async def accept_generated_suite(
     suite_id: str,
-    request: Request | None = None,
+    request: Request,
 ) -> AcceptSuiteResponse:
     """Accept a generated eval suite, making it available for eval runs."""
     store = _resolve_generated_eval_store(request)
@@ -353,7 +353,7 @@ async def update_generated_case(
     suite_id: str,
     case_id: str,
     body: UpdateCaseRequest,
-    request: Request | None = None,
+    request: Request,
 ) -> GeneratedCaseResponse:
     """Edit a specific case within a generated suite."""
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
@@ -391,7 +391,7 @@ async def update_generated_case(
 async def delete_generated_case(
     suite_id: str,
     case_id: str,
-    request: Request | None = None,
+    request: Request,
 ) -> None:
     """Delete a specific case from a generated suite."""
     store = _resolve_generated_eval_store(request)

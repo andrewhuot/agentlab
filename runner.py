@@ -787,6 +787,76 @@ def _build_eval_comparison(left_run: str, right_run: str) -> dict:
     }
 
 
+def _pairwise_store_for_cli():
+    """Return the default on-disk store for CLI pairwise comparisons."""
+    from evals.pairwise import PairwiseComparisonStore
+
+    return PairwiseComparisonStore(base_dir=".autoagent/pairwise")
+
+
+def _results_store_for_cli():
+    """Return the default on-disk store for structured eval results."""
+    from evals.results_store import EvalResultsStore
+
+    return EvalResultsStore(db_path=".autoagent/eval_results.db")
+
+
+def _render_pairwise_comparison(result) -> None:
+    """Render one stored pairwise comparison in a compact text layout."""
+    click.echo(f"\nPairwise Comparison: {result.label_a} vs {result.label_b}")
+    click.echo(f"  Dataset: {result.dataset_name}")
+    click.echo(f"  Judge: {result.judge_strategy}")
+    click.echo(f"  Winner: {result.analysis.winner}")
+    click.echo(f"  {result.label_a} wins: {result.summary.left_wins}")
+    click.echo(f"  {result.label_b} wins: {result.summary.right_wins}")
+    click.echo(f"  Ties: {result.summary.ties}")
+    if result.summary.pending_human:
+        click.echo(f"  Pending human review: {result.summary.pending_human}")
+    click.echo(f"  Effect size: {result.analysis.effect_size:.4f}")
+    click.echo(f"  p-value: {result.analysis.p_value:.4f}")
+    click.echo(f"  Confidence: {result.analysis.confidence:.4f}")
+    click.echo(f"  Summary: {result.analysis.summary_message}")
+
+
+def _render_structured_results(result_set, *, failures_only: bool = False) -> None:
+    """Render a structured eval result set for the CLI results explorer."""
+    examples = [
+        example for example in result_set.examples
+        if (not failures_only or not example.passed)
+    ]
+
+    click.echo(f"\nResults Explorer — {result_set.run_id}")
+    click.echo(f"  Timestamp: {result_set.timestamp}")
+    click.echo(f"  Mode: {result_set.mode}")
+    click.echo(f"  Passed: {result_set.summary.passed}/{result_set.summary.total}")
+
+    quality = result_set.summary.metrics.get("quality")
+    composite = result_set.summary.metrics.get("composite")
+    if quality is not None:
+        click.echo(f"  Quality mean: {quality.mean:.4f}")
+    if composite is not None:
+        click.echo(f"  Composite mean: {composite.mean:.4f}")
+
+    if not examples:
+        click.echo("  No examples match the current filters.")
+        return
+
+    click.echo("\nExamples:")
+    for example in examples:
+        status = "pass" if example.passed else "fail"
+        preview = (
+            str(example.input.get("user_message", ""))
+            or str(example.input.get("prompt", ""))
+            or example.example_id
+        )
+        click.echo(f"  {example.example_id} [{example.category}] {status}")
+        click.echo(f"    Input: {preview}")
+        if example.failure_reasons:
+            click.echo(f"    Failures: {', '.join(example.failure_reasons)}")
+        if example.annotations:
+            click.echo(f"    Annotations: {len(example.annotations)}")
+
+
 def _build_eval_breakdown() -> dict:
     """Build a metric and failure-cluster breakdown for the latest eval result."""
     latest = _latest_eval_result_file()
@@ -2649,18 +2719,28 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
     )
 
 
-@eval_group.command("results")
-@click.option("--run-id", default=None, help="Run ID to show results for.")
-@click.option("--file", "results_file", default=None, help="Path to results JSON file.")
-def eval_results(run_id: str | None, results_file: str | None) -> None:
-    """View eval results from a previous run.
-
-    This is the CLI companion to the Results Explorer page in the web app.
+@eval_group.group("results", invoke_without_command=True)
+@click.option("--run-id", default=None, help="Structured eval run ID to inspect.")
+@click.option("--file", "results_file", default=None, help="Path to a legacy eval results JSON file.")
+@click.option("--failures", is_flag=True, help="Show only failed examples.")
+@click.pass_context
+def eval_results(
+    ctx: click.Context,
+    run_id: str | None,
+    results_file: str | None,
+    failures: bool,
+) -> None:
+    """Inspect structured eval results from the CLI Results Explorer.
 
     Examples:
-      autoagent eval results --file results.json
+      autoagent eval results
       autoagent eval results --run-id eval-123
+      autoagent eval results --failures
+      autoagent eval results export eval-123 --format markdown
     """
+    if ctx.invoked_subcommand is not None:
+        return
+
     if results_file:
         data = json.loads(Path(results_file).read_text(encoding="utf-8"))
         payload = _unwrap_eval_payload(data)
@@ -2672,18 +2752,91 @@ def eval_results(run_id: str | None, results_file: str | None) -> None:
         click.echo(f"  Latency:   {scores.get('latency', 0):.4f}")
         click.echo(f"  Cost:      {scores.get('cost', 0):.4f}")
         click.echo(f"  Composite: {scores.get('composite', 0):.4f}")
+        return
 
-        # Show failed cases
-        results = payload.get("results", [])
-        failed = [r for r in results if not r.get("passed")]
-        if failed:
-            click.echo(f"\nFailed cases ({len(failed)}):")
-            for r in failed:
-                click.echo(f"  {r['case_id']} [{r.get('category', '?')}] quality={r.get('quality_score', 0):.2f}")
-    elif run_id:
-        click.echo(f"Run ID lookup requires the API server. Use: autoagent server")
-    else:
-        click.echo("Provide --file or --run-id. Use `autoagent eval show latest` for the latest local result.")
+    store = _results_store_for_cli()
+    resolved_run_id = run_id or store.latest_run_id()
+    if resolved_run_id is None:
+        click.echo("No structured eval results found.")
+        click.echo("Run: autoagent eval run")
+        return
+
+    result_set = store.get_run(resolved_run_id)
+    if result_set is None:
+        raise click.ClickException(f"Structured eval run not found: {resolved_run_id}")
+    _render_structured_results(result_set, failures_only=failures)
+
+
+@eval_results.command("annotate")
+@click.argument("example_id")
+@click.option("--run-id", required=True, help="Structured eval run ID to annotate.")
+@click.option("--comment", required=True, help="Annotation text to append.")
+@click.option("--author", default="cli", show_default=True, help="Annotation author.")
+@click.option("--type", "annotation_type", default="comment", show_default=True, help="Annotation type.")
+@click.option("--score-override", default=None, type=float, help="Optional override score.")
+def eval_results_annotate(
+    example_id: str,
+    run_id: str,
+    comment: str,
+    author: str,
+    annotation_type: str,
+    score_override: float | None,
+) -> None:
+    """Append a review note to a structured eval example."""
+    from evals.results_model import Annotation
+
+    store = _results_store_for_cli()
+    example = store.get_example(run_id, example_id)
+    if example is None:
+        raise click.ClickException(f"Structured eval example not found: {run_id}/{example_id}")
+
+    store.add_annotation(
+        run_id,
+        example_id,
+        Annotation(
+            author=author,
+            timestamp=datetime.now(tz=timezone.utc).isoformat(),
+            type=annotation_type,
+            content=comment,
+            score_override=score_override,
+        ),
+    )
+    click.echo(f"Annotation saved for {example_id} in {run_id}.")
+
+
+@eval_results.command("export")
+@click.argument("run_id")
+@click.option("--format", "export_format", default="json", type=click.Choice(["json", "csv", "markdown"]))
+@click.option("--output", default=None, help="Write export to a file instead of stdout.")
+def eval_results_export(run_id: str, export_format: str, output: str | None) -> None:
+    """Export one structured eval run as JSON, CSV, or Markdown."""
+    store = _results_store_for_cli()
+    payload = store.export_run(run_id, format=export_format)
+    if output:
+        Path(output).write_text(payload, encoding="utf-8")
+        click.echo(f"Exported {run_id} to {output}.")
+        return
+    click.echo(payload)
+
+
+@eval_results.command("diff")
+@click.argument("baseline_run_id")
+@click.argument("candidate_run_id")
+def eval_results_diff(baseline_run_id: str, candidate_run_id: str) -> None:
+    """Compare two structured eval runs."""
+    store = _results_store_for_cli()
+    diff = store.diff_runs(baseline_run_id, candidate_run_id)
+    click.echo(f"\nRun Diff — {baseline_run_id} -> {candidate_run_id}")
+    click.echo(f"  New failures: {diff['new_failures']}")
+    click.echo(f"  New passes: {diff['new_passes']}")
+    click.echo(f"  Changed examples: {len(diff['changed_examples'])}")
+    for entry in diff["changed_examples"]:
+        click.echo(
+            f"  {entry['example_id']}: "
+            f"{'pass' if entry['before_passed'] else 'fail'} -> "
+            f"{'pass' if entry['after_passed'] else 'fail'} "
+            f"({entry['score_delta']:+.4f})"
+        )
 
 
 @eval_group.command("show")
@@ -2863,17 +3016,80 @@ def eval_generate(
             click.echo(f"\n  Written to {output}")
 
 
-@eval_group.command("compare")
-@click.argument("left_run")
-@click.argument("right_run")
+@eval_group.group("compare", invoke_without_command=True)
+@click.option("--config-a", "config_a_path", default=None, help="Path to config A for a pairwise comparison.")
+@click.option("--config-b", "config_b_path", default=None, help="Path to config B for a pairwise comparison.")
+@click.option("--left-run", default=None, help="Legacy eval result file or run reference for the left side.")
+@click.option("--right-run", default=None, help="Legacy eval result file or run reference for the right side.")
+@click.option("--dataset", default=None, help="Optional dataset file for the pairwise comparison.")
+@click.option("--split", default="all", type=click.Choice(["train", "test", "all"]), show_default=True)
+@click.option("--label-a", default=None, help="Display label for config A.")
+@click.option("--label-b", default=None, help="Display label for config B.")
+@click.option(
+    "--judge",
+    "judge_strategy",
+    default="metric_delta",
+    type=click.Choice(["metric_delta", "llm_judge", "human_preference"]),
+    show_default=True,
+    help="Winner selection strategy for pairwise compare mode.",
+)
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
-def eval_compare(left_run: str, right_run: str, json_output: bool = False) -> None:
-    """Show a side-by-side comparison of two eval runs.
+@click.pass_context
+def eval_compare(
+    ctx: click.Context,
+    config_a_path: str | None,
+    config_b_path: str | None,
+    left_run: str | None,
+    right_run: str | None,
+    dataset: str | None,
+    split: str,
+    label_a: str | None,
+    label_b: str | None,
+    judge_strategy: str,
+    json_output: bool = False,
+) -> None:
+    """Compare two eval runs or run a pairwise head-to-head config comparison.
 
-    Prints metric deltas plus a pairwise-style winner summary so you can see
-    which run came out ahead overall.
+    Prints metric deltas for legacy run-vs-run comparisons, and supports a
+    pairwise workflow with stored results, significance stats, and reviewable
+    winner summaries.
     """
     from cli.stream2_helpers import json_response
+    from evals.pairwise import PairwiseEvalEngine
+
+    if ctx.invoked_subcommand is not None:
+        return
+
+    if config_a_path or config_b_path:
+        if not config_a_path or not config_b_path:
+            raise click.UsageError("Provide both --config-a and --config-b for pairwise comparison mode.")
+
+        runtime = load_runtime_with_mode_preference()
+        eval_runner = _build_eval_runner(runtime)
+        store = _pairwise_store_for_cli()
+        engine = PairwiseEvalEngine(eval_runner=eval_runner, store=store)
+        config_a = _load_config_dict(config_a_path)
+        config_b = _load_config_dict(config_b_path)
+        result = engine.compare(
+            config_a=config_a,
+            config_b=config_b,
+            label_a=label_a or Path(config_a_path).stem,
+            label_b=label_b or Path(config_b_path).stem,
+            dataset_path=dataset,
+            dataset_name=Path(dataset).name if dataset else "default",
+            split=split,
+            judge_strategy=judge_strategy,
+        )
+        if json_output:
+            click.echo(json_response("ok", result.to_dict()))
+            return
+        _render_pairwise_comparison(result)
+        return
+
+    if not left_run or not right_run:
+        raise click.UsageError(
+            "Use --config-a/--config-b for pairwise mode, or --left-run/--right-run for legacy run comparison."
+        )
 
     payload = _build_eval_comparison(left_run, right_run)
     if json_output:
@@ -2892,6 +3108,34 @@ def eval_compare(left_run: str, right_run: str, json_output: bool = False) -> No
         delta = payload["deltas"][metric]
         click.echo(f"  {metric:<12} {left_value:>10.4f} {right_value:>10.4f} {delta:>+10.4f}")
     click.echo(f"\n  Winner: {payload['winner']}")
+
+
+@eval_compare.command("show")
+@click.argument("selector", default="latest")
+def eval_compare_show(selector: str) -> None:
+    """Show one stored pairwise comparison."""
+    store = _pairwise_store_for_cli()
+    result = store.latest() if selector == "latest" else store.get(selector)
+    if result is None:
+        raise click.ClickException(f"Pairwise comparison not found: {selector}")
+    _render_pairwise_comparison(result)
+
+
+@eval_compare.command("list")
+@click.option("--limit", default=10, show_default=True, type=int)
+def eval_compare_list(limit: int) -> None:
+    """List recent stored pairwise comparisons."""
+    store = _pairwise_store_for_cli()
+    items = store.list(limit=limit)
+    click.echo("\nRecent pairwise comparisons")
+    if not items:
+        click.echo("  none found")
+        return
+    for item in items:
+        click.echo(
+            f"  {item.comparison_id}  {item.label_a} vs {item.label_b}  "
+            f"winner={item.analysis.winner}  p={item.analysis.p_value:.4f}"
+        )
 
 
 @eval_group.command("breakdown")

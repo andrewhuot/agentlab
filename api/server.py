@@ -126,6 +126,8 @@ async def lifespan(app: FastAPI):
     from deployer.canary import Deployer
     from deployer.versioning import ConfigVersionManager
     from evals.execution_mode import requested_live_mode
+    from evals.pairwise import PairwiseComparisonStore
+    from evals.auto_generator import AutoEvalGenerator
     from evals.runner import EvalRunner
     from evals.what_if import WhatIfEngine
     from logger.structured import configure_structured_logging
@@ -278,6 +280,11 @@ async def lifespan(app: FastAPI):
     app.state.version_manager = version_manager
     app.state.observer = observer
     app.state.eval_runner = eval_runner
+    app.state.results_store = eval_runner.results_store
+    app.state.pairwise_store = PairwiseComparisonStore(
+        base_dir=os.environ.get("AUTOAGENT_PAIRWISE_DIR", ".autoagent/pairwise")
+    )
+    app.state.auto_eval_generator = AutoEvalGenerator()
     app.state.proposer = proposer
     app.state.transcript_report_store = transcript_report_store
     app.state.transcript_intelligence_service = transcript_intelligence_service

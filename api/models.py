@@ -118,6 +118,281 @@ class AutoEvalGenerateResponse(BaseModel):
     total_cases: int = Field(0, description="Total cases generated")
     message: str = Field("", description="Human-readable status message")
 
+
+# ---------------------------------------------------------------------------
+# Pairwise comparison models
+# ---------------------------------------------------------------------------
+
+class PairwiseVariantResponse(BaseModel):
+    """One side of a pairwise case comparison."""
+
+    response: str = Field("", description="Assistant response text")
+    specialist_used: str = Field("", description="Specialist or agent path used")
+    passed: bool = Field(False, description="Whether this side passed the case")
+    quality_score: float = Field(0.0, description="Quality score for this side")
+    safety_passed: bool = Field(False, description="Whether this side passed safety checks")
+    latency_ms: float = Field(0.0, description="Latency for this side in milliseconds")
+    token_count: int = Field(0, description="Token usage for this side")
+    composite_score: float = Field(0.0, description="Per-case composite score")
+    details: str = Field("", description="Evaluator notes for this side")
+    raw_output: dict[str, Any] = Field(default_factory=dict, description="Raw agent payload")
+    custom_scores: dict[str, float] = Field(default_factory=dict, description="Custom metric values")
+
+
+class HumanPreferenceTaskResponse(BaseModel):
+    """Deferred human review task for pairwise evaluation."""
+
+    task_id: str = Field(..., description="Task identifier")
+    case_id: str = Field(..., description="Associated case ID")
+    label_a: str = Field(..., description="Left variant label")
+    label_b: str = Field(..., description="Right variant label")
+    prompt: str = Field("", description="Reviewer instructions")
+    status: str = Field("pending", description="Task status")
+
+
+class PairwiseCaseResponse(BaseModel):
+    """One pairwise outcome at the case level."""
+
+    case_id: str = Field(..., description="Eval case identifier")
+    category: str = Field(..., description="Eval category")
+    input_message: str = Field("", description="User message shown to both variants")
+    left: PairwiseVariantResponse
+    right: PairwiseVariantResponse
+    winner: str = Field(..., description="Winning label, tie, or pending_human")
+    winner_reason: str = Field("", description="Human-readable winner explanation")
+    score_delta: float = Field(0.0, description="Right minus left composite delta")
+    human_preference_task: HumanPreferenceTaskResponse | None = Field(
+        None,
+        description="Human review task when judgment is deferred",
+    )
+
+
+class PairwiseSummaryResponse(BaseModel):
+    """Aggregate counts for one pairwise comparison."""
+
+    total_cases: int = Field(0, description="Total pairwise cases evaluated")
+    left_wins: int = Field(0, description="Cases won by label_a")
+    right_wins: int = Field(0, description="Cases won by label_b")
+    ties: int = Field(0, description="Cases that tied")
+    pending_human: int = Field(0, description="Cases awaiting human review")
+
+
+class PairwiseAnalysisResponse(BaseModel):
+    """Statistical analysis summary for a pairwise comparison."""
+
+    label_a: str = Field(..., description="Left variant label")
+    label_b: str = Field(..., description="Right variant label")
+    total_cases: int = Field(0, description="Number of paired cases analyzed")
+    mean_score_a: float = Field(0.0, description="Average score for label_a")
+    mean_score_b: float = Field(0.0, description="Average score for label_b")
+    mean_delta: float = Field(0.0, description="Average score delta, right minus left")
+    effect_size: float = Field(0.0, description="Effect size of the score delta")
+    p_value: float = Field(1.0, description="Permutation-test p-value")
+    is_significant: bool = Field(False, description="Whether the result is statistically significant")
+    confidence: float = Field(0.0, description="Confidence assigned to the declared winner")
+    winner: str = Field("tie", description="Winning label or tie")
+    win_rates: dict[str, float] = Field(default_factory=dict, description="Per-label empirical win rates")
+    win_rate_confidence_intervals: dict[str, tuple[float, float]] = Field(
+        default_factory=dict,
+        description="Confidence intervals for each empirical win rate",
+    )
+    score_delta_confidence_interval: tuple[float, float] = Field(
+        default=(0.0, 0.0),
+        description="Confidence interval for the mean score delta",
+    )
+    recommended_additional_cases: int = Field(0, description="Suggested extra cases when inconclusive")
+    target_sample_size: int = Field(0, description="Estimated sample size for significance")
+    summary_message: str = Field("", description="User-facing statistical summary")
+
+
+class CompareRequest(BaseModel):
+    """Request to run a pairwise comparison between two configs."""
+
+    config_a_path: Optional[str] = Field(None, description="Path to the left config YAML")
+    config_b_path: Optional[str] = Field(None, description="Path to the right config YAML")
+    dataset_path: Optional[str] = Field(None, description="Optional dataset file used for the comparison")
+    split: str = Field(
+        "all",
+        pattern="^(train|test|all)$",
+        description="Dataset split used with dataset_path",
+    )
+    label_a: Optional[str] = Field(None, description="Display label for the left variant")
+    label_b: Optional[str] = Field(None, description="Display label for the right variant")
+    judge_strategy: str = Field(
+        "metric_delta",
+        pattern="^(metric_delta|llm_judge|human_preference)$",
+        description="Winner selection strategy",
+    )
+
+
+class CompareListItem(BaseModel):
+    """Compact pairwise comparison summary for list views."""
+
+    comparison_id: str = Field(..., description="Comparison identifier")
+    created_at: str = Field(..., description="Creation timestamp")
+    dataset_name: str = Field("default", description="Dataset label")
+    label_a: str = Field(..., description="Left variant label")
+    label_b: str = Field(..., description="Right variant label")
+    judge_strategy: str = Field("metric_delta", description="Winner selection strategy")
+    winner: str = Field("tie", description="Winning label or tie")
+    total_cases: int = Field(0, description="Total cases evaluated")
+    left_wins: int = Field(0, description="Cases won by label_a")
+    right_wins: int = Field(0, description="Cases won by label_b")
+    ties: int = Field(0, description="Cases that tied")
+    pending_human: int = Field(0, description="Cases awaiting human review")
+    p_value: float = Field(1.0, description="Pairwise p-value")
+    is_significant: bool = Field(False, description="Whether the comparison is statistically significant")
+
+
+class CompareListResponse(BaseModel):
+    """List response for stored pairwise comparisons."""
+
+    comparisons: list[CompareListItem] = Field(default_factory=list, description="Recent comparisons")
+    count: int = Field(0, description="Number of returned comparisons")
+
+
+class CompareRunAcceptedResponse(BaseModel):
+    """Response after creating a pairwise comparison."""
+
+    comparison_id: str = Field(..., description="Comparison identifier")
+    message: str = Field("Pairwise comparison completed", description="Human-readable status")
+    summary: CompareListItem
+
+
+class CompareResponse(BaseModel):
+    """Full stored pairwise comparison payload."""
+
+    comparison_id: str = Field(..., description="Comparison identifier")
+    created_at: str = Field(..., description="Creation timestamp")
+    dataset_name: str = Field("default", description="Dataset label")
+    label_a: str = Field(..., description="Left variant label")
+    label_b: str = Field(..., description="Right variant label")
+    judge_strategy: str = Field("metric_delta", description="Winner selection strategy")
+    summary: PairwiseSummaryResponse
+    analysis: PairwiseAnalysisResponse
+    case_results: list[PairwiseCaseResponse] = Field(default_factory=list, description="Per-case comparison rows")
+
+
+# ---------------------------------------------------------------------------
+# Structured results explorer models
+# ---------------------------------------------------------------------------
+
+class ResultAnnotationRequest(BaseModel):
+    """Request to append an annotation to a result example."""
+
+    author: str = Field(..., description="Reviewer name")
+    type: str = Field(..., description="Annotation type")
+    content: str = Field(..., description="Annotation body")
+    score_override: Optional[float] = Field(None, description="Optional manual override score")
+
+
+class ResultAnnotationResponse(BaseModel):
+    """Stored annotation on one result example."""
+
+    author: str = Field(..., description="Reviewer name")
+    timestamp: str = Field(..., description="Creation timestamp")
+    type: str = Field(..., description="Annotation type")
+    content: str = Field(..., description="Annotation body")
+    score_override: Optional[float] = Field(None, description="Optional manual override score")
+
+
+class ResultMetricScore(BaseModel):
+    """Per-example metric score plus reasoning."""
+
+    value: float = Field(0.0, description="Metric value")
+    reasoning: str = Field("", description="Short grader explanation")
+
+
+class ResultMetricSummary(BaseModel):
+    """Aggregate metric summary for one run."""
+
+    mean: float = Field(0.0, description="Arithmetic mean")
+    median: float = Field(0.0, description="Median")
+    std: float = Field(0.0, description="Standard deviation")
+    min: float = Field(0.0, description="Minimum value")
+    max: float = Field(0.0, description="Maximum value")
+    histogram: list[int] = Field(default_factory=list, description="Ten-bucket histogram counts")
+
+
+class ResultSummary(BaseModel):
+    """Aggregate summary block for a structured eval run."""
+
+    total: int = Field(0, description="Total examples in the run")
+    passed: int = Field(0, description="Passed examples")
+    failed: int = Field(0, description="Failed examples")
+    metrics: dict[str, ResultMetricSummary] = Field(default_factory=dict, description="Metric summaries")
+
+
+class ResultExampleResponse(BaseModel):
+    """One structured example result."""
+
+    example_id: str = Field(..., description="Example identifier")
+    input: dict[str, Any] = Field(default_factory=dict, description="Normalized input payload")
+    expected: dict[str, Any] | None = Field(None, description="Expected target payload")
+    actual: dict[str, Any] = Field(default_factory=dict, description="Actual agent output payload")
+    scores: dict[str, ResultMetricScore] = Field(default_factory=dict, description="Per-metric scores")
+    passed: bool = Field(False, description="Whether the example passed")
+    failure_reasons: list[str] = Field(default_factory=list, description="Structured failure reasons")
+    annotations: list[ResultAnnotationResponse] = Field(default_factory=list, description="Human notes")
+    category: str = Field("unknown", description="Eval category")
+
+
+class ResultExamplesResponse(BaseModel):
+    """Paginated response for structured example results."""
+
+    run_id: str = Field(..., description="Run identifier")
+    page: int = Field(1, description="Current page number")
+    page_size: int = Field(50, description="Current page size")
+    total: int = Field(0, description="Total matching examples")
+    examples: list[ResultExampleResponse] = Field(default_factory=list, description="Example result rows")
+
+
+class ResultRunListItem(BaseModel):
+    """Compact structured eval run summary for list views."""
+
+    run_id: str = Field(..., description="Run identifier")
+    timestamp: str = Field(..., description="Run timestamp")
+    mode: str = Field(..., description="Eval mode")
+    config_snapshot: dict[str, Any] = Field(default_factory=dict, description="Config snapshot used for the run")
+    summary: ResultSummary
+
+
+class ResultRunListResponse(BaseModel):
+    """List response for structured eval runs."""
+
+    runs: list[ResultRunListItem] = Field(default_factory=list, description="Recent structured runs")
+    count: int = Field(0, description="Number of returned runs")
+
+
+class ResultRunResponse(BaseModel):
+    """Full structured eval run payload."""
+
+    run_id: str = Field(..., description="Run identifier")
+    timestamp: str = Field(..., description="Run timestamp")
+    mode: str = Field(..., description="Eval mode")
+    config_snapshot: dict[str, Any] = Field(default_factory=dict, description="Config snapshot used for the run")
+    summary: ResultSummary
+    examples: list[ResultExampleResponse] = Field(default_factory=list, description="Structured example rows")
+
+
+class ResultDiffExampleResponse(BaseModel):
+    """One changed example in a run-to-run diff."""
+
+    example_id: str = Field(..., description="Example identifier")
+    before_passed: bool = Field(False, description="Whether the baseline passed")
+    after_passed: bool = Field(False, description="Whether the candidate passed")
+    score_delta: float = Field(0.0, description="Candidate minus baseline composite delta")
+
+
+class ResultDiffResponse(BaseModel):
+    """Run-to-run diff for structured eval results."""
+
+    baseline_run_id: str = Field(..., description="Baseline run identifier")
+    candidate_run_id: str = Field(..., description="Candidate run identifier")
+    new_failures: int = Field(0, description="Examples that regressed to failure")
+    new_passes: int = Field(0, description="Examples that improved to pass")
+    changed_examples: list[ResultDiffExampleResponse] = Field(default_factory=list, description="Changed examples")
+
 class GeneratedCaseResponse(BaseModel):
     """A single generated eval case."""
     case_id: str

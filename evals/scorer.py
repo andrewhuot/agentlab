@@ -25,6 +25,10 @@ class EvalResult:
     routing_correct: bool = True           # G7: was routed to right specialist
     handoff_context_preserved: bool = True  # G8: key entities survived handoff
     satisfaction_proxy: float = 1.0         # G9: user satisfaction heuristic (0-1)
+    input_payload: dict[str, Any] = field(default_factory=dict)
+    expected_payload: dict[str, Any] | None = None
+    actual_output: dict[str, Any] = field(default_factory=dict)
+    failure_reasons: list[str] = field(default_factory=list)
 
 
 @dataclass
