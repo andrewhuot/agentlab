@@ -68,6 +68,8 @@ from api.routes import (
     preferences as preferences_routes,
     builder_demo as builder_demo_routes,
     generated_evals as generated_evals_routes,
+    compare as compare_routes,
+    results as results_routes,
 )
 from api.tasks import TaskManager
 from api.websocket import ConnectionManager
@@ -491,6 +493,8 @@ app.include_router(rewards_routes.router)
 app.include_router(policy_opt_routes.router)
 app.include_router(preferences_routes.router)
 app.include_router(generated_evals_routes.router)
+app.include_router(compare_routes.router)
+app.include_router(results_routes.router)
 # Check if a2a_routes has a well-known endpoint and wire it up
 # The a2a router registers /.well-known/agent-card.json directly (no prefix)
 # so we include the router without an additional prefix to keep the path correct.

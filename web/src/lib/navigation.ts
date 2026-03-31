@@ -53,7 +53,11 @@ const NAVIGATION_SECTIONS: NavigationSection[] = [
     group: 'eval',
     label: COMMAND_TAXONOMY.eval.label,
     description: COMMAND_TAXONOMY.eval.description,
-    items: [{ label: 'Eval Runs', path: '/evals' }],
+    items: [
+      { label: 'Eval Runs', path: '/evals' },
+      { label: 'Results Explorer', path: '/results' },
+      { label: 'Compare', path: '/compare' },
+    ],
   },
   {
     group: 'optimize',
@@ -149,6 +153,8 @@ const ROUTE_METADATA: Record<string, RouteMetadata> = {
   '/demo': { title: 'Demo', breadcrumbs: ['Observe'] },
   '/eval': { title: 'Eval Runs', breadcrumbs: ['Eval'], redirectTo: '/evals' },
   '/evals': { title: 'Eval Runs', breadcrumbs: ['Eval'] },
+  '/results': { title: 'Results Explorer', breadcrumbs: ['Eval'] },
+  '/compare': { title: 'Compare', breadcrumbs: ['Eval'] },
   '/optimize': { title: 'Optimize', breadcrumbs: ['Optimize'] },
   '/live-optimize': { title: 'Optimize', breadcrumbs: ['Optimize'] },
   '/improvements': { title: 'Improvements', breadcrumbs: ['Review'] },
@@ -211,7 +217,13 @@ function normalizePathname(pathname: string): string {
 
 function getRouteMetadata(pathname: string): RouteMetadata {
   const path = normalizePathname(pathname);
-  return ROUTE_METADATA[path] ?? { title: 'AutoAgent', breadcrumbs: [] };
+  if (ROUTE_METADATA[path]) {
+    return ROUTE_METADATA[path];
+  }
+  if (path.startsWith('/results/')) {
+    return ROUTE_METADATA['/results'];
+  }
+  return { title: 'AutoAgent', breadcrumbs: [] };
 }
 
 export function getNavigationSections(): NavigationSection[] {

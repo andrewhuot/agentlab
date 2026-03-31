@@ -4,7 +4,9 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Demo } from './pages/Demo';
 import { EvalRuns } from './pages/EvalRuns';
+import { Compare } from './pages/Compare';
 import { EvalDetail } from './pages/EvalDetail';
+import { ResultsExplorer } from './pages/ResultsExplorer';
 import { Optimize } from './pages/Optimize';
 import { Configs } from './pages/Configs';
 import { Conversations } from './pages/Conversations';
@@ -78,6 +80,9 @@ export default function App() {
             <Route path="/demo" element={<Demo />} />
             <Route path="/eval" element={<LegacyRouteRedirect />} />
             <Route path="/evals" element={<EvalRuns />} />
+            <Route path="/results" element={<ResultsExplorer />} />
+            <Route path="/results/:runId" element={<ResultsExplorer />} />
+            <Route path="/compare" element={<Compare />} />
             <Route path="/evals/:id" element={<EvalDetail />} />
             <Route path="/optimize" element={<Optimize />} />
             <Route path="/live-optimize" element={<LiveOptimize />} />
