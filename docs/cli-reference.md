@@ -1,8 +1,20 @@
 # CLI Reference
 
-AutoAgent shows 16 commands by default (8 primary + 8 secondary). Run `autoagent advanced` to see all commands.
+AutoAgent groups the default CLI into **Primary** and **Secondary** commands. Run `autoagent advanced` to see the broader hidden command set.
 
-All commands support `--help`. Major commands support `--json` for structured output.
+Helpful starting points:
+
+```bash
+autoagent --help
+autoagent advanced
+autoagent <command> --help
+```
+
+Notes:
+
+- many top-level commands support `--quiet` / `--no-banner`
+- many major commands support `--json` or `--output-format`; check the command help for the exact surface
+- selectors like `latest`, `active`, and `pending` are supported on several review, eval, and config commands
 
 ---
 
@@ -10,189 +22,185 @@ All commands support `--help`. Major commands support `--json` for structured ou
 
 ### `autoagent new`
 
-Create a new starter workspace and print the first three commands to run.
+Create a new starter workspace.
 
-```
-Usage: autoagent new [OPTIONS] NAME
-
-Options:
-  --template [customer-support|it-helpdesk|sales-qualification|healthcare-intake]
-                                  Starter template.  [default: customer-support]
-  --demo / --no-demo              Seed a reviewable demo workspace.  [default: no-demo]
-  --mode [mock|live|auto]         Runtime mode for the generated workspace.
-                                  Explicit `auto` uses API-key detection.
-                                  [default: auto]
-```
-
-**Example:**
 ```bash
-autoagent new my-agent --template customer-support
+autoagent new my-agent --template customer-support --demo
 ```
 
----
+Key options:
+
+- `--template [customer-support|it-helpdesk|sales-qualification|healthcare-intake]`
+- `--demo / --no-demo`
+- `--mode [mock|live|auto]`
 
 ### `autoagent build`
 
-Build agent artifacts or inspect the latest build output.
+Generate build artifacts from a natural-language prompt, or inspect the latest build output.
 
-```
-Usage: autoagent build [OPTIONS] COMMAND [ARGS]...
+Common commands:
 
-Commands:
-  show    Show build output.
-```
-
-**Examples:**
 ```bash
 autoagent build "Build a support agent for order tracking"
 autoagent build show latest
 ```
 
----
+Subcommands:
+
+- `show` — show the latest or selected build artifact
 
 ### `autoagent eval`
 
-Evaluate agent configs against test suites.
+Run evals, inspect results, compare runs, and generate eval suites.
 
-```
-Usage: autoagent eval [OPTIONS] COMMAND [ARGS]...
+Common commands:
 
-Commands:
-  run         Run eval suite against a config.
-  show        Show eval results.
-  list        List recent eval runs.
-  compare     Show a side-by-side comparison of two eval runs.
-  breakdown   Show score breakdown bars and failure clusters.
-  generate    AI-generate a comprehensive eval suite from agent config.
-  results     View eval results from a previous run.
-```
-
-**Examples:**
 ```bash
 autoagent eval run
 autoagent eval show latest
+autoagent eval list
 autoagent eval compare --left-run left.json --right-run right.json
 autoagent eval generate --config configs/v001.yaml --output generated_eval_suite.json
-autoagent eval results --failures
+autoagent eval results --run-id eval-123
 ```
 
----
+Subcommands:
+
+- `run` — run the eval suite against a config
+- `show` — show one eval run
+- `list` — list recent eval runs
+- `compare` — compare run files or run a pairwise config comparison
+- `breakdown` — show score bars and failure clusters for the latest run
+- `generate` — generate an eval suite from a config
+- `results` — inspect structured results, annotate examples, diff runs, or export a run
+
+Useful `eval run` options:
+
+- `--config TEXT`
+- `--suite TEXT`
+- `--dataset TEXT`
+- `--split [train|test|all]`
+- `--category TEXT`
+- `--output TEXT`
+- `--instruction-overrides TEXT`
+- `--real-agent`
+- `--require-live`
+- `--json`
+- `--output-format [text|json|stream-json]`
+
+Useful `eval compare` options:
+
+- `--config-a TEXT`
+- `--config-b TEXT`
+- `--left-run TEXT`
+- `--right-run TEXT`
+- `--dataset TEXT`
+- `--split [train|test|all]`
+- `--label-a TEXT`
+- `--label-b TEXT`
+- `--judge [metric_delta|llm_judge|human_preference]`
+
+Useful `eval results` subcommands:
+
+```bash
+autoagent eval results --run-id eval-123 --failures
+autoagent eval results diff eval-123 --other-run eval-122
+autoagent eval results export eval-123 --format markdown
+autoagent eval results annotate eval-123 example_001 --type note --content "Needs human review"
+```
 
 ### `autoagent optimize`
 
-Run optimization cycles to improve agent config. Replaces the old `improve` and `loop` commands.
+Run optimization cycles to improve the current agent config.
 
-```
-Usage: autoagent optimize [OPTIONS]
-
-Options:
-  --cycles INTEGER                Number of optimization cycles.  [default: 1]
-  --continuous                    Loop indefinitely until Ctrl+C.
-  --mode [standard|advanced|research]
-                                  Optimization mode (replaces --strategy).
-  --db TEXT                       Conversation store DB.  [default: conversations.db]
-  --configs-dir TEXT              Configs directory.  [default: configs]
-  --memory-db TEXT                Optimizer memory DB.  [default: optimizer_memory.db]
-  --full-auto                     Danger mode: auto-promote accepted configs
-                                  without manual review.
-  --dry-run                       Preview without mutating state.
-  --max-budget-usd FLOAT          Stop when spend reaches this amount.
-  --output-format [text|json|stream-json]
-                                  Render text, a final JSON envelope, or
-                                  stream JSON progress events.  [default: text]
-  -j, --json                      Output as JSON.
-```
-
-**Examples:**
 ```bash
-autoagent optimize                        # Single cycle
-autoagent optimize --cycles 5             # Five cycles
-autoagent optimize --continuous           # Loop until Ctrl+C (replaces `autoagent loop`)
-autoagent optimize --mode advanced        # Advanced search strategy
+autoagent optimize
+autoagent optimize --cycles 5
+autoagent optimize --continuous
+autoagent optimize --mode advanced
 ```
 
----
+Key options:
+
+- `--cycles INTEGER`
+- `--continuous`
+- `--mode [standard|advanced|research]`
+- `--full-auto`
+- `--dry-run`
+- `--max-budget-usd FLOAT`
+- `--json`
+- `--output-format [text|json|stream-json]`
 
 ### `autoagent deploy`
 
-Deploy a config version with canary, release, and rollback workflows. Use `--auto-review` to apply pending review cards before deploying (replaces the old `ship` command).
+Deploy a version locally via canary, immediate release, rollback, or auto-review.
 
-```
-Usage: autoagent deploy [OPTIONS] [[canary|immediate|release|rollback|status]]
-
-Options:
-  --config-version INTEGER        Config version to deploy.
-  --strategy [canary|immediate]   Deployment strategy.  [default: canary]
-  --configs-dir TEXT              Configs directory.  [default: configs]
-  --db TEXT                       Conversation store DB.  [default: conversations.db]
-  --target [autoagent|cx-studio]  Deployment target.  [default: autoagent]
-  --project TEXT                  GCP project ID (required for CX push).
-  --location TEXT                 CX agent location.  [default: global]
-  --agent-id TEXT                 CX agent ID (required for CX push).
-  --snapshot TEXT                 CX snapshot JSON path from `autoagent cx import`.
-  --credentials TEXT              Path to service account JSON for CX calls.
-  --output TEXT                   Output path for CX export package JSON.
-  --push / --no-push              Push to CX now (otherwise package only).
-                                  [default: no-push]
-  --dry-run                       Preview without mutating state.
-  --yes                           Skip interactive confirmation.
-  -j, --json                      Output as JSON.
-  --output-format [text|json|stream-json]
-                                  Render text, a final JSON envelope, or
-                                  stream JSON progress events.  [default: text]
-  --auto-review                   Apply pending review cards and create a
-                                  release before deploying (replaces ship).
-```
-
-**Examples:**
 ```bash
-autoagent deploy canary                   # Canary deploy latest accepted config
-autoagent deploy --config-version 5       # Deploy specific version
-autoagent deploy --strategy immediate     # Immediate (no canary)
-autoagent deploy canary --yes             # Skip confirmation
-autoagent deploy --auto-review            # Review + deploy (replaces `autoagent ship`)
+autoagent deploy canary
+autoagent deploy status
+autoagent deploy --config-version 5 --strategy immediate
+autoagent deploy --auto-review --yes
 ```
 
----
+Key options:
+
+- `--config-version INTEGER`
+- `--strategy [canary|immediate]`
+- `--target [autoagent|cx-studio]`
+- `--project TEXT`
+- `--location TEXT`
+- `--agent-id TEXT`
+- `--snapshot TEXT`
+- `--credentials TEXT`
+- `--output TEXT`
+- `--push / --no-push`
+- `--dry-run`
+- `--yes`
+- `--json`
+- `--output-format [text|json|stream-json]`
+- `--auto-review`
 
 ### `autoagent status`
 
-Show system health, config versions, and recent activity.
+Show workspace health, versions, and recommended next steps.
 
-```
-Usage: autoagent status [OPTIONS]
-
-Options:
-  --db TEXT           Conversation store DB.  [default: conversations.db]
-  --configs-dir TEXT  Configs directory.  [default: configs]
-  --memory-db TEXT    Optimizer memory DB.  [default: optimizer_memory.db]
-  -j, --json          Output as JSON.
-  -v, --verbose       Show extra details (conversations, cycles, token usage).
+```bash
+autoagent status
+autoagent status --json
+autoagent status --verbose
 ```
 
----
+Key options:
+
+- `--db TEXT`
+- `--configs-dir TEXT`
+- `--memory-db TEXT`
+- `--json`
+- `--verbose`
 
 ### `autoagent doctor`
 
-Check system health and configuration. Reports on API keys, mode, data stores, eval cases, and config versions.
+Run readiness checks for providers, data stores, eval assets, and workspace health.
 
-```
-Usage: autoagent doctor [OPTIONS]
-
-Options:
-  --config TEXT  Path to runtime config YAML.  [default: autoagent.yaml]
-  --fix          Automatically repair fixable workspace issues.
-  -j, --json     Output as JSON.
+```bash
+autoagent doctor
+autoagent doctor --fix
+autoagent doctor --json
 ```
 
----
+Key options:
+
+- `--config TEXT`
+- `--fix`
+- `--json`
 
 ### `autoagent shell`
 
-Launch the interactive AutoAgent shell.
+Launch the interactive shell.
 
-```
-Usage: autoagent shell [OPTIONS]
+```bash
+autoagent shell
+autoagent continue
 ```
 
 ---
@@ -201,192 +209,257 @@ Usage: autoagent shell [OPTIONS]
 
 ### `autoagent config`
 
-Manage agent config versions.
+Manage versioned config files.
 
-```
-Commands:
-  list        List all config versions.
-  show        Show config YAML for a version.
-  diff        Diff two config versions.
-  edit        Open active config in editor.
-  import      Import a plain YAML/JSON into versioned store.
-  migrate     Migrate old config format.
-  resolve     Resolve the effective workspace config and persist a lockfile.
-  rollback    Roll back to a prior version.
-  set-active  Set workspace default config version.
-```
+Subcommands:
 
----
+- `list`
+- `show`
+- `diff`
+- `edit`
+- `import`
+- `migrate`
+- `resolve`
+- `rollback`
+- `set-active`
+
+Examples:
+
+```bash
+autoagent config list
+autoagent config show active
+autoagent config diff 1 2
+autoagent config set-active 3
+```
 
 ### `autoagent connect`
 
-Import existing runtimes and transcript exports into new AutoAgent workspaces.
+Import existing runtimes into a new AutoAgent workspace.
 
-```
-Commands:
-  openai-agents  Create an AutoAgent workspace from an OpenAI Agents project.
-  anthropic      Create an AutoAgent workspace from an Anthropic SDK project.
-  http           Create an AutoAgent workspace that proxies an HTTP agent endpoint.
-  transcript     Create an AutoAgent workspace from imported conversation transcripts.
-```
+Subcommands:
 
-**Examples:**
+- `openai-agents`
+- `anthropic`
+- `http`
+- `transcript`
+
+Examples:
+
 ```bash
 autoagent connect openai-agents --path ./agent-project
+autoagent connect anthropic --path ./claude-project
+autoagent connect http --url https://agent.example.com
 autoagent connect transcript --file ./conversations.jsonl --name imported-agent
 ```
 
----
+### `autoagent instruction`
+
+Inspect, validate, edit, generate, or migrate XML instructions.
+
+Subcommands:
+
+- `show`
+- `validate`
+- `edit`
+- `generate`
+- `migrate`
+
+Examples:
+
+```bash
+autoagent instruction show
+autoagent instruction validate
+autoagent instruction generate --brief "refund support agent" --apply
+autoagent instruction migrate
+```
 
 ### `autoagent memory`
 
-Project memory — manage AUTOAGENT.md persistent context.
+Manage `AUTOAGENT.md` project memory.
 
-```
-Commands:
-  show               Show AUTOAGENT.md contents.
-  add                Add a note to a section.
-  edit               Edit a layered memory target.
-  list               List layered memory sources.
-  summarize-session  Write session summary into AUTOAGENT.md.
-  where              Show memory file locations.
-```
+Subcommands:
 
----
+- `show`
+- `add`
+- `edit`
+- `list`
+- `summarize-session`
+- `where`
 
 ### `autoagent mode`
 
-Show or set CLI execution mode.
+Show or set execution mode.
 
+Subcommands:
+
+- `show`
+- `set`
+
+Examples:
+
+```bash
+autoagent mode show
+autoagent mode set mock
+autoagent mode set live
+autoagent mode set auto
 ```
-Commands:
-  show  Show current mode and configured providers.
-  set   Persist mode preference (auto, mock, or live).
-```
-
-AutoAgent auto-detects mode based on available API keys. Use `mode set` to override.
-
----
 
 ### `autoagent model`
 
-Inspect and override workspace model preferences.
+Inspect or override model preferences.
 
-```
-Commands:
-  list  List available runtime models.
-  show  Show effective proposer and evaluator models.
-  set   Persist a model override.
-```
+Subcommands:
 
----
+- `list`
+- `show`
+- `set`
+
+Examples:
+
+```bash
+autoagent model list
+autoagent model show
+autoagent model set proposer openai:gpt-4o
+```
 
 ### `autoagent provider`
 
-Configure and validate workspace provider settings.
+Configure and test provider profiles.
 
-```
-Commands:
-  configure  Interactively configure a provider profile.
-  list       List configured providers.
-  test       Validate provider credentials.
-```
+Subcommands:
 
----
+- `configure`
+- `list`
+- `test`
+
+Examples:
+
+```bash
+autoagent provider configure
+autoagent provider list
+autoagent provider test
+```
 
 ### `autoagent review`
 
-Review proposed change cards from the optimizer.
+Review change cards from the optimizer.
 
-```
-Commands:
-  list    List pending change cards.
-  show    Show a specific change card.
-  apply   Accept a change card.
-  reject  Reject a change card with a reason.
-  export  Export a change card as markdown.
-```
+Subcommands:
 
----
+- `list`
+- `show`
+- `apply`
+- `reject`
+- `export`
+
+Examples:
+
+```bash
+autoagent review list
+autoagent review show pending
+autoagent review apply pending
+autoagent review reject latest
+autoagent review export pending
+```
 
 ### `autoagent template`
 
-List and apply bundled starter workspace templates.
+List and apply bundled starter templates.
 
-```
-Commands:
-  list   Show bundled starter templates.
-  apply  Apply a template to the current workspace.
+Subcommands:
+
+- `list`
+- `apply`
+
+Examples:
+
+```bash
+autoagent template list
+autoagent template apply customer-support
 ```
 
 ---
 
 ## Advanced Commands
 
-Run `autoagent advanced` to see these. They are fully functional but hidden from default help.
+Run `autoagent advanced` to see these in the CLI.
 
 | Command | Description |
 |---------|-------------|
-| `adk` | Google ADK integration — import, export, deploy |
-| `autofix` | AutoFix Copilot — reviewable improvement proposals |
-| `benchmark` | Run standard benchmarks |
+| `adk` | Google Agent Development Kit integration |
+| `autofix` | AutoFix Copilot workflows |
+| `benchmark` | Run benchmark suites |
 | `build-inspect` | Inspect build artifacts |
 | `build-show` | Deprecated alias for `autoagent build show` |
-| `changes` | Aliases for reviewable optimizer change cards |
+| `changes` | Compatibility aliases for reviewable change cards |
 | `compare` | Compare configs, eval runs, and candidate versions |
-| `context` | Context Engineering Workbench — diagnose and tune context |
+| `context` | Context Engineering Workbench |
 | `continue` | Resume the most recent shell session |
-| `curriculum` | Self-play curriculum generator for adversarial eval prompts |
-| `cx` | Google Cloud CX Agent Studio — import, export, deploy |
-| `dataset` | Manage datasets for evaluation and training |
-| `demo` | Demo commands for presentations and quick trials |
-| `diagnose` | Run failure diagnosis and optionally fix issues |
-| `edit` | Apply natural language edits to agent config |
-| `experiment` | Inspect optimization experiment history |
-| `explain` | Generate plain-English summary of agent config |
-| `full-auto` | Run optimization + loop in full-auto mode |
-| `import` | Import configs and resources |
-| `improve` | *(deprecated)* Use `optimize` instead |
-| `init` | *(deprecated)* Use `new` instead |
-| `intelligence` | Run transcript intelligence workflows |
-| `judges` | Judge Ops — monitoring, calibration, human feedback |
-| `logs` | Browse conversation logs |
-| `loop` | *(deprecated)* Use `optimize --continuous` instead |
-| `mcp` | Configure AutoAgent MCP integration |
-| `mcp-server` | Start MCP server for AI coding tools |
-| `outcomes` | Manage business outcome data |
+| `curriculum` | Self-play curriculum generation |
+| `cx` | Google Cloud CX / Dialogflow CX integration |
+| `dataset` | Dataset management |
+| `demo` | Demo and presentation commands |
+| `diagnose` | Failure diagnosis workflows |
+| `edit` | Natural-language config edits |
+| `experiment` | Optimization experiment history |
+| `explain` | Plain-English agent summary |
+| `full-auto` | Full-auto optimization mode |
+| `import` | Compatibility aliases for imports |
+| `improve` | Deprecated alias; use `optimize` |
+| `init` | Deprecated alias; use `new` |
+| `intelligence` | Transcript intelligence workflows |
+| `judges` | Judge Ops workflows |
+| `logs` | Conversation log browsing |
+| `loop` | Deprecated loop command; use `optimize --continuous` |
+| `mcp` | MCP client and runtime setup |
+| `mcp-server` | Start the MCP server |
+| `outcomes` | Outcome and business metric ingestion |
 | `pause` | Pause the optimization loop |
-| `permissions` | Inspect or change workspace permission mode |
-| `pin` | Lock a config surface from mutation |
-| `policy` | Policy management — inspect trained policy artifacts |
-| `pref` | Preference collection and export |
-| `quickstart` | Run the full golden path (init → seed → eval → optimize → summary) |
-| `registry` | Modular registry — skills, policies, tools, handoffs |
-| `reject` | Reject and rollback an experiment |
-| `release` | Manage signed release objects |
-| `replay` | Show optimization history |
-| `resume` | Resume the optimization loop |
+| `permissions` | Workspace permission mode controls |
+| `pin` | Lock a config surface |
+| `policy` | Policy optimization artifacts |
+| `pref` | Preference collection/export |
+| `quickstart` | Run the one-command golden path |
+| `registry` | Skills, policies, tools, and handoffs registry |
+| `reject` | Reject and roll back an experiment |
+| `release` | Signed release objects |
+| `replay` | Optimization history replay |
+| `resume` | Resume a paused loop |
 | `rl` | Policy optimization commands |
-| `run` | Legacy run commands |
-| `runbook` | Runbooks — curated bundles of skills and policies |
-| `scorer` | NL Scorer — create eval scorers from natural language |
+| `run` | Legacy run command group |
+| `runbook` | Runbook management |
+| `scorer` | Natural-language scorer workflows |
 | `server` | Start the API server + web console |
-| `session` | Manage shell sessions |
-| `ship` | *(deprecated)* Use `deploy --auto-review` instead |
-| `skill` | Skill management — build-time and run-time skills |
-| `trace` | Trace analysis — grading, blame maps, and graphs |
-| `unpin` | Remove immutable marking from a config surface |
-| `usage` | Show recent eval/optimize cost and budget state |
+| `session` | Shell session management |
+| `ship` | Deprecated alias; use `deploy --auto-review` |
+| `skill` | Skill management |
+| `trace` | Trace analysis and blame maps |
+| `unpin` | Remove a surface lock |
+| `usage` | Eval/optimize cost and budget reporting |
 
 ---
 
-## Deprecated Command Migration
+## Common Power Commands
 
-| Old Command | New Equivalent |
-|-------------|---------------|
+```bash
+autoagent advanced
+autoagent quickstart
+autoagent compare candidates
+autoagent eval results export eval-123 --format markdown
+autoagent mcp status
+autoagent cx auth
+autoagent cx list --project PROJECT --location us-central1
+```
+
+---
+
+## Deprecated Aliases
+
+These older commands still exist as compatibility aliases, but the current docs use the newer forms.
+
+| Old command | Current command |
+|-------------|-----------------|
 | `autoagent init` | `autoagent new` |
 | `autoagent improve` | `autoagent optimize` |
 | `autoagent loop` | `autoagent optimize --continuous` |
 | `autoagent ship` | `autoagent deploy --auto-review` |
-
-The old commands still work as aliases but are hidden from default help.

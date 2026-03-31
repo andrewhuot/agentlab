@@ -1,22 +1,22 @@
 # AutoAgent
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB)
-![Tests](https://img.shields.io/badge/tests-2986%2B%20passing-22C55E)
+![Test Suite](https://img.shields.io/badge/test%20suite-pytest%20%2B%20vite-22C55E)
 ![License](https://img.shields.io/badge/license-Apache%202.0-111827)
 
-AutoAgent automatically makes your AI agents better. Give it an agent, tell it what "good" looks like, and it will find failures, generate fixes, test them, and deploy the winners — all in a loop you can watch or walk away from.
+AutoAgent automatically makes your AI agents better. Give it an agent, define what "good" looks like, and AutoAgent will build, evaluate, compare, optimize, review, and deploy changes in a loop you can inspect end to end.
 
-```
-BUILD → EVAL → OPTIMIZE → DEPLOY → REPEAT
+```text
+BUILD -> EVAL -> OPTIMIZE -> REVIEW -> DEPLOY
 ```
 
-> **[Quick Start](docs/QUICKSTART_GUIDE.md)** — Get a working agent in 2 minutes
+> **[Quick Start](docs/QUICKSTART_GUIDE.md)** — Get a workspace running in minutes
 >
-> **[Detailed Guide](docs/DETAILED_GUIDE.md)** — Full walkthrough of every workflow
+> **[Detailed Guide](docs/DETAILED_GUIDE.md)** — Full CLI walkthrough, including XML instructions and deployment
 >
-> **[UI Quick Start](docs/UI_QUICKSTART_GUIDE.md)** — Web console walkthrough
+> **[UI Quick Start](docs/UI_QUICKSTART_GUIDE.md)** — Browser walkthrough for the current web console
 >
-> **[Platform Overview](docs/platform-overview.md)** — Every subsystem explained
+> **[Platform Overview](docs/platform-overview.md)** — Product and architecture map
 
 ---
 
@@ -32,133 +32,163 @@ pip install -e .
 
 ### Prerequisites
 
-| Tool | Version | How to get it |
-|------|---------|--------------|
-| Python | 3.11+ | [python.org/downloads](https://python.org/downloads) |
-| Node.js | 18+ | [nodejs.org](https://nodejs.org) (for web console) |
+| Tool | Version | Why you need it |
+|------|---------|-----------------|
+| Python | 3.11+ | CLI, API, eval, and optimization runtime |
+| Node.js | 20+ | Web console dev mode (`./start.sh`, `npm run dev`, `npm run build`) |
+| `gcloud` | optional | CX / Google Cloud integration flows |
 
-### API keys (auto-detect)
+### API keys
 
-AutoAgent auto-detects your environment. If API keys are present, it uses live LLM providers. If not, it falls back to deterministic mock responses — no configuration needed.
+AutoAgent auto-detects your environment:
 
-To enable live optimization, set at least one key:
+- if provider credentials are present, it can use live LLM providers
+- if they are missing, it falls back to deterministic mock responses
+
+To enable live provider workflows, set at least one key:
 
 ```bash
-export OPENAI_API_KEY=sk-...          # GPT models
-export ANTHROPIC_API_KEY=sk-ant-...   # Claude models
-export GOOGLE_API_KEY=AI...           # Gemini models
+export OPENAI_API_KEY=sk-...
+export ANTHROPIC_API_KEY=sk-ant-...
+export GOOGLE_API_KEY=AI...
 ```
 
-Run `autoagent doctor` to verify your setup.
+Run `autoagent doctor` to verify the current mode and provider readiness.
 
 ---
 
-## Quick start
+## Quick Start
 
 ```bash
 autoagent new my-agent --template customer-support --demo
 cd my-agent
+autoagent instruction show
 autoagent build "customer support agent for order tracking, refunds, and cancellations"
 autoagent eval run
 autoagent optimize --cycles 1
 autoagent deploy --auto-review --yes
 ```
 
-That's the fastest reliable first-run loop: create → build → evaluate → optimize → deploy.
+Notes:
 
-`--demo` seeds extra review data so the first-run walkthrough includes review and autofix surfaces on a brand-new workspace.
+- `--demo` seeds a friendlier first workspace with review and autofix data.
+- New workspaces start with an XML root instruction by default.
+- If the starter eval already passes cleanly, `autoagent optimize --cycles 1` may say `Latest eval passed; no optimization needed.` That is expected.
+- `autoagent deploy --auto-review --yes` still works on a demo workspace because the seeded review data and staged versions make the deploy path reproducible.
 
 ---
 
 ## CLI
 
-AutoAgent shows 16 commands by default (8 primary + 8 secondary). Run `autoagent advanced` for the full list.
+Default help groups the CLI into **Primary** and **Secondary** commands. Run `autoagent advanced` to see the broader hidden command set.
 
 ### Primary commands
 
 | Command | Purpose |
 |---------|---------|
 | `new` | Create a new workspace from a starter template |
-| `build` | Build agent artifacts or inspect build output |
-| `eval` | Evaluate agent configs against test suites |
+| `build` | Generate or inspect build artifacts |
+| `eval` | Run evals, inspect results, compare runs, and generate eval suites |
 | `optimize` | Run optimization cycles (`--continuous` for loop mode) |
-| `deploy` | Deploy with canary, release, or rollback (`--auto-review` for ship mode) |
-| `status` | Show system health, config versions, and recent activity |
-| `doctor` | Check system health and configuration |
+| `deploy` | Canary, release, rollback, or auto-review-and-deploy |
+| `status` | Show workspace health, versions, and recommended next steps |
+| `doctor` | Check configuration, providers, data stores, and readiness |
 | `shell` | Launch the interactive AutoAgent shell |
 
 ### Secondary commands
 
 | Command | Purpose |
 |---------|---------|
-| `config` | Manage config versions (list, show, diff, resolve, edit, set-active) |
-| `connect` | Import existing runtimes and transcript exports into AutoAgent |
-| `memory` | Manage AUTOAGENT.md persistent project context |
-| `mode` | Show or set CLI execution mode |
-| `model` | Inspect and override model preferences |
-| `provider` | Configure and validate provider settings |
-| `review` | Review proposed change cards from the optimizer |
-| `template` | List and apply starter workspace templates |
+| `config` | List, diff, import, edit, resolve, rollback, and activate configs |
+| `connect` | Import OpenAI Agents, Anthropic, HTTP, or transcript-backed runtimes |
+| `instruction` | Show, validate, edit, generate, or migrate XML instructions |
+| `memory` | Manage `AUTOAGENT.md` project memory |
+| `mode` | Show or set mock/live/auto execution mode |
+| `model` | Inspect or override proposer/evaluator model preferences |
+| `provider` | Configure, list, and test provider profiles |
+| `review` | Review, apply, reject, or export change cards |
+| `template` | List and apply bundled starter templates |
 
-All commands support `--help`. Major commands support `--json` for structured output. See [docs/cli-reference.md](docs/cli-reference.md) for the full reference.
-
----
-
-## How it works
-
-Each optimization cycle:
-
-1. **Trace** — Collects telemetry from agent runs
-2. **Diagnose** — Clusters failures, finds root causes
-3. **Search** — Generates fix candidates ranked by expected impact
-4. **Eval** — Tests fixes against your eval suite with side-effect isolation
-5. **Gate** — Enforces hard safety constraints (never traded off for performance)
-6. **Deploy** — Promotes winners via canary rollout
-7. **Learn** — Records what worked for smarter future searches
-
-Every cycle produces a reviewable **experiment card** — hypothesis, config diff, statistical significance, and rollback instructions. Run `autoagent optimize --continuous` to loop until progress plateaus.
+All commands support `--help`. See [docs/cli-reference.md](docs/cli-reference.md) for the full reference, including the advanced surface.
 
 ---
 
-## Key features
+## How It Works
 
-- **Eval engine** — 7 eval modes, bootstrap CI, sequential testing, anti-Goodhart guards
-- **Trace analysis** — Span-level grading, blame maps, opportunity queue
-- **Judge stack** — Deterministic → similarity → LLM → audit judge (tiered for cost/accuracy)
-- **AutoFix** — AI-generated fix proposals you review before applying
-- **NL scorer** — Describe "good" in plain English, get a typed scorer
-- **Context workbench** — Diagnose context window issues, simulate compaction
-- **Registry** — Version-controlled skills, policies, tools, handoff schemas
-- **Intelligence studio** — Upload transcripts → analytics → auto-generate agents
-- **Human controls** — Pause, resume, pin, reject, budget caps — you stay in charge
-- **Multi-model** — Gemini, GPT-4o, Claude, any OpenAI-compatible provider
+AutoAgent centers everything around a closed improvement loop:
+
+1. **Build** — create or refine agent configs and starter evals
+2. **Eval** — run the current config against the active suite
+3. **Compare** — inspect run-to-run deltas and case-level changes
+4. **Optimize** — generate and test targeted changes
+5. **Review** — accept or reject change cards in `review` or `Improvements`
+6. **Deploy** — canary, release, rollback, or push through an integration target
+
+The CLI, API, and UI all work off the same local workspace state, so you can move between surfaces without losing context.
+
+---
+
+## Key Features
+
+- **Build workspace** — Prompt, transcript, builder chat, and saved artifacts in one place
+- **XML instructions** — New workspaces default to XML root prompts with CLI and UI editing flows
+- **Eval runs** — Run suites, inspect historical runs, and drill into case-level results
+- **Results Explorer** — Filter failures, annotate examples, export runs, and compare outcomes
+- **Compare** — Run or inspect pairwise config comparisons with significance summaries
+- **Improvements** — One review workflow for opportunities, experiments, approvals, and history
+- **Connect** — Import existing OpenAI Agents, Anthropic, HTTP, and transcript-backed runtimes
+- **CX Studio** — Auth, import, diff, export, and sync Google CX agents from one surface
+- **NL scorer** — Create eval scorers from natural language
+- **Context workbench** — Inspect context usage and compaction tradeoffs
+- **Registry and skills** — Manage reusable skills, policies, tools, and handoffs
+- **MCP server** — 22 tools plus prompts/resources for Claude Code, Codex, Cursor, Windsurf, and other MCP clients
 
 ---
 
 ## Integrations
 
-- **Google CX Agent Studio** — Import, optimize, export, deploy CX agents
-- **Google ADK** — Import ADK agents via AST parsing, export patches, deploy to Cloud Run
-- **MCP server** — 22 tools for Claude Code, Codex, Cursor, Windsurf ([setup guide](docs/guides/agentic-coding-tools.md))
-- **CI/CD** — Gate deploys on eval scores, post experiment cards as PR comments
+- **Google CX Studio / Dialogflow CX** — import, diff, export, sync, deploy
+- **Google ADK** — import ADK agents, inspect diffs, export patches, deploy
+- **MCP** — expose the live AutoAgent surface to coding agents
+- **Transcript intelligence** — ingest archives and turn them into build artifacts and eval inputs
 
 ---
 
-## Web console
+## Web Console
 
-Start the combined app with `autoagent server` and open `http://localhost:8000`. For hot-reload local development, run `./start.sh` and open `http://localhost:5173`.
+For the combined app:
 
-The sidebar toggles between **Simple** and **Pro** views. Simple mode exposes the day-one entry points: Dashboard, Setup, Build, Connect, Eval Runs, Results Explorer, Compare, Optimize, Improvements, and Deploy.
+```bash
+autoagent server
+```
 
-- **Dashboard** — Health, recent activity, next recommended action
-- **Build** — Prompt-based agent generation and saved build artifacts
-- **Connect** — Import OpenAI Agents, Anthropic, HTTP, or transcript-backed runtimes
-- **Eval** — Eval Runs, Results Explorer, and Compare views
-- **Optimize** — Trigger cycles, inspect outcomes, and queue follow-up work
-- **Review** — Improvements workflow and reviewable change cards
-- **Deploy** — Canary rollout, release, rollback
+Then open `http://localhost:8000`.
 
-See [UI Quick Start](docs/UI_QUICKSTART_GUIDE.md) for a full walkthrough.
+For hot-reload local development:
+
+```bash
+./start.sh
+```
+
+Then open:
+
+- UI: `http://localhost:5173/dashboard`
+- API docs: `http://localhost:8000/docs`
+
+The current simple-mode nav is:
+
+- `Dashboard`
+- `Setup`
+- `Build`
+- `Connect`
+- `Eval Runs`
+- `Results Explorer`
+- `Compare`
+- `Optimize`
+- `Improvements`
+- `Deploy`
+
+See [docs/UI_QUICKSTART_GUIDE.md](docs/UI_QUICKSTART_GUIDE.md) for the current browser walkthrough.
 
 ---
 
@@ -168,33 +198,53 @@ See [UI Quick Start](docs/UI_QUICKSTART_GUIDE.md) for a full walkthrough.
 # Docker
 docker compose up --build -d
 
-# Google Cloud Run
-./deploy/deploy.sh $PROJECT_ID $REGION
+# Cloud Run helper
+./deploy/deploy.sh "$PROJECT_ID" "$REGION"
 
 # Fly.io
 fly launch --name autoagent --region ord && fly deploy
 ```
 
-See [docs/deployment.md](docs/deployment.md) for detailed setup.
+See [docs/deployment.md](docs/deployment.md) for local, container, and Cloud Run details.
 
 ---
 
 ## Documentation
 
 **Guides:**
-- [Quick Start](docs/QUICKSTART_GUIDE.md) | [Detailed Guide](docs/DETAILED_GUIDE.md) | [UI Quick Start](docs/UI_QUICKSTART_GUIDE.md)
+
+- [Quick Start](docs/QUICKSTART_GUIDE.md)
+- [Detailed Guide](docs/DETAILED_GUIDE.md)
+- [UI Quick Start](docs/UI_QUICKSTART_GUIDE.md)
 - [Agentic Coding Tools](docs/guides/agentic-coding-tools.md)
 
 **Reference:**
-- [CLI Reference](docs/cli-reference.md) | [API Reference](docs/api-reference.md)
-- [Concepts](docs/concepts.md) | [FAQ](docs/faq.md)
-- [Architecture](docs/architecture.md) | [Diagrams](docs/architecture-diagram.md)
+
+- [CLI Reference](docs/cli-reference.md)
+- [API Reference](docs/api-reference.md)
+- [Concepts](docs/concepts.md)
+- [FAQ](docs/faq.md)
+- [Architecture](docs/architecture.md)
+- [Diagrams](docs/architecture-diagram.md)
+
+**Product docs:**
+
+- [Platform Overview](docs/platform-overview.md)
+- [Web App Guide](docs/app-guide.md)
+- [XML Instructions](docs/xml-instructions.md)
+- [CX Studio Integration](docs/cx-studio-integration.md)
+- [MCP Integration](docs/mcp-integration.md)
+- [Deployment](docs/deployment.md)
 
 **Feature deep dives:**
-[AutoFix](docs/features/autofix.md) | [Judge Ops](docs/features/judge-ops.md) | [Context Workbench](docs/features/context-workbench.md) | [Prompt Optimization](docs/features/prompt-optimization.md) | [Registry](docs/features/registry.md) | [Trace Grading](docs/features/trace-grading.md) | [NL Scorer](docs/features/nl-scorer.md)
 
-**More:**
-[Platform Overview](docs/platform-overview.md) | [Deployment](docs/deployment.md) | [Web App Guide](docs/app-guide.md) | [CX Integration](docs/cx-agent-studio.md) | [MCP Integration](docs/mcp-integration.md)
+- [AutoFix](docs/features/autofix.md)
+- [Judge Ops](docs/features/judge-ops.md)
+- [Context Workbench](docs/features/context-workbench.md)
+- [Prompt Optimization](docs/features/prompt-optimization.md)
+- [Registry](docs/features/registry.md)
+- [Trace Grading](docs/features/trace-grading.md)
+- [NL Scorer](docs/features/nl-scorer.md)
 
 ---
 
