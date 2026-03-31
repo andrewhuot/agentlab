@@ -56,21 +56,23 @@ Run `autoagent doctor` to verify your setup.
 ## Quick start
 
 ```bash
-autoagent new my-agent --template customer-support
+autoagent new my-agent --template customer-support --demo
 cd my-agent
 autoagent build "customer support agent for order tracking, refunds, and cancellations"
 autoagent eval run
-autoagent optimize --cycles 3
-autoagent deploy --auto-review
+autoagent optimize --cycles 1
+autoagent deploy --auto-review --yes
 ```
 
-That's the full loop: create → build → evaluate → optimize → deploy.
+That's the fastest reliable first-run loop: create → build → evaluate → optimize → deploy.
+
+`--demo` seeds a review card and deployable candidate so the final deploy step works on a brand-new workspace even if the first optimize cycle rejects every fresh mutation.
 
 ---
 
 ## CLI
 
-AutoAgent shows 15 commands by default (8 primary + 7 secondary). Run `autoagent advanced` for the full list.
+AutoAgent shows 16 commands by default (8 primary + 8 secondary). Run `autoagent advanced` for the full list.
 
 ### Primary commands
 
@@ -89,7 +91,8 @@ AutoAgent shows 15 commands by default (8 primary + 7 secondary). Run `autoagent
 
 | Command | Purpose |
 |---------|---------|
-| `config` | Manage config versions (list, show, diff, edit, pin) |
+| `config` | Manage config versions (list, show, diff, resolve, edit, set-active) |
+| `connect` | Import existing runtimes and transcript exports into AutoAgent |
 | `memory` | Manage AUTOAGENT.md persistent project context |
 | `mode` | Show or set CLI execution mode |
 | `model` | Inspect and override model preferences |
@@ -143,13 +146,16 @@ Every cycle produces a reviewable **experiment card** — hypothesis, config dif
 
 ## Web console
 
-Start the web UI with `autoagent status --server` and open `http://localhost:5173`. The sidebar toggles between **Simple** (6 essential pages) and **Pro** (full platform) views.
+Start the combined app with `autoagent server` and open `http://localhost:8000`. For hot-reload local development, run `./start.sh` and open `http://localhost:5173`.
+
+The sidebar toggles between **Simple** and **Pro** views. Simple mode exposes the day-one entry points: Dashboard, Setup, Build, Connect, Eval Runs, Results Explorer, Compare, Optimize, Improvements, and Deploy.
 
 - **Dashboard** — Health, recent activity, next recommended action
-- **Build** — Agent Studio, Intelligence Studio, assistant
-- **Eval Runs** — Per-case results, judge ops, scorer studio
-- **Optimize** — Trigger cycles, AutoFix proposals, experiments
-- **Review** — Approve or reject optimizer change cards
+- **Build** — Prompt-based agent generation and saved build artifacts
+- **Connect** — Import OpenAI Agents, Anthropic, HTTP, or transcript-backed runtimes
+- **Eval** — Eval Runs, Results Explorer, and Compare views
+- **Optimize** — Trigger cycles, inspect outcomes, and queue follow-up work
+- **Review** — Improvements workflow and reviewable change cards
 - **Deploy** — Canary rollout, release, rollback
 
 See [UI Quick Start](docs/UI_QUICKSTART_GUIDE.md) for a full walkthrough.

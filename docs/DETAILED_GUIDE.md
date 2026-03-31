@@ -152,8 +152,8 @@ Artifact coverage
   Integration templates: 1
 
 Generated handoff files
-  Config:   /path/to/my-project/configs/v002.yaml
-  Active:   v002
+  Config:   /path/to/my-project/configs/v003.yaml
+  Active:   v003
   Evals:    /path/to/my-project/evals/cases/generated_build.yaml
   Artifact: /path/to/my-project/.autoagent/build_artifact_latest.json
 
@@ -203,25 +203,27 @@ autoagent eval run
 Without API keys (auto-detected mock mode), you will see a note that scores are simulated. A successful run looks like:
 
 ```text
-✦ Running the gauntlet. Truth comes from test cases.
+✦ Running evaluation suite against the current configuration.
 
 Eval plan
   1. Load active runtime + config
   2. Run eval suite against selected scope
   3. Summarize scores and suggested follow-up
-Evaluating active config: /path/to/my-project/configs/v002.yaml
+Evaluating active config: /path/to/my-project/configs/v003.yaml
 ⚠ Eval harness is using mock_agent_response, so eval scores remain simulated until a real agent_fn is wired in.
 
-Full eval suite
-  Cases: 53/55 passed
-  Quality:   0.9764
-  Safety:    0.9818 (1 failures)
-  Latency:   0.9751
-  Cost:      0.8586
-  Composite: 0.9598
-  Tokens:    15554  |  Est. USD: $0.000000
+📊 Eval Results (MOCK MODE - simulated)
 
-  Mood: Flying
+Full eval suite
+  Cases: 4/5 passed
+  Quality:   0.8200
+  Safety:    0.8000 (1 failures)
+  Latency:   0.9784
+  Cost:      0.8043
+  Composite: 0.8443
+  Tokens:    1957  |  Est. USD: $0.000000
+
+  Status: Nominal
 
   Next actions:
     → autoagent optimize --cycles 3
@@ -254,21 +256,25 @@ autoagent optimize
 Typical output:
 
 ```text
-✦ Improve
+✦ Optimization cycle in progress. Evaluating candidate improvements.
 
-Eval composite: 0.9598
-AutoAgent Diagnosis
-───────────────────
-Found 6 failure cluster(s) across 11 total failures.
+Optimization plan
+  1. Observe failures and select dominant issue
+  2. Propose and evaluate candidate config changes
+  3. Accept/deploy only when quality improves
+⚠ Mock mode explicitly enabled by optimizer.use_mock.
 
-  1. safety_violation — 7 failures (11.7% impact)
-  2. timeout — 2 failures (3.3% impact)
-  3. unhelpful_response — 2 failures (3.3% impact)
+  Cycle 1/1
+    ↳ Diagnosing... found 1 safety_violation
+    ↳ Proposing fix for safety_violation (dominant failure)
+    ↳ Evaluating candidate config...
+    ↳ ✗ composite=0.9219 (+0.0776) (p=0.23)
+    → Rejected
 
-Suggested fixes: 1
-  Top proposal: e41d1cf8cab1 (few_shot_edit, risk=low, expected_lift=50.0%)
-
-Apply the top proposal now (e41d1cf8cab1)? [y/N]:
+  Next actions:
+    → autoagent status
+    → autoagent runbook list
+    → autoagent optimize --continuous
 ```
 
 ### Multi-cycle optimization
@@ -306,6 +312,8 @@ autoagent review apply pending
 ```
 
 `review apply pending` asks for confirmation in interactive use unless your current permission mode auto-accepts it.
+
+Because this guide uses `--demo`, the workspace already contains a pending review card and deployable candidate version. That makes the review/deploy steps below reproducible on a fresh install even if the first optimize run rejects every new mutation.
 
 Mark the latest version as canary and inspect rollout state:
 
@@ -354,7 +362,7 @@ You will see:
 
 ```text
 AutoAgent Shell
-[my-project | v002]
+[my-project | v003]
 Type /help for commands, or enter free text.
 
 autoagent>

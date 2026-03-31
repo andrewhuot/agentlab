@@ -344,53 +344,37 @@ Integrate AutoAgent into your deployment pipeline. Run evals as a CI check, gate
 
 ## Web console
 
-The web console is served at `http://localhost:5173` (dev) or `http://localhost:8000` (production), organized by workflow:
+The web console is served at `http://localhost:5173` (dev via `./start.sh`) or `http://localhost:8000` (combined app via `autoagent server`), organized by workflow:
 
-### Observe
-- **Dashboard** — Health pulse, journey timeline, metric cards, recommendations
-- **Traces** — Span-level trace viewer with filtering
-- **Blame Map** — Failure clustering and root cause attribution
-- **Conversations** — Browse agent conversations with outcome filtering
-- **Event Log** — Real-time system event timeline
+### Home / Build / Import
+- **Dashboard** — Health pulse, recent activity, and recommended next actions
+- **Setup** — First-run checklist and environment guidance
+- **Build** — Prompt-driven agent generation plus saved build artifacts
+- **Connect** — Guided import for OpenAI Agents, Anthropic, HTTP, and transcript-backed runtimes
 
-### Optimize
-- **Optimize** — Trigger cycles, view experiment history
-- **Live Optimize** — Real-time SSE streaming with phase indicators
-- **AutoFix** — AI-generated fix proposals with apply/reject
-- **Opportunities** — Ranked optimization queue by impact
-- **Experiments** — Experiment cards with diffs and statistics
+### Eval / Optimize / Review / Deploy
+- **Eval Runs** — Historical eval runs with mode badges and drill-in links
+- **Results Explorer** — Structured case-level results, filters, annotations, and exports
+- **Compare** — Stored pairwise comparisons and significance summaries
+- **Optimize** — Trigger cycles and inspect optimizer outcomes
+- **Improvements** — Review queue for change cards and experiments
+- **Deploy** — Canary controls, release actions, and rollout state
 
-### Evaluate
-- **Eval Runs** — Run history with comparison mode
-- **Eval Detail** — Per-case results with pass/fail breakdown
-- **Judge Ops** — Judge versioning, calibration, drift monitoring
-- **Scorer Studio** — Create eval scorers from natural language
-
-### Build
-- **Agent Studio** — Natural language config editing
-- **Intelligence Studio** — Transcript-to-agent pipeline
-- **Assistant** — Chat-based agent building
-- **Sandbox** — Synthetic scenario testing
-- **What-If** — Counterfactual scenario planning
-
-### Manage
-- **Configs** — Version browser with YAML viewer and side-by-side diffs
-- **Registry** — Skills, policies, tools, handoff schemas
-- **Deploy** — Canary controls and deployment history
-- **Loop Monitor** — Cycle-by-cycle progress and watchdog health
-- **Skills** — Optimization strategy browser with effectiveness tracking
-- **Runbooks** — Curated fix bundles with one-click apply
+### Observe / Govern / Integrations
+- **Observe** — Conversations, Traces, Event Log, Blame Map, Context, and Loop Monitor
+- **Govern** — Configs, Judge Ops, Runbooks, Skills, Memory, Registry, Scorer Studio, Notifications, and policy/reward review tools
+- **Integrations** — CX Deploy, ADK Deploy, Agent Skills, Sandbox, What-If, and Knowledge
 - **Settings** — Runtime configuration and keyboard shortcuts
 
 ---
 
 ## CLI
 
-15 commands visible by default (8 primary + 7 secondary). Run `autoagent advanced` to see all commands. Every command supports `--help`, and major commands support `--json` for structured output. See the [CLI reference](cli-reference.md) for the complete list.
+16 commands are visible by default (8 primary + 8 secondary, including `connect`). Run `autoagent advanced` to see the broader surface. Every command supports `--help`, and major commands support `--json` for structured output. See the [CLI reference](cli-reference.md) for the complete list.
 
 ## API
 
-200+ endpoints across 39 route modules, with OpenAPI docs at `/docs`. WebSocket at `/ws` for real-time updates and SSE at `/api/events` and `/api/optimize/stream` for live streaming. See the [API reference](api-reference.md) for the full endpoint list.
+The API is organized across dozens of FastAPI route modules, with OpenAPI docs at `/docs`. WebSocket support lives at `/ws`, and live streaming surfaces include `/api/events` and `/api/optimize/stream`. See the [API reference](api-reference.md) for the full endpoint list.
 
 ---
 

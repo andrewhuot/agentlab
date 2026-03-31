@@ -1,6 +1,6 @@
 # CLI Reference
 
-AutoAgent shows 15 commands by default (8 primary + 7 secondary). Run `autoagent advanced` to see all commands.
+AutoAgent shows 16 commands by default (8 primary + 8 secondary). Run `autoagent advanced` to see all commands.
 
 All commands support `--help`. Major commands support `--json` for structured output.
 
@@ -71,8 +71,9 @@ Commands:
 ```bash
 autoagent eval run
 autoagent eval show latest
-autoagent eval compare left.json right.json
+autoagent eval compare --left-run left.json --right-run right.json
 autoagent eval generate --config configs/v001.yaml --output generated_eval_suite.json
+autoagent eval results --failures
 ```
 
 ---
@@ -210,8 +211,29 @@ Commands:
   edit        Open active config in editor.
   import      Import a plain YAML/JSON into versioned store.
   migrate     Migrate old config format.
+  resolve     Resolve the effective workspace config and persist a lockfile.
   rollback    Roll back to a prior version.
   set-active  Set workspace default config version.
+```
+
+---
+
+### `autoagent connect`
+
+Import existing runtimes and transcript exports into new AutoAgent workspaces.
+
+```
+Commands:
+  openai-agents  Create an AutoAgent workspace from an OpenAI Agents project.
+  anthropic      Create an AutoAgent workspace from an Anthropic SDK project.
+  http           Create an AutoAgent workspace that proxies an HTTP agent endpoint.
+  transcript     Create an AutoAgent workspace from imported conversation transcripts.
+```
+
+**Examples:**
+```bash
+autoagent connect openai-agents --path ./agent-project
+autoagent connect transcript --file ./conversations.jsonl --name imported-agent
 ```
 
 ---

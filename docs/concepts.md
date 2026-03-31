@@ -135,4 +135,6 @@ Humans retain full control at all times:
 | `autoagent unpin <surface>` | Unlock a previously pinned surface |
 | `autoagent reject <experiment_id>` | Reject and roll back a specific experiment |
 
+These escape-hatch commands are part of the advanced CLI surface, so run `autoagent advanced` if you do not see them in the default `--help` output.
+
 Pinned surfaces and the pause state persist across restarts via `.autoagent/human_control.json`. The `immutable_surfaces` list in config defines surfaces that can never be modified, even by explicit unpin.
