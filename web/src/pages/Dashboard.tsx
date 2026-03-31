@@ -170,7 +170,7 @@ export function Dashboard() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Karpathy Loop Scorecard"
+          title="System Scorecard"
           description="Simplicity-first: 2 hard gates + 4 primary metrics."
         />
         <EmptyState
@@ -275,7 +275,7 @@ export function Dashboard() {
       )}
 
       <PageHeader
-        title="Karpathy Loop Scorecard"
+        title="System Scorecard"
         description="Simplicity-first: 2 hard gates + 4 primary metrics. Diagnostics in collapsible panel. Human overrides always visible."
         actions={
           <>

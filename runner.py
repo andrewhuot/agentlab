@@ -822,10 +822,10 @@ def _bar_chart(value: float, width: int = 10) -> str:
 
 
 SOUL_LINES: dict[str, str] = {
-    "status": "Pulse check complete. Your agent is alive and learning.",
-    "optimize": "Tuning in progress — we're chasing signal, not noise.",
+    "status": "System status reviewed. Metrics are ready for inspection.",
+    "optimize": "Optimization cycle in progress. Evaluating candidate improvements.",
     "quickstart": "Bootstrapping momentum. Let's make this thing sing.",
-    "eval": "Running the gauntlet. Truth comes from test cases.",
+    "eval": "Running evaluation suite against the current configuration.",
 }
 
 
@@ -834,17 +834,17 @@ def _soul_line(context: str) -> str:
     return SOUL_LINES.get(context, "AutoAgent is online.")
 
 
-def _score_mood(score: float | None) -> str:
-    """Map composite score to a human-friendly mood label."""
+def _score_status_label(score: float | None) -> str:
+    """Map composite score to a professional operational status label."""
     if score is None:
-        return "Warming up"
+        return "Initializing"
     if score >= 0.9:
-        return "Flying"
+        return "Healthy"
     if score >= 0.75:
-        return "Steady climb"
+        return "Nominal"
     if score >= 0.6:
-        return "Promising"
-    return "Needs love"
+        return "Degraded"
+    return "Needs Attention"
 
 
 def _print_cli_plan(title: str, steps: list[str]) -> None:
@@ -2246,7 +2246,7 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         click.echo(json_response("ok", _score_to_dict(score), next_cmd="autoagent improve"))
         return
 
-    click.echo(click.style(f"\n  Mood: {_score_mood(score.composite)}", fg="magenta"))
+    click.echo(click.style(f"\n  Status: {_score_status_label(score.composite)}", fg="magenta"))
     _print_next_actions(
         [
             "autoagent optimize --cycles 3",
@@ -2452,7 +2452,7 @@ def eval_generate(
 
         summary = suite.summary
         click.echo(f"\n  Safety probes: {summary.get('safety_probes', 0)}")
-        click.echo(click.style(f"\n  Mood: {_score_mood(0.85)}", fg="magenta"))
+        click.echo(click.style(f"\n  Status: {_score_status_label(0.85)}", fg="magenta"))
         _print_next_actions([
             "autoagent eval run --suite <generated_cases>",
             "autoagent eval generate --output evals.json",
@@ -2947,7 +2947,7 @@ def optimize(
         click.echo(f"\nOptimization complete. {cycles} cycles executed.")
     latest_attempts = memory.recent(limit=1)
     latest_score = latest_attempts[0].score_after if latest_attempts else None
-    click.echo(click.style(f"  Mood: {_score_mood(latest_score)}", fg="magenta"))
+    click.echo(click.style(f"  Status: {_score_status_label(latest_score)}", fg="magenta"))
     _print_next_actions(
         [
             "autoagent status",

@@ -9,7 +9,7 @@ from runner import (
     _stream_cycle_output,
     _generate_recommendations,
     _bar_chart,
-    _score_mood,
+    _score_status_label,
     _soul_line,
     _print_cli_plan,
     _print_next_actions,
@@ -50,17 +50,23 @@ class TestBarChart:
 
 
 class TestSoulHelpers:
-    def test_score_mood_none(self):
-        assert _score_mood(None) == "Warming up"
+    def test_score_status_none(self):
+        assert _score_status_label(None) == "Initializing"
 
-    def test_score_mood_high(self):
-        assert _score_mood(0.91) == "Flying"
+    def test_score_status_high(self):
+        assert _score_status_label(0.91) == "Healthy"
 
-    def test_score_mood_low(self):
-        assert _score_mood(0.4) == "Needs love"
+    def test_score_status_midrange(self):
+        assert _score_status_label(0.8) == "Nominal"
 
-    def test_soul_line_known_context(self):
-        assert "learning" in _soul_line("status").lower()
+    def test_score_status_low(self):
+        assert _score_status_label(0.4) == "Needs Attention"
+
+    def test_soul_line_status_context_uses_operational_language(self):
+        assert "metrics" in _soul_line("status").lower()
+
+    def test_soul_line_eval_context_uses_operational_language(self):
+        assert "evaluation" in _soul_line("eval").lower()
 
     def test_soul_line_fallback(self):
         assert _soul_line("unknown") == "AutoAgent is online."
