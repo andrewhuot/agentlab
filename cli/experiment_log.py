@@ -69,6 +69,11 @@ class ExperimentLogEntry:
         }
 
 
+def entry_id(entry: ExperimentLogEntry) -> str:
+    """Return the stable shared-record identifier for one experiment-log entry."""
+    return f"log-{entry.cycle}-{entry.timestamp}"
+
+
 def default_log_path() -> Path:
     """Centralize the log path so optimize and reporting commands cannot drift."""
     return DEFAULT_EXPERIMENT_LOG_PATH
@@ -112,10 +117,27 @@ def compute_delta(score_before: float | None, score_after: float | None) -> floa
     return score_after - score_before
 
 
+def _shared_status(status: str) -> str:
+    """Normalize CLI optimize outcomes into the review workflow statuses used by web/API surfaces."""
+    if status == "keep":
+        return "pending"
+    if status in {"discard", "skip", "crash"}:
+        return "rejected"
+    return status
+
+
+def _raw_status(record: ExperimentRecord) -> str:
+    """Recover the original CLI status when a shared experiment record came from the log view."""
+    operator_name = str(record.operator_name or "")
+    if operator_name.startswith("optimize::"):
+        return operator_name.split("::", 1)[1]
+    return record.status
+
+
 def _entry_to_record(entry: ExperimentLogEntry) -> ExperimentRecord:
     """Project a CLI history row into the shared experiment record contract."""
     return ExperimentRecord(
-        experiment_id=f"log-{entry.cycle}-{entry.timestamp}",
+        experiment_id=entry_id(entry),
         created_at=_timestamp_to_created_at(entry.timestamp),
         hypothesis=entry.description,
         touched_surfaces=["optimize"],
@@ -129,9 +151,9 @@ def _entry_to_record(entry: ExperimentLogEntry) -> ExperimentRecord:
         deployment_policy="pr_only",
         rollback_handle="",
         total_experiment_cost=0.0,
-        status=entry.status,
+        status=_shared_status(entry.status),
         result_summary=entry.description,
-        operator_name="optimize",
+        operator_name=f"optimize::{entry.status}",
         baseline_scores={"composite": entry.score_before} if entry.score_before is not None else {},
         candidate_scores={"composite": entry.score_after} if entry.score_after is not None else {},
         significance_p_value=1.0,
@@ -149,7 +171,7 @@ def _record_to_entry(record: ExperimentRecord, cycle: int) -> ExperimentLogEntry
         score_before=score_before,
         score_after=score_after,
         delta=compute_delta(score_before, score_after),
-        status=record.status,
+        status=_raw_status(record),
         description=record.hypothesis or record.result_summary or record.diff_summary,
     )
 

@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.routes.experiments import router
-from optimizer.experiments import ExperimentCard
+from optimizer.experiments import ExperimentCard, ExperimentStore
 from shared.contracts import ExperimentRecord
 
 
@@ -242,3 +242,33 @@ def test_experiment_card_serialization_matches_shared_contract() -> None:
     assert record.experiment_id == "exp-api-001"
     assert record.hypothesis == "Improve routing"
     assert record.candidate_scores == {"quality": 0.8}
+
+
+def test_list_experiments_normalizes_legacy_cli_statuses(app: FastAPI, tmp_path) -> None:
+    """Legacy `keep/discard` experiments should still surface in the web UI status filters."""
+    store = ExperimentStore(db_path=str(tmp_path / "experiments.db"))
+    store.save(ExperimentCard.from_record(ExperimentRecord(
+        experiment_id="exp-keep",
+        created_at=1711713600.0,
+        hypothesis="Pending review candidate",
+        status="keep",
+    )))
+    store.save(ExperimentCard.from_record(ExperimentRecord(
+        experiment_id="exp-discard",
+        created_at=1711713601.0,
+        hypothesis="Rejected candidate",
+        status="discard",
+    )))
+    app.state.experiment_store = store
+    client = TestClient(app)
+
+    pending = client.get("/api/experiments?status=pending")
+    rejected = client.get("/api/experiments?status=rejected")
+
+    assert pending.status_code == 200
+    assert pending.json()["experiments"][0]["experiment_id"] == "exp-keep"
+    assert pending.json()["experiments"][0]["status"] == "pending"
+
+    assert rejected.status_code == 200
+    assert rejected.json()["experiments"][0]["experiment_id"] == "exp-discard"
+    assert rejected.json()["experiments"][0]["status"] == "rejected"

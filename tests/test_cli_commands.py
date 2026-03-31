@@ -226,6 +226,34 @@ class TestEvalCommands:
         assert "scores" in data
         assert "results" in data
 
+    def test_eval_list_reads_workspace_latest_snapshot(self, runner, tmp_path, monkeypatch):
+        """`eval list` should include the canonical workspace latest snapshot under `.autoagent/`."""
+        workspace = tmp_path / "eval-list-workspace"
+        init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
+        assert init_result.exit_code == 0, init_result.output
+
+        monkeypatch.chdir(workspace)
+        latest_path = workspace / ".autoagent" / "eval_results_latest.json"
+        latest_path.write_text(
+            json.dumps(
+                {
+                    "timestamp": "2026-03-31T14:30:00+00:00",
+                    "scores": {"composite": 0.8123},
+                    "passed": 2,
+                    "total": 3,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(cli, ["eval", "list"])
+
+        assert result.exit_code == 0, result.output
+        assert "eval_results_latest.json" in result.output
+        assert "0.8123" in result.output
+        assert "2/3 passed" in result.output
+
     def test_eval_results_from_file(self, runner, tmp_dir):
         # First create a results file
         output_file = os.path.join(tmp_dir, "results.json")

@@ -14,9 +14,20 @@ from shared.experiment_store_adapter import experiment_card_to_record
 router = APIRouter(prefix="/api/experiments", tags=["experiments"])
 
 
+def _normalized_status(status: str) -> str:
+    """Map legacy CLI experiment statuses into the review workflow vocabulary used by the web UI."""
+    if status == "keep":
+        return "pending"
+    if status in {"discard", "skip", "crash"}:
+        return "rejected"
+    return status
+
+
 def _card_to_record_dict(card) -> dict:
     """Serialize an experiment card into the shared record payload."""
-    return experiment_card_to_record(card).to_dict()
+    payload = experiment_card_to_record(card).to_dict()
+    payload["status"] = _normalized_status(str(payload.get("status") or "pending"))
+    return payload
 
 
 @router.get("/stats")
@@ -26,7 +37,7 @@ async def get_experiment_stats(request: Request) -> dict:
     if store is None:
         return {"counts": {}, "message": "Experiment store not configured"}
     all_cards = store.get_all()
-    counts = Counter(card.status for card in all_cards)
+    counts = Counter(_normalized_status(card.status) for card in all_cards)
     return {"counts": dict(counts)}
 
 
@@ -41,7 +52,11 @@ async def list_experiments(
     if store is None:
         return {"experiments": [], "message": "Experiment store not configured"}
     if status:
-        cards = store.list_by_status(status=status, limit=limit)
+        cards = [
+            card
+            for card in store.list_recent(limit=max(limit * 5, limit))
+            if _normalized_status(card.status) == status
+        ][:limit]
     else:
         cards = store.list_recent(limit=limit)
     return {"experiments": [_card_to_record_dict(c) for c in cards]}

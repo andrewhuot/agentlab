@@ -75,12 +75,14 @@ from cli.experiment_log import (
     append_entry as append_experiment_log_entry,
     best_score_entry as best_experiment_log_entry,
     default_log_path as default_experiment_log_path,
+    entry_id as experiment_log_entry_id,
     format_table as format_experiment_log_table,
     make_entry as make_experiment_log_entry,
     next_cycle_number as next_experiment_log_cycle_number,
     read_entries as read_experiment_log_entries,
     summarize_entries as summarize_experiment_log_entries,
     tail_entries as tail_experiment_log_entries,
+    utc_timestamp as experiment_log_utc_timestamp,
 )
 from cli.intelligence import (
     TranscriptReportStore,
@@ -640,6 +642,24 @@ def _latest_eval_result_file() -> Path | None:
     return max(candidates.values(), key=lambda candidate: candidate.stat().st_mtime)
 
 
+def _list_eval_result_files(limit: int = 10) -> list[Path]:
+    """List eval result files from the same search roots as `latest` resolution."""
+    candidates: dict[Path, Path] = {}
+    for root in _eval_result_search_roots():
+        if not root.exists():
+            continue
+        for pattern in ("eval_results*.json", "*results*.json"):
+            for candidate in root.glob(pattern):
+                if not candidate.is_file():
+                    continue
+                candidates[candidate.resolve()] = candidate
+    return sorted(
+        candidates.values(),
+        key=lambda candidate: candidate.stat().st_mtime,
+        reverse=True,
+    )[:limit]
+
+
 def _collect_failure_clusters(data: dict) -> dict[str, int]:
     """Return failure buckets from explicit metadata or derive them from failed cases."""
     payload = _unwrap_eval_payload(data)
@@ -763,7 +783,7 @@ def _latest_eval_payload_for_active_config(active_config_path: Path | None) -> t
     payload = _unwrap_eval_payload(latest_payload)
     config_path_raw = payload.get("config_path") or latest_payload.get("config_path")
     if not config_path_raw:
-        return latest_path, None
+        return latest_path, latest_payload
 
     try:
         eval_config_path = Path(str(config_path_raw))
@@ -2474,12 +2494,12 @@ def eval_show(selector: str, results_file: str | None, json_output: bool = False
       autoagent eval show latest --json
       autoagent eval show --file results.json
     """
-    from cli.stream2_helpers import get_latest_eval_result, json_response
+    from cli.stream2_helpers import json_response
 
     if results_file:
         data = json.loads(Path(results_file).read_text(encoding="utf-8"))
     else:
-        data = get_latest_eval_result()
+        _latest_path, data = _latest_eval_payload()
 
     if data is None:
         if json_output:
@@ -2518,7 +2538,7 @@ def eval_list() -> None:
     Note: Full run history requires the API server.
     Checks for local result files in the current directory.
     """
-    results_files = sorted(Path(".").glob("*results*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    results_files = _list_eval_result_files()
     if not results_files:
         click.echo("No local eval result files found.")
         click.echo("Run: autoagent eval run --output results.json")
@@ -2735,6 +2755,7 @@ def _build_reviewable_change_card(
     candidate_version: int,
     candidate_path: Path,
     source_eval_path: Path | None,
+    experiment_card_id: str,
 ):
     """Create a pending change card that links an accepted optimization to a saved candidate config."""
     from optimizer.change_card import ConfidenceInfo, DiffHunk, ProposedChangeCard
@@ -2768,7 +2789,7 @@ def _build_reviewable_change_card(
         rollback_condition=(
             f"Rollback if composite drops below baseline {float(getattr(attempt, 'score_before', 0.0) or 0.0):.4f}"
         ),
-        experiment_card_id=str(getattr(attempt, "attempt_id", "")),
+        experiment_card_id=experiment_card_id,
         candidate_config_version=candidate_version,
         candidate_config_path=str(candidate_path),
         source_eval_path=str(source_eval_path) if source_eval_path is not None else "",
@@ -2922,6 +2943,15 @@ def _run_optimize_cycle(
                 candidate_scores=candidate_scores,
             )
             latest = memory.recent(limit=1)[0]
+            entry_timestamp = experiment_log_utc_timestamp()
+            preview_entry = make_experiment_log_entry(
+                cycle=cycle_number,
+                status=normalized_status,
+                description=description,
+                score_before=score_before,
+                score_after=score_after,
+                timestamp=entry_timestamp,
+            )
             change_card = _build_reviewable_change_card(
                 attempt=latest,
                 baseline_eval_data=latest_eval_data,
@@ -2929,6 +2959,7 @@ def _run_optimize_cycle(
                 candidate_version=candidate_version,
                 candidate_path=candidate_path,
                 source_eval_path=latest_eval_path,
+                experiment_card_id=experiment_log_entry_id(preview_entry),
             )
             ChangeCardStore().save(change_card)
             description = f"{description} (review {change_card.card_id}, candidate v{candidate_version:03d})"
@@ -2938,8 +2969,8 @@ def _run_optimize_cycle(
                 description=description,
                 score_before=score_before,
                 score_after=score_after,
+                timestamp=entry_timestamp,
             )
-            append_experiment_log_entry(entry, path=log_path)
 
             if not json_output and not continuous:
                 click.echo(f"  Review: saved {change_card.card_id} for v{candidate_version:03d}")
@@ -2947,14 +2978,14 @@ def _run_optimize_cycle(
                 promoted = _promote_latest_version(deployer)
                 if not json_output and not continuous and promoted is not None:
                     click.echo(click.style(f"  FULL AUTO: promoted v{promoted:03d} to active", fg="yellow"))
-
-        entry = make_experiment_log_entry(
-            cycle=cycle_number,
-            status=normalized_status,
-            description=description,
-            score_before=score_before,
-            score_after=score_after,
-        )
+        else:
+            entry = make_experiment_log_entry(
+                cycle=cycle_number,
+                status=normalized_status,
+                description=description,
+                score_before=score_before,
+                score_after=score_after,
+            )
         append_experiment_log_entry(entry, path=log_path)
 
         return (
@@ -5858,6 +5889,22 @@ def context_report() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _sync_experiment_status_for_change_card(experiment_id: str | None, status: str, *, title: str = "") -> None:
+    """Best-effort sync from a reviewed change card back into shared experiment history."""
+    if not experiment_id:
+        return
+    try:
+        from optimizer.experiments import ExperimentStore
+
+        ExperimentStore(db_path=str(default_experiment_log_path().parent / "experiments.db")).update_status(
+            experiment_id,
+            status,
+            result_summary=title,
+        )
+    except Exception:
+        return
+
+
 def _apply_change_card_to_workspace(card_id: str):
     """Mark a change card applied and make its candidate config the active local config."""
     from optimizer.change_card import ChangeCardStore
@@ -5871,6 +5918,7 @@ def _apply_change_card_to_workspace(card_id: str):
         raise click.ClickException(f"Card is not pending (status={card.status})")
     if card.candidate_config_version is None:
         store.update_status(card_id, "applied")
+        _sync_experiment_status_for_change_card(card.experiment_card_id, "accepted", title=card.title)
         return card, None, None
 
     candidate_path = workspace.resolve_config_path(card.candidate_config_version)
@@ -5884,6 +5932,7 @@ def _apply_change_card_to_workspace(card_id: str):
         )
 
     store.update_status(card_id, "applied")
+    _sync_experiment_status_for_change_card(card.experiment_card_id, "accepted", title=card.title)
     workspace.set_active_config(card.candidate_config_version, filename=candidate_path.name)
     return card, card.candidate_config_version, candidate_path
 
@@ -6109,6 +6158,7 @@ def review_reject(card_id: str, reason: str) -> None:
         raise SystemExit(1)
 
     store.update_status(card_id, "rejected", reason=reason)
+    _sync_experiment_status_for_change_card(card.experiment_card_id, "rejected", title=card.title)
     click.echo(f"Rejected change card {card_id}: {card.title}")
     if reason:
         click.echo(f"  Reason: {reason}")
@@ -6216,6 +6266,7 @@ def changes_reject(card_id: str, reason: str) -> None:
         click.echo(f"Card is not pending (status={card.status})")
         raise SystemExit(1)
     store.update_status(card_id, "rejected", reason=reason)
+    _sync_experiment_status_for_change_card(card.experiment_card_id, "rejected", title=card.title)
     click.echo(f"Rejected change card {card_id}: {card.title}")
     if reason:
         click.echo(f"  Reason: {reason}")

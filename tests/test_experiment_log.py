@@ -453,7 +453,7 @@ def test_append_entry_persists_shared_experiment_store(
 
     record = experiment_card_to_record(cards[0])
     assert record.hypothesis == "Improve routing prompts"
-    assert record.status == "keep"
+    assert record.status == "pending"
     assert record.baseline_scores == {"composite": 0.74}
     assert record.candidate_scores == {"composite": 0.81}
 

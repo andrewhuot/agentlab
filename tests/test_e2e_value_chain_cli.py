@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
 from optimizer.change_card import ChangeCardStore
+from optimizer.experiments import ExperimentStore
 from runner import cli
 
 
@@ -28,6 +30,32 @@ def clear_provider_api_keys(monkeypatch: pytest.MonkeyPatch) -> None:
 def _read_json(path: Path) -> dict:
     """Load a JSON file for assertions."""
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_surface_state(workspace: Path) -> tuple[dict, dict]:
+    """Read the API review/experiments surfaces against one workspace-local store set."""
+    if importlib.util.find_spec("fastapi") is None:
+        return {}, {}
+
+    import fastapi
+    from fastapi.testclient import TestClient
+
+    from api.routes.changes import router as changes_router
+    from api.routes.experiments import router as experiments_router
+
+    app = fastapi.FastAPI()
+    app.include_router(changes_router)
+    app.include_router(experiments_router)
+    app.state.change_card_store = ChangeCardStore(db_path=str(workspace / ".autoagent" / "change_cards.db"))
+    app.state.experiment_store = ExperimentStore(db_path=str(workspace / ".autoagent" / "experiments.db"))
+
+    client = TestClient(app)
+    changes_response = client.get("/api/changes?status=all")
+    experiments_response = client.get("/api/experiments?status=pending")
+
+    assert changes_response.status_code == 200, changes_response.text
+    assert experiments_response.status_code == 200, experiments_response.text
+    return changes_response.json(), experiments_response.json()
 
 
 def test_eval_run_defaults_to_workspace_eval_suite(
@@ -139,6 +167,57 @@ def test_full_loop_creates_reviewable_candidate_and_improves_after_apply(
     all_pass_optimize = runner.invoke(cli, ["optimize", "--cycles", "1"])
     assert all_pass_optimize.exit_code == 0, all_pass_optimize.output
     assert "no optimization needed" in all_pass_optimize.output.lower()
+
+
+def test_cli_and_api_review_surfaces_share_pending_and_applied_candidate_state(
+    runner: CliRunner,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CLI review, API changes, and API experiments should all agree on the same candidate lifecycle."""
+    workspace = tmp_path / "surface-sync-agent"
+    monkeypatch.chdir(tmp_path)
+    init_result = runner.invoke(cli, ["new", str(workspace.name)], catch_exceptions=False)
+    assert init_result.exit_code == 0, init_result.output
+
+    workspace = tmp_path / workspace.name
+    monkeypatch.chdir(workspace)
+
+    eval_result = runner.invoke(cli, ["eval", "run"])
+    assert eval_result.exit_code == 0, eval_result.output
+
+    optimize_result = runner.invoke(cli, ["optimize", "--cycles", "1"])
+    assert optimize_result.exit_code == 0, optimize_result.output
+
+    review_list_result = runner.invoke(cli, ["review", "list", "--json"])
+    assert review_list_result.exit_code == 0, review_list_result.output
+    review_payload = json.loads(review_list_result.output)
+    review_cards = review_payload["data"]
+    assert len(review_cards) == 1
+
+    pending_card = ChangeCardStore(db_path=str(workspace / ".autoagent" / "change_cards.db")).list_pending(limit=10)[0]
+    pending_experiments = ExperimentStore(db_path=str(workspace / ".autoagent" / "experiments.db")).list_by_status("pending")
+    assert len(pending_experiments) == 1
+    assert pending_card.experiment_card_id == pending_experiments[0].experiment_id
+    assert review_cards[0]["card_id"] == pending_card.card_id
+
+    changes_payload, experiments_payload = _load_surface_state(workspace)
+    if changes_payload and experiments_payload:
+        assert len(changes_payload["cards"]) == 1
+        assert changes_payload["cards"][0]["card_id"] == pending_card.card_id
+        assert len(experiments_payload["experiments"]) == 1
+        assert experiments_payload["experiments"][0]["experiment_id"] == pending_card.experiment_card_id
+        assert experiments_payload["experiments"][0]["status"] == "pending"
+
+    monkeypatch.setattr("cli.permissions.PermissionManager.require", lambda *args, **kwargs: None)
+    apply_result = runner.invoke(cli, ["review", "apply", pending_card.card_id])
+    assert apply_result.exit_code == 0, apply_result.output
+
+    accepted_experiment = ExperimentStore(
+        db_path=str(workspace / ".autoagent" / "experiments.db")
+    ).get(pending_card.experiment_card_id)
+    assert accepted_experiment is not None
+    assert accepted_experiment.status == "accepted"
 
 
 def test_optimize_without_eval_data_guides_user_and_deploy_rejects_active_only_workspace(
