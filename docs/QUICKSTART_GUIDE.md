@@ -5,7 +5,11 @@ Get a working agent in under 2 minutes.
 ## Install
 
 ```bash
-pip install autoagent
+git clone https://github.com/andrewhuot/autoagent-vnextcc.git
+cd autoagent-vnextcc
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
 ```
 
 ## Create an agent

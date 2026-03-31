@@ -17,6 +17,8 @@ If you want the one-command version of this flow, run `autoagent quickstart`.
 From this repository:
 
 ```bash
+git clone https://github.com/andrewhuot/autoagent-vnextcc.git
+cd autoagent-vnextcc
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
