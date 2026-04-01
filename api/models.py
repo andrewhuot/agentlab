@@ -551,6 +551,10 @@ class OptimizeRequest(BaseModel):
     """Request to start an optimization cycle."""
     window: int = Field(100, ge=1, le=10000, description="Number of recent conversations to analyze")
     force: bool = Field(False, description="Force optimization even if system appears healthy")
+    require_human_approval: bool = Field(
+        True,
+        description="Require human review before a passing config change is deployed",
+    )
     config_path: Optional[str] = Field(
         None,
         description="Optional config path for optimizing a selected agent instead of the active config",
@@ -570,6 +574,10 @@ class OptimizeRequest(BaseModel):
 class OptimizeCycleResult(BaseModel):
     """Result of a single optimization cycle."""
     accepted: bool = Field(..., description="Whether the proposed change was accepted")
+    pending_review: bool = Field(
+        False,
+        description="Whether a passing proposal is waiting for human approval before deploy",
+    )
     status_message: str = Field(..., description="Detailed status message from optimizer")
     change_description: Optional[str] = Field(None, description="Description of proposed change")
     config_diff: Optional[str] = Field(None, description="Config diff if a change was made")
@@ -604,6 +612,55 @@ class OptimizeResponse(BaseModel):
     """Response after starting an optimization run."""
     task_id: str = Field(..., description="Background task ID to poll for results")
     message: str = Field("Optimization started", description="Human-readable status")
+
+
+class PendingReview(BaseModel):
+    """Durable human-review record for a passing optimization proposal."""
+
+    attempt_id: str = Field(..., description="Optimization attempt identifier")
+    proposed_config: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Candidate config that passed evaluation gates",
+    )
+    current_config: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Config used as the evaluation baseline",
+    )
+    config_diff: str = Field("", description="Unified diff between current and proposed configs")
+    score_before: float = Field(0.0, description="Baseline composite score")
+    score_after: float = Field(0.0, description="Candidate composite score")
+    change_description: str = Field("", description="Human-readable summary of the change")
+    reasoning: str = Field("", description="Why the optimizer proposed this change")
+    created_at: datetime = Field(..., description="When the review record was created")
+    strategy: str = Field("simple", description="Optimization strategy used for the proposal")
+    selected_operator_family: Optional[str] = Field(
+        None,
+        description="Selected operator family when adaptive or full search is used",
+    )
+    governance_notes: list[str] = Field(
+        default_factory=list,
+        description="Governance notes captured during evaluation",
+    )
+    deploy_scores: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Score payload reused when the review is approved and deployed",
+    )
+    deploy_strategy: str = Field(
+        "immediate",
+        description="Deployment strategy to use when the review is approved",
+    )
+
+
+class PendingReviewActionResponse(BaseModel):
+    """Response after approving or rejecting a pending optimization review."""
+
+    status: str = Field(..., description="Action status")
+    attempt_id: str = Field(..., description="Optimization attempt identifier")
+    message: str = Field(..., description="Human-readable action summary")
+    deploy_message: Optional[str] = Field(
+        None,
+        description="Deployment result for approval actions",
+    )
 
 
 # ---------------------------------------------------------------------------

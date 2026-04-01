@@ -419,7 +419,9 @@ export interface OptimizationAttempt {
   timestamp: string;
   status:
     | 'accepted'
+    | 'pending_review'
     | 'rejected_invalid'
+    | 'rejected_human'
     | 'rejected_safety'
     | 'rejected_no_improvement'
     | 'rejected_regression'
@@ -444,6 +446,7 @@ export interface OptimizeResult {
 
 export interface OptimizeCycleResult {
   accepted: boolean;
+  pending_review: boolean;
   status_message: string;
   change_description: string | null;
   config_diff: string | null;
@@ -456,6 +459,30 @@ export interface OptimizeCycleResult {
   pareto_recommendation_id: string | null;
   governance_notes: string[];
   global_dimensions: Record<string, unknown>;
+}
+
+export interface PendingReview {
+  attempt_id: string;
+  proposed_config: Record<string, unknown>;
+  current_config: Record<string, unknown>;
+  config_diff: string;
+  score_before: number;
+  score_after: number;
+  change_description: string;
+  reasoning: string;
+  created_at: string;
+  strategy: string;
+  selected_operator_family: string | null;
+  governance_notes: string[];
+  deploy_scores?: Record<string, unknown>;
+  deploy_strategy: string;
+}
+
+export interface PendingReviewActionResult {
+  status: 'approved' | 'rejected' | string;
+  attempt_id: string;
+  message: string;
+  deploy_message: string | null;
 }
 
 export interface ConfigVersion {

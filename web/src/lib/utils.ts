@@ -65,6 +65,7 @@ export function statusVariant(status: string): 'success' | 'error' | 'warning' |
     case 'promoted':
     case 'live':
       return 'success';
+    case 'rejected_human':
     case 'failed':
     case 'fail':
     case 'error':
@@ -86,6 +87,8 @@ export function statusVariant(status: string): 'success' | 'error' | 'warning' |
       return 'warning';
     case 'running':
       return 'running';
+    case 'pending_review':
+      return 'pending';
     default:
       return 'pending';
   }

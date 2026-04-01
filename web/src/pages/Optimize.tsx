@@ -28,7 +28,15 @@ import { ScoreChart } from '../components/ScoreChart';
 import { StatusBadge } from '../components/StatusBadge';
 import { AgentSelector } from '../components/AgentSelector';
 import { useActiveAgent } from '../lib/active-agent';
-import { useAgents, useOptimizeHistory, useStartOptimize, useTaskStatus } from '../lib/api';
+import {
+  useAgents,
+  useApproveReview,
+  useOptimizeHistory,
+  usePendingReviews,
+  useRejectReview,
+  useStartOptimize,
+  useTaskStatus,
+} from '../lib/api';
 import { wsClient } from '../lib/websocket';
 import { toastError, toastInfo, toastSuccess } from '../lib/toast';
 import {
@@ -44,6 +52,7 @@ import type {
   DiffLine,
   OptimizationAttempt,
   OptimizeCycleResult,
+  PendingReview,
   TaskState,
 } from '../lib/types';
 
@@ -67,6 +76,7 @@ interface PersistedOptimizeResult {
 interface CompletedOptimizationSummary {
   agent: AgentLibraryItem | null;
   accepted: boolean;
+  pendingReview: boolean;
 }
 
 const modeDescriptions: Record<OptimizeMode, string> = {
@@ -362,6 +372,7 @@ function normalizeOptimizeResult(payload: unknown): OptimizeCycleResult | null {
 
   return {
     accepted: payload.accepted,
+    pending_review: Boolean(payload.pending_review),
     status_message: payload.status_message,
     change_description: typeof payload.change_description === 'string' ? payload.change_description : null,
     config_diff: typeof payload.config_diff === 'string' ? payload.config_diff : null,
@@ -387,6 +398,10 @@ function getAttemptImpact(attempt: OptimizationAttempt): string {
   switch (attempt.status) {
     case 'accepted':
       return 'Deployed to the active config';
+    case 'pending_review':
+      return 'Awaiting human review';
+    case 'rejected_human':
+      return 'Rejected during human review';
     case 'rejected_noop':
       return 'No config change';
     case 'error':
@@ -400,10 +415,16 @@ function getAttemptLabel(attempt: OptimizationAttempt): string {
   if (attempt.status === 'rejected_noop') {
     return 'no-op';
   }
+  if (attempt.status === 'rejected_human') {
+    return 'rejected';
+  }
   return attempt.status;
 }
 
 function getResultLabel(result: OptimizeCycleResult): string {
+  if (result.pending_review) {
+    return 'pending_review';
+  }
   if (result.accepted) {
     return 'accepted';
   }
@@ -577,9 +598,12 @@ function OptimizeRunSection({
   const [searchParams] = useSearchParams();
   const { data: history, isLoading, refetch } = useOptimizeHistory();
   const startOptimize = useStartOptimize();
+  const approveReview = useApproveReview();
+  const rejectReview = useRejectReview();
 
   const [windowSize, setWindowSize] = useState(100);
   const [force, setForce] = useState(() => searchParams.get('new') === '1');
+  const [requireHumanApproval, setRequireHumanApproval] = useState(true);
   const [expandedAttempt, setExpandedAttempt] = useState<string | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [activeTaskAgent, setActiveTaskAgent] = useState<AgentLibraryItem | null>(null);
@@ -598,26 +622,49 @@ function OptimizeRunSection({
 
   const taskStatus = useTaskStatus(activeTaskId);
   const handledTerminalTaskId = useRef<string | null>(null);
+  const taskIsRunning =
+    !!activeTaskId &&
+    (!taskStatus.data ||
+      taskStatus.data.status === 'running' ||
+      taskStatus.data.status === 'pending');
+  const {
+    data: pendingReviews = [],
+    refetch: refetchPendingReviews,
+  } = usePendingReviews(taskIsRunning);
 
   useEffect(() => {
-    const unsubscribe = wsClient.onMessage('optimize_complete', (payload) => {
+    const handleOptimizationEvent = (
+      payload: unknown,
+      toastVariant: 'success' | 'info' = 'info'
+    ) => {
       const data = payload as { task_id: string; accepted: boolean; status: string };
       if (activeTaskId && data.task_id === activeTaskId) {
         void taskStatus.refetch();
         void refetch();
+        void refetchPendingReviews();
         return;
       }
 
-      if (data.accepted) {
+      if (toastVariant === 'success' && data.accepted) {
         toastSuccess('Optimization accepted', data.status);
       } else {
         toastInfo('Optimization completed', data.status);
       }
       void refetch();
+      void refetchPendingReviews();
+    };
+    const unsubscribeComplete = wsClient.onMessage('optimize_complete', (payload) => {
+      handleOptimizationEvent(payload, 'success');
+    });
+    const unsubscribePending = wsClient.onMessage('optimize_pending_review', (payload) => {
+      handleOptimizationEvent(payload);
     });
 
-    return () => unsubscribe();
-  }, [activeTaskId, refetch, taskStatus.refetch]);
+    return () => {
+      unsubscribeComplete();
+      unsubscribePending();
+    };
+  }, [activeTaskId, refetch, refetchPendingReviews, taskStatus.refetch]);
 
   useEffect(() => {
     if (!taskStatus.data || taskStatus.data.task_id === handledTerminalTaskId.current) {
@@ -635,8 +682,14 @@ function OptimizeRunSection({
           completedAt: taskStatus.data.updated_at,
           result,
         });
-        setCompletedRun({ agent: finishedAgent, accepted: result.accepted });
-        if (result.accepted) {
+        setCompletedRun({
+          agent: finishedAgent,
+          accepted: result.accepted,
+          pendingReview: result.pending_review,
+        });
+        if (result.pending_review) {
+          toastInfo('Pending human review', result.status_message || 'Review the proposal before deployment.');
+        } else if (result.accepted) {
           toastSuccess('Optimization cycle finished', result.status_message || 'Change accepted.');
         } else {
           toastInfo('Optimization cycle finished', result.status_message || 'No deployable change this cycle.');
@@ -644,6 +697,7 @@ function OptimizeRunSection({
       }
       handledTerminalTaskId.current = taskStatus.data.task_id;
       void refetch();
+      void refetchPendingReviews();
     }
 
     if (taskStatus.data.status === 'failed') {
@@ -651,12 +705,6 @@ function OptimizeRunSection({
       handledTerminalTaskId.current = taskStatus.data.task_id;
     }
   }, [activeAgent, activeTaskAgent, refetch, taskStatus.data]);
-
-  const taskIsRunning =
-    !!activeTaskId &&
-    (!taskStatus.data ||
-      taskStatus.data.status === 'running' ||
-      taskStatus.data.status === 'pending');
 
   useEffect(() => {
     if (!taskIsRunning) {
@@ -712,6 +760,45 @@ function OptimizeRunSection({
     navigate(`/evals?agent=${encodeURIComponent(agent.id)}&new=1`, { state: { agent } });
   }
 
+  function scrollToPendingReviews() {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    document.getElementById('pending-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function handleApproveReview(review: PendingReview) {
+    approveReview.mutate(
+      { attemptId: review.attempt_id },
+      {
+        onSuccess: (payload) => {
+          toastSuccess('Review approved', payload.deploy_message || payload.message);
+          void refetch();
+          void refetchPendingReviews();
+        },
+        onError: (error) => {
+          toastError('Approve failed', error.message);
+        },
+      }
+    );
+  }
+
+  function handleRejectReview(review: PendingReview) {
+    rejectReview.mutate(
+      { attemptId: review.attempt_id },
+      {
+        onSuccess: (payload) => {
+          toastInfo('Review rejected', payload.message);
+          void refetch();
+          void refetchPendingReviews();
+        },
+        onError: (error) => {
+          toastError('Reject failed', error.message);
+        },
+      }
+    );
+  }
+
   function handleStart(forceOverride?: boolean) {
     if (!activeAgent) {
       toastError('Select an agent', 'Pick an agent from the library before starting optimization.');
@@ -727,10 +814,18 @@ function OptimizeRunSection({
     handledTerminalTaskId.current = null;
     setCompletedRun(null);
 
+    if (pendingReviews.length > 0) {
+      toastInfo(
+        'Pending review already queued',
+        'Another optimization proposal is awaiting human review. You can start a new run, but resolve the review when possible.'
+      );
+    }
+
     startOptimize.mutate(
       {
         window: windowSize,
         force: requestedForce,
+        require_human_approval: requireHumanApproval,
         config_path: activeAgent.config_path,
         mode: optimizeMode,
         objective,
@@ -784,13 +879,23 @@ function OptimizeRunSection({
                 {completedRun.agent ? `${completedRun.agent.name} finished its last optimization cycle` : 'Last optimization cycle finished'}
               </p>
               <p className="mt-1 text-sm text-emerald-800">
-                {completedRun.accepted
+                {completedRun.pendingReview
+                  ? 'A passing proposal is waiting in the review queue below. Approve it before it goes live.'
+                  : completedRun.accepted
                   ? 'Re-run eval to verify the improvement or open Configs to inspect the deployed YAML.'
                   : 'Open advanced settings to adjust the search or force another run when you are ready.'}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {completedRun.accepted ? (
+              {completedRun.pendingReview ? (
+                <button
+                  type="button"
+                  onClick={scrollToPendingReviews}
+                  className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                >
+                  Review pending change
+                </button>
+              ) : completedRun.accepted ? (
                 <>
                   <button
                     type="button"
@@ -1027,7 +1132,16 @@ function OptimizeRunSection({
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            {latestResult.result.accepted ? (
+            {latestResult.result.pending_review ? (
+              <button
+                type="button"
+                onClick={scrollToPendingReviews}
+                className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+              >
+                <Clock3 className="h-4 w-4" />
+                Review pending change
+              </button>
+            ) : latestResult.result.accepted ? (
               <>
                 <button
                   type="button"
@@ -1157,6 +1271,21 @@ function OptimizeRunSection({
               <Play className="h-4 w-4" />
               {startOptimize.isPending || taskIsRunning ? 'Running...' : 'Start Optimization'}
             </button>
+            <label htmlFor="require-human-approval" className="mt-4 flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3">
+              <input
+                id="require-human-approval"
+                type="checkbox"
+                checked={requireHumanApproval}
+                onChange={(event) => setRequireHumanApproval(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                <span className="block text-sm font-medium text-gray-900">Require human approval</span>
+                <span className="mt-1 block text-xs text-gray-500">
+                  Review proposed changes before they go live.
+                </span>
+              </span>
+            </label>
             <p className="mt-3 text-xs text-gray-500">
               {activeAgent
                 ? `This run will use ${activeAgent.name} and its saved config.`
@@ -1384,6 +1513,110 @@ function OptimizeRunSection({
           </div>
         )}
       </section>
+
+      {pendingReviews.length > 0 ? (
+        <section id="pending-reviews" className="rounded-2xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Pending Reviews</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                These proposals passed the eval gates but are waiting for a human decision before deployment.
+              </p>
+            </div>
+            <Clock3 className="h-4 w-4 text-amber-700" />
+          </div>
+
+          <div className="space-y-4">
+            {pendingReviews.map((review) => {
+              const delta = scoreDelta(review.score_before, review.score_after);
+              return (
+                <article
+                  key={review.attempt_id}
+                  className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="max-w-2xl">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusBadge variant="pending" label="pending review" />
+                        <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600">
+                          {review.strategy}
+                        </span>
+                        {review.selected_operator_family ? (
+                          <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600">
+                            {review.selected_operator_family}
+                          </span>
+                        ) : null}
+                      </div>
+                      <h4 className="mt-3 text-lg font-semibold text-gray-900">{review.change_description}</h4>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-600">{review.reasoning}</p>
+                      <p className="mt-2 text-xs text-gray-500">{formatTimestamp(review.created_at)}</p>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[360px]">
+                      <ResultStat label="Before" value={formatScoreValue(review.score_before)} />
+                      <ResultStat label="After" value={formatScoreValue(review.score_after)} />
+                      <ResultStat
+                        label="Delta"
+                        value={formatDeltaValue(delta)}
+                        valueClassName={classNames(
+                          delta !== null && delta > 0 && 'text-emerald-700',
+                          delta !== null && delta < 0 && 'text-rose-700',
+                          delta === 0 && 'text-amber-700'
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                    <div>
+                      <h5 className="mb-3 text-sm font-semibold text-gray-900">Config diff</h5>
+                      <DiffViewer lines={parseDiffLines(review.config_diff)} versionA={0} versionB={1} />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <h5 className="text-sm font-semibold text-gray-900">Governance notes</h5>
+                        {review.governance_notes.length > 0 ? (
+                          <div className="mt-3 space-y-2">
+                            {review.governance_notes.map((note, index) => (
+                              <p key={`${review.attempt_id}-note-${index}`} className="text-sm text-gray-600">
+                                {note}
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-sm text-gray-500">No additional governance notes were recorded.</p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleApproveReview(review)}
+                          disabled={approveReview.isPending}
+                          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Approve & Deploy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectReview(review)}
+                          disabled={rejectReview.isPending}
+                          className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3.5 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+                        >
+                          <X className="h-4 w-4" />
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {attempts.length > 0 ? (
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">

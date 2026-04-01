@@ -96,6 +96,10 @@ GENERATED_EVAL_STORE_DIR = os.environ.get(
     "AGENTLAB_GENERATED_EVALS",
     ".agentlab/generated_evals",
 )
+PENDING_REVIEW_STORE_DIR = os.environ.get(
+    "AGENTLAB_PENDING_REVIEWS",
+    "workspace/pending_reviews",
+)
 WEB_DIST_DIR = Path(__file__).parent.parent / "web" / "dist"
 
 
@@ -143,6 +147,7 @@ async def lifespan(app: FastAPI):
     from optimizer import Optimizer
     from optimizer.adversarial import AdversarialSimulationConfig, AdversarialSimulator
     from optimizer.memory import OptimizationMemory
+    from optimizer.pending_reviews import PendingReviewStore
     from optimizer.proposer import Proposer
     from optimizer.providers import build_router_from_runtime_config
     from optimizer.reliability import (
@@ -213,6 +218,7 @@ async def lifespan(app: FastAPI):
         report_store=transcript_report_store,
     )
     generated_eval_store = GeneratedEvalSuiteStore(store_dir=GENERATED_EVAL_STORE_DIR)
+    pending_review_store = PendingReviewStore(store_dir=PENDING_REVIEW_STORE_DIR)
 
     # Initialize skills system
     skill_store = SkillStore(db_path=".agentlab/core_skills.db")
@@ -294,6 +300,7 @@ async def lifespan(app: FastAPI):
         base_dir=os.environ.get("AGENTLAB_PAIRWISE_DIR", ".agentlab/pairwise")
     )
     app.state.generated_eval_store = generated_eval_store
+    app.state.pending_review_store = pending_review_store
     app.state.auto_eval_generator = AutoEvalGenerator(store=generated_eval_store)
     app.state.proposer = proposer
     app.state.transcript_report_store = transcript_report_store

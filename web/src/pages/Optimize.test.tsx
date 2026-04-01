@@ -5,20 +5,32 @@ import userEvent from '@testing-library/user-event';
 import { Optimize } from './Optimize';
 import { useActiveAgentStore } from '../lib/active-agent';
 
-let optimizeCompleteHandler: ((payload: unknown) => void) | null = null;
+const wsHandlers = new Map<string, (payload: unknown) => void>();
 
 const apiMocks = vi.hoisted(() => ({
   useAgent: vi.fn(),
   useAgents: vi.fn(),
+  useApproveReview: vi.fn(),
   useOptimizeHistory: vi.fn(),
+  usePendingReviews: vi.fn(),
+  useRejectReview: vi.fn(),
   useStartOptimize: vi.fn(),
   useTaskStatus: vi.fn(),
+}));
+
+const toastMocks = vi.hoisted(() => ({
+  toastError: vi.fn(),
+  toastInfo: vi.fn(),
+  toastSuccess: vi.fn(),
 }));
 
 vi.mock('../lib/api', () => ({
   useAgent: apiMocks.useAgent,
   useAgents: apiMocks.useAgents,
+  useApproveReview: apiMocks.useApproveReview,
   useOptimizeHistory: apiMocks.useOptimizeHistory,
+  usePendingReviews: apiMocks.usePendingReviews,
+  useRejectReview: apiMocks.useRejectReview,
   useStartOptimize: apiMocks.useStartOptimize,
   useTaskStatus: apiMocks.useTaskStatus,
 }));
@@ -27,8 +39,12 @@ vi.mock('../lib/websocket', () => ({
   wsClient: {
     connect: vi.fn(),
     onMessage: vi.fn((_type: string, handler: (payload: unknown) => void) => {
-      optimizeCompleteHandler = handler;
-      return () => undefined;
+      wsHandlers.set(_type, handler);
+      return () => {
+        if (wsHandlers.get(_type) === handler) {
+          wsHandlers.delete(_type);
+        }
+      };
     }),
   },
 }));
@@ -38,9 +54,9 @@ vi.mock('./LiveOptimize', () => ({
 }));
 
 vi.mock('../lib/toast', () => ({
-  toastError: vi.fn(),
-  toastInfo: vi.fn(),
-  toastSuccess: vi.fn(),
+  toastError: toastMocks.toastError,
+  toastInfo: toastMocks.toastInfo,
+  toastSuccess: toastMocks.toastSuccess,
 }));
 
 function renderOptimize(initialEntry = '/optimize') {
@@ -58,9 +74,12 @@ function renderOptimize(initialEntry = '/optimize') {
 
 describe('Optimize', () => {
   beforeEach(() => {
-    optimizeCompleteHandler = null;
+    wsHandlers.clear();
     window.sessionStorage.clear();
     useActiveAgentStore.getState().clearActiveAgent();
+    toastMocks.toastError.mockReset();
+    toastMocks.toastInfo.mockReset();
+    toastMocks.toastSuccess.mockReset();
 
     apiMocks.useAgents.mockReturnValue({
       data: [
@@ -97,6 +116,19 @@ describe('Optimize', () => {
       isLoading: false,
       refetch: vi.fn(),
     });
+    apiMocks.usePendingReviews.mockReturnValue({
+      data: [],
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+    apiMocks.useApproveReview.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    });
+    apiMocks.useRejectReview.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    });
     apiMocks.useTaskStatus.mockReturnValue({
       data: null,
       refetch: vi.fn(),
@@ -124,9 +156,60 @@ describe('Optimize', () => {
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({
         config_path: '/workspace/configs/v002.yaml',
+        require_human_approval: true,
       }),
       expect.any(Object)
     );
+  });
+
+  it('warns before starting a new run when a review is already pending', async () => {
+    const user = userEvent.setup();
+    const mutate = vi.fn((_params, options) => {
+      options?.onSuccess?.({ task_id: 'opt-123456', message: 'Optimization started' });
+    });
+    apiMocks.useStartOptimize.mockReturnValue({
+      mutate,
+      isPending: false,
+    });
+    apiMocks.usePendingReviews.mockReturnValue({
+      data: [
+        {
+          attempt_id: 'attempt-pending',
+          proposed_config: { prompts: { root: 'new' } },
+          current_config: { prompts: { root: 'old' } },
+          config_diff: '- root: old\n+ root: new',
+          score_before: 72,
+          score_after: 84,
+          change_description: 'Strengthen root prompt',
+          reasoning: 'Improve routing clarity and answer quality',
+          created_at: '2026-04-01T12:00:00.000Z',
+          strategy: 'simple',
+          selected_operator_family: 'prompts',
+          governance_notes: ['Protected safety floor at 99%.'],
+          deploy_strategy: 'immediate',
+        },
+      ],
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+
+    renderOptimize('/optimize?agent=agent-v002');
+
+    await user.click(screen.getByRole('button', { name: 'Start Optimization' }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        require_human_approval: true,
+      }),
+      expect.any(Object)
+    );
+    expect(
+      toastMocks.toastInfo.mock.calls.some(
+        ([title, description]) =>
+          String(title).includes('Pending review') &&
+          String(description).includes('awaiting human review')
+      )
+    ).toBe(true);
   });
 
   it('shows a prominent live progress section with step label and elapsed time', async () => {
@@ -296,5 +379,150 @@ describe('Optimize', () => {
     expect(screen.getByText('41 paired eval cases')).toBeInTheDocument();
     expect(screen.getByText('- escalation_threshold: 0.71')).toBeInTheDocument();
     expect(screen.getByText('+ escalation_threshold: 0.63')).toBeInTheDocument();
+  });
+
+  it('renders pending review cards above history with reasoning, governance notes, and diff', () => {
+    apiMocks.useStartOptimize.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    });
+    apiMocks.usePendingReviews.mockReturnValue({
+      data: [
+        {
+          attempt_id: 'attempt-pending',
+          proposed_config: { prompts: { root: 'new' } },
+          current_config: { prompts: { root: 'old' } },
+          config_diff: '- root: old\n+ root: new',
+          score_before: 72,
+          score_after: 84,
+          change_description: 'Strengthen root prompt',
+          reasoning: 'Improve routing clarity and answer quality',
+          created_at: '2026-04-01T12:00:00.000Z',
+          strategy: 'simple',
+          selected_operator_family: 'prompts',
+          governance_notes: ['Protected safety floor at 99%.'],
+          deploy_strategy: 'immediate',
+        },
+      ],
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+
+    renderOptimize('/optimize?agent=agent-v002');
+
+    expect(screen.getByText('Pending Reviews')).toBeInTheDocument();
+    expect(screen.getByText('Strengthen root prompt')).toBeInTheDocument();
+    expect(screen.getByText('Improve routing clarity and answer quality')).toBeInTheDocument();
+    expect(screen.getByText('Protected safety floor at 99%.')).toBeInTheDocument();
+    expect(screen.getByText('- root: old')).toBeInTheDocument();
+    expect(screen.getByText('+ root: new')).toBeInTheDocument();
+  });
+
+  it('approves a pending review and shows a success toast', async () => {
+    const user = userEvent.setup();
+    const approveMutate = vi.fn((_params, options) => {
+      options?.onSuccess?.({
+        status: 'approved',
+        attempt_id: 'attempt-pending',
+        message: 'Pending review approved and deployed',
+        deploy_message: 'Deployed as active config v12.',
+      });
+    });
+    apiMocks.useStartOptimize.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    });
+    apiMocks.usePendingReviews.mockReturnValue({
+      data: [
+        {
+          attempt_id: 'attempt-pending',
+          proposed_config: { prompts: { root: 'new' } },
+          current_config: { prompts: { root: 'old' } },
+          config_diff: '- root: old\n+ root: new',
+          score_before: 72,
+          score_after: 84,
+          change_description: 'Strengthen root prompt',
+          reasoning: 'Improve routing clarity and answer quality',
+          created_at: '2026-04-01T12:00:00.000Z',
+          strategy: 'simple',
+          selected_operator_family: 'prompts',
+          governance_notes: ['Protected safety floor at 99%.'],
+          deploy_strategy: 'immediate',
+        },
+      ],
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+    apiMocks.useApproveReview.mockReturnValue({
+      mutate: approveMutate,
+      isPending: false,
+    });
+
+    renderOptimize('/optimize?agent=agent-v002');
+
+    await user.click(screen.getByRole('button', { name: 'Approve & Deploy' }));
+
+    expect(approveMutate).toHaveBeenCalledWith(
+      { attemptId: 'attempt-pending' },
+      expect.any(Object)
+    );
+    expect(toastMocks.toastSuccess).toHaveBeenCalledWith(
+      'Review approved',
+      'Deployed as active config v12.'
+    );
+  });
+
+  it('rejects a pending review and shows an info toast', async () => {
+    const user = userEvent.setup();
+    const rejectMutate = vi.fn((_params, options) => {
+      options?.onSuccess?.({
+        status: 'rejected',
+        attempt_id: 'attempt-pending',
+        message: 'Pending review rejected and discarded',
+        deploy_message: null,
+      });
+    });
+    apiMocks.useStartOptimize.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    });
+    apiMocks.usePendingReviews.mockReturnValue({
+      data: [
+        {
+          attempt_id: 'attempt-pending',
+          proposed_config: { prompts: { root: 'new' } },
+          current_config: { prompts: { root: 'old' } },
+          config_diff: '- root: old\n+ root: new',
+          score_before: 72,
+          score_after: 84,
+          change_description: 'Strengthen root prompt',
+          reasoning: 'Improve routing clarity and answer quality',
+          created_at: '2026-04-01T12:00:00.000Z',
+          strategy: 'simple',
+          selected_operator_family: 'prompts',
+          governance_notes: ['Protected safety floor at 99%.'],
+          deploy_strategy: 'immediate',
+        },
+      ],
+      isLoading: false,
+      refetch: vi.fn(),
+    });
+    apiMocks.useRejectReview.mockReturnValue({
+      mutate: rejectMutate,
+      isPending: false,
+    });
+
+    renderOptimize('/optimize?agent=agent-v002');
+
+    await user.click(screen.getByRole('button', { name: 'Reject' }));
+
+    expect(rejectMutate).toHaveBeenCalledWith(
+      { attemptId: 'attempt-pending' },
+      expect.any(Object)
+    );
+    expect(toastMocks.toastInfo).toHaveBeenCalledWith(
+      'Review rejected',
+      'Pending review rejected and discarded'
+    );
   });
 });

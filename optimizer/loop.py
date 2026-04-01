@@ -50,6 +50,9 @@ class StrategyDiagnostics:
     governance_notes: list[str]
     global_dimensions: dict[str, Any]
     skills_applied: list[str] = None  # Skill IDs applied in this cycle
+    proposal_reasoning: str | None = None
+    proposal_change_description: str | None = None
+    proposal_config_section: str | None = None
 
     def __post_init__(self):
         if self.skills_applied is None:
@@ -195,6 +198,9 @@ class Optimizer:
             return None, "STALL_DETECTED: No improvement over recent cycles"
 
         self._log_event("mutation_proposed", {"strategy": self.search_strategy.value}, cycle_id=cycle_id)
+        self._last_strategy_diagnostics.proposal_reasoning = None
+        self._last_strategy_diagnostics.proposal_change_description = None
+        self._last_strategy_diagnostics.proposal_config_section = None
 
         if self.search_strategy == SearchStrategy.PRO:
             return self._optimize_pro(health_report, current_config, failure_samples)
@@ -260,6 +266,10 @@ class Optimizer:
         if proposal is None:
             return None, "No proposal generated"
 
+        self._last_strategy_diagnostics.proposal_reasoning = proposal.reasoning
+        self._last_strategy_diagnostics.proposal_change_description = proposal.change_description
+        self._last_strategy_diagnostics.proposal_config_section = proposal.config_section
+
         return self._finalize_candidate(
             health_report=health_report,
             validated_current=validated_current,
@@ -323,6 +333,14 @@ class Optimizer:
         import copy
         candidate_config = copy.deepcopy(current_config)
         candidate_config.update(patch)
+        self._last_strategy_diagnostics.proposal_reasoning = (
+            f"Pro-mode search selected {result.algorithm} after evaluating "
+            f"{result.candidates_evaluated} candidates."
+        )
+        self._last_strategy_diagnostics.proposal_change_description = (
+            f"Pro-mode optimization ({result.algorithm}): {result.candidates_evaluated} candidates, best={result.best_score:.4f}"
+        )
+        self._last_strategy_diagnostics.proposal_config_section = "prompt_optimization"
 
         return self._finalize_candidate(
             health_report=health_report,

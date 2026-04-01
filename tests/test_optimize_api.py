@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import threading
 import time
 import uuid
@@ -24,7 +26,7 @@ from deployer import Deployer
 from evals.scorer import CompositeScore, DimensionScores, EvalResult
 from observer.metrics import HealthMetrics, HealthReport
 from optimizer.loop import Optimizer
-from optimizer.memory import OptimizationMemory
+from optimizer.memory import OptimizationAttempt, OptimizationMemory
 from optimizer.proposer import Proposal
 from optimizer.search import SearchStrategy
 
@@ -105,6 +107,28 @@ class _DummyWsManager:
 class _DummyMemory:
     def recent(self, limit=1):  # noqa: ANN001, ARG002
         return []
+
+
+class _InMemoryPendingReviewStore:
+    def __init__(self) -> None:
+        self._reviews: dict[str, object] = {}
+
+    def save_review(self, review) -> None:  # noqa: ANN001
+        attempt_id = getattr(review, "attempt_id", None)
+        if attempt_id is None and isinstance(review, dict):
+            attempt_id = review.get("attempt_id")
+        assert attempt_id is not None
+        self._reviews[str(attempt_id)] = review
+
+    def list_pending(self, limit: int = 50) -> list[object]:
+        reviews = list(self._reviews.values())
+        return reviews[:limit]
+
+    def get_review(self, attempt_id: str) -> object | None:
+        return self._reviews.get(attempt_id)
+
+    def delete_review(self, attempt_id: str) -> bool:
+        return self._reviews.pop(attempt_id, None) is not None
 
 
 class _RecordingTask(Task):
@@ -313,12 +337,46 @@ def app() -> FastAPI:
     test_app.state.eval_runner = _DummyEvalRunner()
     test_app.state.conversation_store = _DummyStore()
     test_app.state.optimization_memory = _DummyMemory()
+    test_app.state.pending_review_store = _InMemoryPendingReviewStore()
     return test_app
 
 
 @pytest.fixture()
 def client(app: FastAPI) -> TestClient:
     return TestClient(app)
+
+
+def _pending_review_payload(attempt_id: str = "attempt-pending") -> dict[str, object]:
+    return {
+        "attempt_id": attempt_id,
+        "proposed_config": {
+            "model": "gpt-5.4",
+            "prompts": {"root": "Resolve support issues safely. Validate every answer."},
+        },
+        "current_config": {
+            "model": "gpt-5.4",
+            "prompts": {"root": "Resolve support issues safely."},
+        },
+        "config_diff": "- root: Resolve support issues safely.\n+ root: Resolve support issues safely. Validate every answer.",
+        "score_before": 0.72,
+        "score_after": 0.84,
+        "change_description": "Strengthen root prompt",
+        "reasoning": "Improve routing clarity and answer quality",
+        "created_at": "2026-04-01T12:00:00+00:00",
+        "strategy": "simple",
+        "selected_operator_family": "prompts",
+        "governance_notes": ["Protected safety floor at 99%."],
+        "deploy_scores": {
+            "quality": 0.84,
+            "safety": 1.0,
+            "latency": 0.79,
+            "cost": 0.78,
+            "composite": 0.84,
+            "global_dimensions": {"task_success_rate": 0.84},
+            "per_agent_dimensions": {},
+        },
+        "deploy_strategy": "immediate",
+    }
 
 
 def test_start_optimization_applies_requested_mode_settings(client: TestClient, app: FastAPI) -> None:
@@ -373,6 +431,135 @@ def test_start_optimization_uses_selected_agent_config_when_config_path_is_provi
     optimizer = app.state.optimizer
     assert optimizer.received_current_configs[-1]["model"] == "selected-model"
     assert optimizer.received_current_configs[-1]["prompts"]["root"] == "Selected config prompt"
+
+
+def test_pending_review_store_persists_reviews_to_json(tmp_path: Path) -> None:
+    spec = importlib.util.find_spec("optimizer.pending_reviews")
+
+    assert spec is not None
+
+    module = importlib.import_module("optimizer.pending_reviews")
+    store_dir = tmp_path / "workspace" / "pending_reviews"
+    store = module.PendingReviewStore(store_dir=str(store_dir))
+    review = module.PendingReview(
+        attempt_id="attempt-persisted",
+        proposed_config={"prompts": {"root": "new"}},
+        current_config={"prompts": {"root": "old"}},
+        config_diff="- root: old\n+ root: new",
+        score_before=0.72,
+        score_after=0.84,
+        change_description="Strengthen root prompt",
+        reasoning="Improve routing clarity and answer quality",
+        created_at=datetime.now(timezone.utc),
+        strategy="simple",
+        selected_operator_family="prompts",
+        governance_notes=["Protected safety floor at 99%."],
+        deploy_scores={"composite": 0.84},
+        deploy_strategy="immediate",
+    )
+
+    store.save_review(review)
+
+    reloaded = module.PendingReviewStore(store_dir=str(store_dir))
+    pending = reloaded.list_pending()
+
+    assert [item.attempt_id for item in pending] == ["attempt-persisted"]
+    assert pending[0].reasoning == "Improve routing clarity and answer quality"
+    assert pending[0].deploy_strategy == "immediate"
+
+
+def test_accepted_optimization_run_defaults_to_pending_human_review_and_skips_deploy(
+    tmp_path: Path,
+    base_config: dict,
+) -> None:
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer_memory.db"))
+    eval_runner = _PromptSensitiveEvalRunner()
+    optimizer = Optimizer(
+        eval_runner=eval_runner,
+        memory=memory,
+        proposer=_PromptBoostProposer(),
+        require_statistical_significance=False,
+    )
+    deployer = _RecordingDeployer(configs_dir=str(tmp_path / "configs"))
+    deployer.version_manager.save_version(base_config, scores={"composite": 0.72}, status="active")
+    ws_manager = _RecordingWsManager()
+
+    config_path = tmp_path / "workspace" / "selected-agent.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(yaml.safe_dump(base_config, sort_keys=False), encoding="utf-8")
+
+    test_app = FastAPI()
+    test_app.include_router(optimize_routes.router)
+    test_app.include_router(config_routes.router)
+    test_app.state.task_manager = _RecordingTaskManager()
+    test_app.state.ws_manager = ws_manager
+    test_app.state.observer = _RealObserver()
+    test_app.state.optimizer = optimizer
+    test_app.state.deployer = deployer
+    test_app.state.eval_runner = eval_runner
+    test_app.state.conversation_store = _FailureStore()
+    test_app.state.optimization_memory = memory
+    test_app.state.pending_review_store = _InMemoryPendingReviewStore()
+    test_app.state.version_manager = deployer.version_manager
+
+    _add_task_status_route(test_app)
+
+    client = TestClient(test_app)
+
+    response = client.post(
+        "/api/optimize/run",
+        json={
+            "window": 25,
+            "force": True,
+            "mode": "standard",
+            "objective": "improve answer quality",
+            "guardrails": ["safety >= 0.99"],
+            "research_algorithm": "",
+            "budget_cycles": 5,
+            "budget_dollars": 3.0,
+            "config_path": str(config_path),
+        },
+    )
+
+    assert response.status_code == 202
+    task_id = response.json()["task_id"]
+
+    task_payload: dict[str, object] | None = None
+    for _ in range(100):
+        task_response = client.get(f"/api/tasks/{task_id}")
+        assert task_response.status_code == 200
+        task_payload = task_response.json()
+        if task_payload["status"] == "completed":
+            break
+        time.sleep(0.02)
+
+    assert task_payload is not None
+    assert task_payload["status"] == "completed"
+
+    result = task_payload["result"]
+    assert result["accepted"] is True
+    assert result["pending_review"] is True
+    assert result["status_message"] == "Pending human review"
+    assert result["deploy_message"] is None
+    assert len(deployer.deploy_calls) == 0
+
+    pending_response = client.get("/api/optimize/pending")
+    assert pending_response.status_code == 200
+    pending_reviews = pending_response.json()
+    assert len(pending_reviews) == 1
+    assert pending_reviews[0]["attempt_id"]
+    assert pending_reviews[0]["change_description"] == "Strengthen root prompt"
+    assert pending_reviews[0]["reasoning"] == "Improve routing clarity and answer quality"
+    assert "Validate every answer." in pending_reviews[0]["config_diff"]
+
+    history_response = client.get("/api/optimize/history")
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert history[0]["status"] == "pending_review"
+
+    assert ws_manager.messages[-1]["type"] == "optimize_pending_review"
+    assert ws_manager.messages[-1]["task_id"] == task_id
+    assert ws_manager.messages[-1]["status"] == "Pending human review"
 
 
 def test_accepted_optimization_run_promotes_active_config_persists_history_and_broadcasts_completion(
@@ -441,6 +628,7 @@ def test_accepted_optimization_run_promotes_active_config_persists_history_and_b
         json={
             "window": 25,
             "force": True,
+            "require_human_approval": False,
             "mode": "standard",
             "objective": "improve answer quality",
             "guardrails": ["safety >= 0.99"],
@@ -509,6 +697,102 @@ def test_accepted_optimization_run_promotes_active_config_persists_history_and_b
     assert ws_manager.messages[-1]["task_id"] == task_id
     assert ws_manager.messages[-1]["accepted"] is True
     assert ws_manager.messages[-1]["status"].startswith("ACCEPTED:")
+
+
+def test_approve_pending_review_deploys_and_removes_review(tmp_path: Path) -> None:
+    deployer = _RecordingDeployer(configs_dir=str(tmp_path / "configs"))
+    ws_manager = _RecordingWsManager()
+    review_store = _InMemoryPendingReviewStore()
+    review_store.save_review(_pending_review_payload())
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer_memory.db"))
+    memory.log(
+        OptimizationAttempt(
+            attempt_id="attempt-pending",
+            timestamp=time.time(),
+            change_description="Strengthen root prompt",
+            config_diff="- root: old\n+ root: new",
+            status="pending_review",
+            config_section="prompts",
+            score_before=0.72,
+            score_after=0.84,
+            health_context='{"metrics":{"success_rate":0.61}}',
+        )
+    )
+
+    test_app = FastAPI()
+    test_app.include_router(optimize_routes.router)
+    test_app.state.task_manager = TaskManager()
+    test_app.state.ws_manager = ws_manager
+    test_app.state.observer = _DummyObserver()
+    test_app.state.optimizer = _DummyOptimizer()
+    test_app.state.deployer = deployer
+    test_app.state.eval_runner = _DummyEvalRunner()
+    test_app.state.conversation_store = _DummyStore()
+    test_app.state.optimization_memory = memory
+    test_app.state.pending_review_store = review_store
+
+    client = TestClient(test_app)
+
+    response = client.post("/api/optimize/pending/attempt-pending/approve")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "approved"
+    assert "active" in payload["deploy_message"].lower()
+    assert len(deployer.deploy_calls) == 1
+    assert review_store.get_review("attempt-pending") is None
+
+    history_response = client.get("/api/optimize/history")
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert history[0]["status"] == "accepted"
+
+
+def test_reject_pending_review_discards_review_without_deploy(tmp_path: Path) -> None:
+    deployer = _RecordingDeployer(configs_dir=str(tmp_path / "configs"))
+    review_store = _InMemoryPendingReviewStore()
+    review_store.save_review(_pending_review_payload(attempt_id="attempt-reject"))
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer_memory.db"))
+    memory.log(
+        OptimizationAttempt(
+            attempt_id="attempt-reject",
+            timestamp=time.time(),
+            change_description="Strengthen root prompt",
+            config_diff="- root: old\n+ root: new",
+            status="pending_review",
+            config_section="prompts",
+            score_before=0.72,
+            score_after=0.84,
+            health_context='{"metrics":{"success_rate":0.61}}',
+        )
+    )
+
+    test_app = FastAPI()
+    test_app.include_router(optimize_routes.router)
+    test_app.state.task_manager = TaskManager()
+    test_app.state.ws_manager = _RecordingWsManager()
+    test_app.state.observer = _DummyObserver()
+    test_app.state.optimizer = _DummyOptimizer()
+    test_app.state.deployer = deployer
+    test_app.state.eval_runner = _DummyEvalRunner()
+    test_app.state.conversation_store = _DummyStore()
+    test_app.state.optimization_memory = memory
+    test_app.state.pending_review_store = review_store
+
+    client = TestClient(test_app)
+
+    response = client.post("/api/optimize/pending/attempt-reject/reject")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "rejected"
+    assert review_store.get_review("attempt-reject") is None
+    assert len(deployer.deploy_calls) == 0
+
+    history_response = client.get("/api/optimize/history")
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert history[0]["status"] == "rejected_human"
 
 
 def test_start_optimization_bootstraps_active_config_from_base_config_when_none_exists(

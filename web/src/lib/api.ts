@@ -70,6 +70,8 @@ import type {
   OptimizationAttempt,
   OptimizationOpportunity,
   OptimizeResult,
+  PendingReview,
+  PendingReviewActionResult,
   PairwiseComparison,
   PairwiseComparisonList,
   ParetoFrontier,
@@ -996,6 +998,90 @@ export function useOptimizeHistory() {
   });
 }
 
+export function usePendingReviews(poll = false) {
+  return useQuery<PendingReview[]>({
+    queryKey: ['optimizePendingReviews'],
+    queryFn: async () => {
+      const rows = await fetchApi<
+        Array<{
+          attempt_id: string;
+          proposed_config: Record<string, unknown>;
+          current_config: Record<string, unknown>;
+          config_diff: string;
+          score_before: number;
+          score_after: number;
+          change_description: string;
+          reasoning: string;
+          created_at: string;
+          strategy: string;
+          selected_operator_family?: string | null;
+          governance_notes?: string[];
+          deploy_scores?: Record<string, unknown>;
+          deploy_strategy: string;
+        }>
+      >('/optimize/pending');
+
+      return rows.map((row) => ({
+        attempt_id: row.attempt_id,
+        proposed_config: row.proposed_config ?? {},
+        current_config: row.current_config ?? {},
+        config_diff: row.config_diff ?? '',
+        score_before: percent(row.score_before),
+        score_after: percent(row.score_after),
+        change_description: row.change_description ?? '',
+        reasoning: row.reasoning ?? '',
+        created_at: fromEpoch(row.created_at),
+        strategy: row.strategy ?? 'simple',
+        selected_operator_family: row.selected_operator_family ?? null,
+        governance_notes: Array.isArray(row.governance_notes)
+          ? row.governance_notes.filter((note): note is string => typeof note === 'string')
+          : [],
+        deploy_scores: row.deploy_scores ?? {},
+        deploy_strategy: row.deploy_strategy ?? 'immediate',
+      }));
+    },
+    refetchInterval: poll ? 10000 : false,
+  });
+}
+
+export function useApproveReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    PendingReviewActionResult,
+    ApiRequestError,
+    { attemptId: string }
+  >({
+    mutationFn: ({ attemptId }) =>
+      fetchApi(`/optimize/pending/${encodeURIComponent(attemptId)}/approve`, {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['optimizePendingReviews'] });
+      queryClient.invalidateQueries({ queryKey: ['optimizeHistory'] });
+    },
+  });
+}
+
+export function useRejectReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    PendingReviewActionResult,
+    ApiRequestError,
+    { attemptId: string }
+  >({
+    mutationFn: ({ attemptId }) =>
+      fetchApi(`/optimize/pending/${encodeURIComponent(attemptId)}/reject`, {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['optimizePendingReviews'] });
+      queryClient.invalidateQueries({ queryKey: ['optimizeHistory'] });
+    },
+  });
+}
+
 export function useStartOptimize() {
   const queryClient = useQueryClient();
 
@@ -1005,6 +1091,7 @@ export function useStartOptimize() {
     {
       window: number;
       force: boolean;
+      require_human_approval: boolean;
       config_path?: string;
       mode: 'standard' | 'advanced' | 'research';
       objective: string;
