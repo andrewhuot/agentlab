@@ -141,6 +141,8 @@ async def test_provider_key(body: TestProviderKeyRequest) -> dict:
         if int(getattr(exc, "code", 0) or 0) in {401, 403}:
             raise HTTPException(status_code=400, detail="Invalid API key.")
         raise HTTPException(status_code=400, detail=f"Connection test failed: HTTP {exc.code}")
+    except urllib.error.URLError as exc:
+        raise HTTPException(status_code=400, detail=f"Connection test failed: {exc}")
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:  # pragma: no cover - defensive fallback

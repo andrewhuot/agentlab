@@ -201,7 +201,7 @@ def test_test_key_returns_invalid_api_key_for_auth_failures(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def _raise_unauthorized(request, timeout=0):  # noqa: ANN001, ARG001
+    def _raise_unauthorized(request, timeout=0, context=None):  # noqa: ANN001, ARG001
         raise urllib.error.HTTPError(
             request.full_url,
             401,
@@ -247,7 +247,7 @@ def test_test_key_uses_the_provider_client_for_validation(
                 }
             ).encode("utf-8")
 
-    def _fake_urlopen(request, timeout=0):  # noqa: ANN001, ARG001
+    def _fake_urlopen(request, timeout=0, context=None):  # noqa: ANN001, ARG001
         captured_headers.update(dict(request.headers))
         return _StubHTTPResponse()
 
@@ -263,3 +263,24 @@ def test_test_key_uses_the_provider_client_for_validation(
     assert payload["valid"] is True
     assert payload["provider"] == "openai"
     assert captured_headers["Authorization"] == "Bearer sk-valid-abcdef"
+
+
+def test_test_key_returns_connection_failure_for_url_errors(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _raise_ssl_error(request, timeout=0, context=None):  # noqa: ANN001, ARG001
+        raise urllib.error.URLError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+
+    monkeypatch.setattr("urllib.request.urlopen", _raise_ssl_error)
+
+    response = client.post(
+        "/api/settings/test-key",
+        json={"provider": "google", "api_key": "AIza-test-key-123456"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Connection test failed: "
+        "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed>"
+    )
