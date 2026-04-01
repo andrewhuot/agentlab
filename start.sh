@@ -217,6 +217,10 @@ info "Backend process started (pid $BACKEND_PID)"
 step "Starting frontend"
 
 cd web
+if [ ! -d node_modules ]; then
+  info "Installing frontend dependencies..."
+  npm install --no-fund --no-audit >>"$FRONTEND_LOG" 2>&1
+fi
 npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort \
   >"$FRONTEND_LOG" 2>&1 &
 
