@@ -14,6 +14,7 @@ from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from a2a.types import A2ATask, AgentCard, TaskStatus
+from shared.ssl_context import get_ssl_context
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +209,7 @@ class A2AClient:
         )
 
         try:
-            with urlopen(req, timeout=self._timeout) as response:
+            with urlopen(req, timeout=self._timeout, context=get_ssl_context()) as response:
                 yield from self._parse_sse(response)
         except (HTTPError, URLError) as exc:
             raise ConnectionError(
@@ -223,7 +224,7 @@ class A2AClient:
         """Perform a GET request and return the parsed JSON body."""
         req = Request(url, headers={"Accept": "application/json"}, method="GET")
         try:
-            with urlopen(req, timeout=self._timeout) as response:
+            with urlopen(req, timeout=self._timeout, context=get_ssl_context()) as response:
                 raw = response.read()
         except HTTPError as exc:
             raise ConnectionError(
@@ -251,7 +252,7 @@ class A2AClient:
             method="POST",
         )
         try:
-            with urlopen(req, timeout=self._timeout) as response:
+            with urlopen(req, timeout=self._timeout, context=get_ssl_context()) as response:
                 raw = response.read()
         except HTTPError as exc:
             raise ConnectionError(

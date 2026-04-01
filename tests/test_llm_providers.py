@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import builtins
 import json
-import ssl
-import sys
 from dataclasses import dataclass
-from types import SimpleNamespace
 
 from optimizer.providers import (
     LLMRequest,
@@ -138,10 +134,8 @@ def test_router_tracks_provider_costs() -> None:
     assert summary["openai:gpt-4o"]["total_cost"] > 0
 
 
-def test_http_post_uses_certifi_backed_ssl_context_when_available(
-    monkeypatch,
-) -> None:
-    """Shared HTTP POST should prefer certifi-backed trust roots when available."""
+def test_http_post_uses_shared_ssl_context(monkeypatch) -> None:
+    """Provider HTTP POSTs should use the shared SSL context helper."""
     provider = OpenAIProvider(ModelConfig(provider="openai", model="gpt-4o"))
     captured: dict[str, object] = {}
     created_context = object()
@@ -165,58 +159,10 @@ def test_http_post_uses_certifi_backed_ssl_context_when_available(
         captured["context"] = context
         return _StubHTTPResponse()
 
-    monkeypatch.setitem(sys.modules, "certifi", SimpleNamespace(where=lambda: "/tmp/test-certifi.pem"))
-    monkeypatch.setattr(ssl, "create_default_context", _fake_create_default_context)
+    monkeypatch.setattr("optimizer.providers.get_ssl_context", _fake_create_default_context)
     monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen)
 
     payload = provider._http_post("https://example.com/v1/test", {"hello": "world"}, {"Content-Type": "application/json"})
 
     assert payload == {"ok": True}
-    assert captured["kwargs"] == {"cafile": "/tmp/test-certifi.pem"}
-    assert captured["context"] is created_context
-
-
-def test_http_post_falls_back_to_default_ssl_context_without_certifi(
-    monkeypatch,
-) -> None:
-    """Shared HTTP POST should still create a default SSL context without certifi."""
-    provider = OpenAIProvider(ModelConfig(provider="openai", model="gpt-4o"))
-    captured: dict[str, object] = {}
-    created_context = object()
-    original_import = builtins.__import__
-
-    class _StubHTTPResponse:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, D401
-            return False
-
-        def read(self) -> bytes:
-            return json.dumps({"ok": True}).encode("utf-8")
-
-    def _fake_import(name, globals=None, locals=None, fromlist=(), level=0):  # noqa: ANN001
-        if name == "certifi":
-            raise ImportError("certifi unavailable")
-        return original_import(name, globals, locals, fromlist, level)
-
-    def _fake_create_default_context(*args, **kwargs):  # noqa: ANN002, ANN003
-        captured["args"] = args
-        captured["kwargs"] = kwargs
-        return created_context
-
-    def _fake_urlopen(request, timeout=0, context=None):  # noqa: ANN001, ARG001
-        captured["context"] = context
-        return _StubHTTPResponse()
-
-    monkeypatch.delitem(sys.modules, "certifi", raising=False)
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
-    monkeypatch.setattr(ssl, "create_default_context", _fake_create_default_context)
-    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen)
-
-    payload = provider._http_post("https://example.com/v1/test", {"hello": "world"}, {"Content-Type": "application/json"})
-
-    assert payload == {"ok": True}
-    assert captured["args"] == ()
-    assert captured["kwargs"] == {}
     assert captured["context"] is created_context

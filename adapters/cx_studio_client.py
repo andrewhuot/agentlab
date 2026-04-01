@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from cx_studio.errors import CxApiError
+from shared.ssl_context import get_ssl_context
 from cx_studio.types import (
     CxAgent,
     CxAgentSnapshot,
@@ -148,7 +149,11 @@ class CxStudioClient:
             method=method,
         )
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+            with urllib.request.urlopen(
+                request,
+                timeout=self._timeout,
+                context=get_ssl_context(),
+            ) as response:
                 return response.status, response.read().decode("utf-8"), dict(response.headers.items())
         except urllib.error.HTTPError as exc:
             return exc.code, exc.read().decode("utf-8", errors="replace"), dict(exc.headers.items())

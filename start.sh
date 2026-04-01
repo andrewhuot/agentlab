@@ -186,6 +186,8 @@ ensure_port_available $FRONTEND_PORT "Frontend"
 # ─── Activate venv ─────────────────────────────────────────────────────────────
 activate_venv
 
+pip install -q -e . 2>/dev/null || true
+
 if "$VENV_PYTHON" -c "import uvicorn" >/dev/null 2>&1; then
   ok "Activated .venv (Python $("$VENV_PYTHON" --version | cut -d' ' -f2))"
 else

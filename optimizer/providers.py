@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import random
-import ssl
 import threading
 import time
 import urllib.error
@@ -14,6 +13,8 @@ import urllib.request
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+
+from shared.ssl_context import get_ssl_context
 
 
 @dataclass
@@ -121,17 +122,10 @@ class _BaseHTTPProvider:
     def _http_post(self, url: str, payload: dict[str, Any], headers: dict[str, str]) -> dict[str, Any]:
         encoded = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url=url, data=encoded, headers=headers, method="POST")
-        try:
-            import certifi
-        except ImportError:
-            ssl_context = ssl.create_default_context()
-        else:
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
-
         with urllib.request.urlopen(
             req,
             timeout=self.model_config.timeout_seconds,
-            context=ssl_context,
+            context=get_ssl_context(),
         ) as resp:
             body = resp.read().decode("utf-8")
         return json.loads(body)

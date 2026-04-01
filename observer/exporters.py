@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from observer.otel_types import OtelTrace
+from shared.ssl_context import get_ssl_context
 
 
 class OtelExporter(ABC):
@@ -124,7 +125,11 @@ class OtelOtlpHttpExporter(OtelExporter):
             for key, value in self.headers.items():
                 req.add_header(key, value)
 
-            with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
+            with urllib.request.urlopen(
+                req,
+                timeout=self.timeout_seconds,
+                context=get_ssl_context(),
+            ) as resp:
                 return 200 <= resp.status < 300
         except urllib.error.HTTPError as exc:
             print(
@@ -181,7 +186,11 @@ class OtelCloudTraceExporter(OtelExporter):
         req.add_header("Content-Type", "application/json")
 
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(
+                req,
+                timeout=15,
+                context=get_ssl_context(),
+            ) as resp:
                 return 200 <= resp.status < 300
         except (urllib.error.URLError, OSError) as exc:
             print(f"[OtelCloudTraceExporter] export failed: {exc}", file=sys.stderr)

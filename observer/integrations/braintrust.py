@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from shared.ssl_context import get_ssl_context
+
 logger = logging.getLogger(__name__)
 
 
@@ -115,7 +117,7 @@ class BraintrustExporter:
                 headers=self._get_headers(),
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10, context=get_ssl_context()) as resp:
                 return resp.status < 300
         except Exception as exc:  # noqa: BLE001
             logger.warning("Braintrust HTTP trace export failed: %s", exc)
@@ -171,7 +173,7 @@ class BraintrustExporter:
                 headers=self._get_headers(),
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10, context=get_ssl_context()) as resp:
                 return resp.status < 300
         except Exception as exc:  # noqa: BLE001
             logger.warning("Braintrust HTTP eval export failed: %s", exc)
@@ -221,7 +223,7 @@ class BraintrustExporter:
                 f"?project_name={self.project}&experiment_name={experiment_name}"
             )
             req = urllib.request.Request(url, headers=self._get_headers())
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10, context=get_ssl_context()) as resp:
                 data = json.loads(resp.read())
                 return data.get("objects", [])
         except Exception as exc:  # noqa: BLE001
