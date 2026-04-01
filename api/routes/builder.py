@@ -109,6 +109,15 @@ class BuilderExportRequest(BaseModel):
     format: str = "yaml"
 
 
+class BuilderSaveRequest(BaseModel):
+    session_id: str
+
+
+class BuilderPreviewRequest(BaseModel):
+    session_id: str
+    message: str = Field(min_length=1)
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -136,7 +145,12 @@ def _state(request: Request, name: str) -> Any:
 def _chat_service(request: Request) -> BuilderChatService:
     service = getattr(request.app.state, "builder_chat_service", None)
     if service is None:
-        service = BuilderChatService()
+        studio_service = getattr(request.app.state, "transcript_intelligence_service", None)
+        build_artifact_store = getattr(request.app.state, "build_artifact_store", None)
+        service = BuilderChatService(
+            studio_service=studio_service,
+            build_artifact_store=build_artifact_store,
+        )
         request.app.state.builder_chat_service = service
     return service
 
@@ -168,6 +182,30 @@ async def export_builder_chat_session(request: Request, body: BuilderExportReque
     if export is None:
         raise HTTPException(status_code=404, detail="Builder session not found")
     return export
+
+
+@router.post("/save")
+async def save_builder_chat_session(request: Request, body: BuilderSaveRequest) -> dict[str, Any]:
+    service = _chat_service(request)
+    try:
+        saved = service.save_session(session_id=body.session_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if saved is None:
+        raise HTTPException(status_code=404, detail="Builder session not found")
+    return saved
+
+
+@router.post("/preview")
+async def preview_builder_chat_session(request: Request, body: BuilderPreviewRequest) -> dict[str, Any]:
+    service = _chat_service(request)
+    try:
+        preview = service.preview_session(session_id=body.session_id, message=body.message)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if preview is None:
+        raise HTTPException(status_code=404, detail="Builder session not found")
+    return preview
 
 
 # ---------------------------------------------------------------------------

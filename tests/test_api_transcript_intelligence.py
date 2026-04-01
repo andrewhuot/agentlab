@@ -342,6 +342,70 @@ class TestTranscriptArchiveImport:
 
 
 class TestPromptToAgentBuilder:
+    def test_generate_agent_uses_live_router_when_available(
+        self,
+        client: TestClient,
+        app: FastAPI,
+    ) -> None:
+        app.state.transcript_intelligence_service = None
+        app.state.proposer = SimpleNamespace(
+            llm_router=_StubLLMRouter(
+                [
+                    json.dumps(
+                        {
+                            "model": "gpt-4o-mini",
+                            "system_prompt": "<role>VIP refund desk.</role>",
+                            "tools": [
+                                {
+                                    "name": "refund_eligibility_lookup",
+                                    "description": "Check refund eligibility for an order.",
+                                    "parameters": ["order_id"],
+                                }
+                            ],
+                            "routing_rules": [
+                                {
+                                    "condition": "intent == 'refund_request'",
+                                    "action": "orders",
+                                    "priority": 10,
+                                }
+                            ],
+                            "policies": [
+                                {
+                                    "name": "vip_refund_review",
+                                    "description": "Review VIP refund cases with elevated care.",
+                                    "enforcement": "strict",
+                                }
+                            ],
+                            "eval_criteria": [
+                                {
+                                    "name": "refund_accuracy",
+                                    "weight": 0.5,
+                                    "description": "Refund guidance should be policy-accurate.",
+                                }
+                            ],
+                            "metadata": {
+                                "agent_name": "VIP Refund Desk",
+                                "version": "1.0.0",
+                                "created_from": "prompt",
+                            },
+                        }
+                    )
+                ]
+            )
+        )
+
+        resp = client.post(
+            "/api/intelligence/generate-agent",
+            json={"prompt": "Build me a VIP refund desk for priority customers."},
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["metadata"]["agent_name"] == "VIP Refund Desk"
+        assert data["system_prompt"] == "<role>VIP refund desk.</role>"
+        assert data["model"] == "gpt-4o-mini"
+        _assert_generated_config_contract(data, created_from="prompt")
+
     def test_generate_agent_returns_frontend_studio_contract(self, client: TestClient) -> None:
         resp = client.post(
             "/api/intelligence/generate-agent",
@@ -355,6 +419,88 @@ class TestPromptToAgentBuilder:
 
         assert resp.status_code == 200
         _assert_generated_config_contract(resp.json(), created_from="prompt")
+
+    def test_chat_refine_uses_live_router_when_available(
+        self,
+        client: TestClient,
+        app: FastAPI,
+    ) -> None:
+        app.state.transcript_intelligence_service = None
+        app.state.proposer = SimpleNamespace(
+            llm_router=_StubLLMRouter(
+                [
+                    json.dumps(
+                        {
+                            "response": "Updated the agent to add VIP escalation logic and a reusable knowledge-base tool.",
+                            "config": {
+                                "model": "gpt-4o-mini",
+                                "system_prompt": "<role>VIP refund desk.</role>",
+                                "tools": [
+                                    {
+                                        "name": "knowledge_base_lookup",
+                                        "description": "Retrieve approved policy answers from the internal knowledge base.",
+                                        "parameters": ["query"],
+                                    }
+                                ],
+                                "routing_rules": [
+                                    {
+                                        "condition": "customer_tier == 'vip'",
+                                        "action": "support",
+                                        "priority": 1,
+                                    }
+                                ],
+                                "policies": [
+                                    {
+                                        "name": "vip_escalation",
+                                        "description": "Escalate VIP cases with a context summary.",
+                                        "enforcement": "strict",
+                                    }
+                                ],
+                                "eval_criteria": [
+                                    {
+                                        "name": "vip_handoff_quality",
+                                        "weight": 0.5,
+                                        "description": "VIP escalations should preserve full context.",
+                                    }
+                                ],
+                                "metadata": {
+                                    "agent_name": "VIP Refund Desk",
+                                    "version": "1.0.0",
+                                    "created_from": "prompt",
+                                },
+                            },
+                        }
+                    )
+                ]
+            )
+        )
+
+        resp = client.post(
+            "/api/intelligence/chat",
+            json={
+                "message": "Add VIP escalation and a knowledge base lookup tool.",
+                "config": {
+                    "model": "gpt-4o-mini",
+                    "system_prompt": "<role>VIP refund desk.</role>",
+                    "tools": [],
+                    "routing_rules": [],
+                    "policies": [],
+                    "eval_criteria": [],
+                    "metadata": {
+                        "agent_name": "VIP Refund Desk",
+                        "version": "1.0.0",
+                        "created_from": "prompt",
+                    },
+                },
+            },
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["response"] == "Updated the agent to add VIP escalation logic and a reusable knowledge-base tool."
+        assert data["config"]["model"] == "gpt-4o-mini"
+        assert any(tool["name"] == "knowledge_base_lookup" for tool in data["config"]["tools"])
+        _assert_generated_config_contract(data["config"], created_from="prompt")
 
     def test_chat_refine_returns_updated_frontend_studio_contract(self, client: TestClient) -> None:
         generated = client.post(

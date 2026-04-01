@@ -55,8 +55,9 @@ describe('Build', () => {
     expect(screen.getByRole('tab', { name: 'Saved Artifacts' })).toBeInTheDocument();
     expect(screen.getByLabelText('Agent description')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'XML Instruction Studio' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Raw XML' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByLabelText('XML instruction editor')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Form View' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Instruction role')).toBeInTheDocument();
+    expect(screen.getByLabelText('Primary goal')).toBeInTheDocument();
   });
 
   it('switches to the builder chat workspace without losing the builder controls', async () => {

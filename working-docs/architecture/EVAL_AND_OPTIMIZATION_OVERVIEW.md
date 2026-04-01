@@ -220,5 +220,5 @@ Accepted candidates are deployed via canary with monitoring. High-risk mutations
 
 ---
 
-*Repository: https://github.com/andrewhuot/agentlab*
+*Repository: https://github.com/andrewhuot/autoagent-vnextcc*
 *Branch: `feat/p0-architectural-overhaul`*

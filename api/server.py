@@ -121,8 +121,8 @@ def _seed_demo_data_if_empty(conversation_store) -> None:
 async def lifespan(app: FastAPI):
     """Initialize shared resources on startup, clean up on shutdown."""
     from agent import create_eval_agent
-    from agent.config.runtime import load_runtime_config
     from agent.tracing import instrument_eval_runner
+    from cli.mode import load_runtime_with_mode_preference
     from deployer.canary import Deployer
     from deployer.versioning import ConfigVersionManager
     from evals.execution_mode import requested_live_mode
@@ -152,7 +152,7 @@ async def lifespan(app: FastAPI):
     from shared.build_artifact_store import BuildArtifactStore
     from shared.transcript_report_store import TranscriptReportStore
 
-    runtime = load_runtime_config()
+    runtime = load_runtime_with_mode_preference()
     startup_epoch = time.time()
     trace_store = TraceStore(db_path=os.environ.get("AGENTLAB_TRACE_DB", ".agentlab/traces.db"))
 

@@ -789,4 +789,4 @@ Replaced the 9-dimension dashboard with R2's simplicity-first design:
 
 ---
 
-*Repository: https://github.com/andrewhuot/agentlab*
+*Repository: https://github.com/andrewhuot/autoagent-vnextcc*

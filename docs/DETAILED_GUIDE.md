@@ -14,7 +14,7 @@ This guide walks the current first-run CLI flow from install to review and deplo
 From the repository root:
 
 ```bash
-git clone https://github.com/andrewhuot/agentlab.git
+git clone https://github.com/andrewhuot/autoagent-vnextcc.git agentlab
 cd agentlab
 python3 -m venv .venv
 source .venv/bin/activate

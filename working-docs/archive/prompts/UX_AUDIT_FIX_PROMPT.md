@@ -62,6 +62,6 @@ Fix ALL P0 and P1 issues (UX-001 through UX-029, plus items 1-14 from PM_QUICK_W
 - Backend: `api/routes/`, `cx_studio/`, `adk/`, `agent/`, `optimizer/`, `observer/`, `evals/`, `registry/`
 - CLI: `runner.py` (Click-based)
 - Docs: `docs/`, `README.md`
-- The real GitHub repo URL is: https://github.com/andrewhuot/agentlab
+- The real GitHub repo URL is: https://github.com/andrewhuot/autoagent-vnextcc
 
 When completely finished, run: openclaw system event --text "Done: UX audit fixes — all P0/P1 issues from PM_UX_AUDIT_REPORT.md fixed across 5 tracks" --mode now

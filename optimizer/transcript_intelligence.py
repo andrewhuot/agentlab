@@ -194,6 +194,8 @@ class TranscriptIntelligenceService:
         self._knowledge_assets: dict[str, dict[str, Any]] = self._load_knowledge_assets()
         self._llm_router = llm_router
         self._reports: dict[str, TranscriptReport] = self._load_reports_from_store()
+        self.last_generation_used_llm = False
+        self.last_refinement_used_llm = False
 
     def list_reports(self) -> list[dict[str, Any]]:
         self._reports = self._load_reports_from_store()
@@ -343,7 +345,16 @@ class TranscriptIntelligenceService:
             "recommended_insight_id": report.insights[0].insight_id if report.insights else None,
         }
 
-    def generate_agent_config(self, prompt: str, transcript_report_id: str | None = None) -> dict[str, Any]:
+    def generate_agent_config(
+        self,
+        prompt: str,
+        transcript_report_id: str | None = None,
+        *,
+        instruction_xml: str | None = None,
+        requested_model: str | None = None,
+        requested_agent_name: str | None = None,
+        tool_hints: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Generate a structured agent config dict from a natural language prompt.
 
         Args:
@@ -354,6 +365,19 @@ class TranscriptIntelligenceService:
             YAML-friendly dict with system_prompt, tools, routing_rules, policies,
             eval_criteria, and metadata keys.
         """
+        llm_generated = self._generate_agent_config_with_llm(
+            prompt=prompt,
+            transcript_report_id=transcript_report_id,
+            instruction_xml=instruction_xml,
+            requested_model=requested_model,
+            requested_agent_name=requested_agent_name,
+            tool_hints=tool_hints,
+        )
+        if llm_generated is not None:
+            self.last_generation_used_llm = True
+            return llm_generated
+        self.last_generation_used_llm = False
+
         lower = prompt.lower()
 
         # --- domain detection ---
@@ -373,7 +397,12 @@ class TranscriptIntelligenceService:
 
         # --- derive a short agent name from the prompt ---
         agent_name_words = [w.capitalize() for w in re.findall(r"[a-z]+", lower) if len(w) > 3][:3]
-        agent_name = "".join(agent_name_words) + "Agent" if agent_name_words else "AgentLab"
+        if requested_agent_name:
+            agent_name = requested_agent_name
+        elif any(term in lower for term in ("airline", "flight", "travel", "booking", "reservation")):
+            agent_name = "AirlineCustomerSupportAgent"
+        else:
+            agent_name = "".join(agent_name_words) + "Agent" if agent_name_words else "AgentLab"
 
         # ---- domain-specific system prompts ----
         _system_prompts: dict[str, str] = {
@@ -707,6 +736,82 @@ class TranscriptIntelligenceService:
         eval_criteria = list(_evals_by_domain.get(domain, _evals_by_domain["general"]))
         system_prompt = _system_prompts.get(domain, _system_prompts["general"])
 
+        if any(term in lower for term in ("airline", "flight", "booking", "reservation", "travel")):
+            airline_tools = [
+                {
+                    "name": "flight_status_lookup",
+                    "description": "Fetch live departure, arrival, delay, and gate information for a flight.",
+                    "parameters": {"flight_number": "string", "departure_date": "string | null"},
+                },
+                {
+                    "name": "change_booking",
+                    "description": "Update an existing itinerary after verifying the traveler and fare rules.",
+                    "parameters": {"booking_reference": "string", "requested_change": "string"},
+                },
+                {
+                    "name": "cancel_booking",
+                    "description": "Cancel an eligible reservation and explain refund or credit outcomes.",
+                    "parameters": {"booking_reference": "string", "reason": "string"},
+                },
+            ]
+            existing_tool_names = {str(tool.get("name", "")) for tool in tools if isinstance(tool, dict)}
+            for airline_tool in airline_tools:
+                if airline_tool["name"] not in existing_tool_names:
+                    tools.append(airline_tool)
+                    existing_tool_names.add(airline_tool["name"])
+
+            airline_rules = [
+                {
+                    "condition": "intent == 'flight_status'",
+                    "action": "flight_status_lookup",
+                    "priority": 4,
+                },
+                {
+                    "condition": "intent == 'booking_change'",
+                    "action": "change_booking",
+                    "priority": 5,
+                },
+                {
+                    "condition": "intent == 'cancellation'",
+                    "action": "cancel_booking",
+                    "priority": 6,
+                },
+            ]
+            existing_conditions = {
+                str(rule.get("condition", "")) for rule in routing_rules if isinstance(rule, dict)
+            }
+            for airline_rule in airline_rules:
+                if airline_rule["condition"] not in existing_conditions:
+                    routing_rules.append(airline_rule)
+                    existing_conditions.add(airline_rule["condition"])
+
+            system_prompt += (
+                "\n\nSpecialize in airline support for booking changes, cancellations, "
+                "and live flight status updates. When a traveler needs help with a reservation, "
+                "use the booking reference and explain the next step clearly."
+            )
+
+        if instruction_xml and instruction_xml.strip():
+            system_prompt = instruction_xml.strip()
+
+        if tool_hints:
+            existing_tool_names = {str(tool.get("name", "")) for tool in tools if isinstance(tool, dict)}
+            for hint in tool_hints:
+                normalized_hint = str(hint).strip()
+                if not normalized_hint:
+                    continue
+                tool_name = re.sub(r"[^a-z0-9]+", "_", normalized_hint.lower()).strip("_") or "custom_tool"
+                if tool_name in existing_tool_names:
+                    continue
+                existing_tool_names.add(tool_name)
+                tools.append(
+                    {
+                        "name": tool_name,
+                        "description": f"Tool requested by the operator: {normalized_hint}.",
+                        "parameters": {"input": "string"},
+                    }
+                )
+
         # --- incorporate transcript report insights if provided ---
         created_from = "prompt"
         if transcript_report_id is not None:
@@ -741,6 +846,7 @@ class TranscriptIntelligenceService:
 
         return self._normalize_generated_config_output(
             {
+                "model": requested_model or self._default_build_model(),
                 "system_prompt": system_prompt,
                 "tools": tools,
                 "routing_rules": routing_rules,
@@ -764,6 +870,12 @@ class TranscriptIntelligenceService:
         Returns:
             Dict with 'response' (explanation of changes) and 'config' (updated dict).
         """
+        llm_refinement = self._refine_agent_config_with_llm(message, current_config)
+        if llm_refinement is not None:
+            self.last_refinement_used_llm = True
+            return llm_refinement
+        self.last_refinement_used_llm = False
+
         import copy
 
         config = copy.deepcopy(current_config)
@@ -844,6 +956,16 @@ class TranscriptIntelligenceService:
         # ---- safety / policy intent ----
         if "safety" in lower or ("policy" in lower and "refund" not in lower and "return" not in lower):
             existing_policy_names = {p.get("name", "") for p in config["policies"]}
+            if "internal codes" in lower and "no_internal_codes" not in existing_policy_names:
+                config["policies"].append(
+                    {
+                        "name": "no_internal_codes",
+                        "description": "Never reveal internal codes, airline control notes, or other private operational identifiers to customers.",
+                        "enforcement": "hard_block",
+                    }
+                )
+                existing_policy_names.add("no_internal_codes")
+                changes.append("Added 'no_internal_codes' policy for protecting internal codes.")
             new_policies = [
                 {
                     "name": "safety_guardrails",
@@ -868,6 +990,24 @@ class TranscriptIntelligenceService:
 
         # ---- tool / integration intent ----
         if ("tool" in lower or "integration" in lower) and "refund" not in lower and "escalat" not in lower:
+            if "flight status" in lower:
+                config["tools"].append({
+                    "name": "flight_status_lookup",
+                    "description": "Fetch current departure, arrival, delay, and gate information for a flight.",
+                    "parameters": {"flight_number": "string", "departure_date": "string | null"},
+                })
+                changes.append("Added integration tool 'flight_status_lookup'.")
+                return {"response": changes[0], "config": self._normalize_generated_config_output(config)}
+
+            if "knowledge base" in lower or "knowledge-base" in lower or "faq" in lower:
+                config["tools"].append({
+                    "name": "knowledge_base_lookup",
+                    "description": "Search approved internal knowledge and policy answers.",
+                    "parameters": {"query": "string"},
+                })
+                changes.append("Added integration tool 'knowledge_base_lookup'.")
+                return {"response": changes[0], "config": self._normalize_generated_config_output(config)}
+
             # Extract a tool name hint from the message
             tool_hint = re.sub(r"(add|integrate|include|tool|integration|the|a|an)\s*", "", lower).strip()
             tool_name = re.sub(r"\s+", "_", tool_hint)[:40] or "custom_integration"
@@ -1478,6 +1618,7 @@ class TranscriptIntelligenceService:
             )
 
         return {
+            "model": str(config.get("model") or self._default_build_model()),
             "system_prompt": str(config.get("system_prompt") or ""),
             "tools": tools,
             "routing_rules": sorted(routing_rules, key=lambda rule: rule["priority"]),
@@ -1489,6 +1630,185 @@ class TranscriptIntelligenceService:
                 "created_from": created_from,
             },
         }
+
+    def _generate_agent_config_with_llm(
+        self,
+        *,
+        prompt: str,
+        transcript_report_id: str | None,
+        instruction_xml: str | None,
+        requested_model: str | None,
+        requested_agent_name: str | None,
+        tool_hints: list[str] | None,
+    ) -> dict[str, Any] | None:
+        """Use a real LLM router to draft the Build config when available.
+
+        WHY: The Build tab must stop feeling canned when the operator has
+        configured a real provider. We keep the deterministic generator as a
+        fallback for mock mode, offline testing, and malformed LLM output.
+        """
+        router = self._llm_router
+        if router is None or getattr(router, "mock_mode", False):
+            return None
+
+        transcript_summary = self._build_generation_report_summary(transcript_report_id)
+        payload = {
+            "task": "generate_agent_build_config",
+            "user_request": prompt,
+            "requested_agent_name": requested_agent_name or "",
+            "requested_model": requested_model or "",
+            "tool_hints": list(tool_hints or []),
+            "instruction_xml": instruction_xml or "",
+            "transcript_context": transcript_summary,
+            "response_schema": {
+                "model": "string",
+                "system_prompt": "string",
+                "tools": [{"name": "string", "description": "string", "parameters": ["string"]}],
+                "routing_rules": [{"condition": "string", "action": "string", "priority": "integer"}],
+                "policies": [{"name": "string", "description": "string", "enforcement": "strict|advisory"}],
+                "eval_criteria": [{"name": "string", "weight": "number between 0 and 1", "description": "string"}],
+                "metadata": {
+                    "agent_name": "string",
+                    "version": "string",
+                    "created_from": "prompt|transcript",
+                },
+            },
+        }
+
+        try:
+            response = router.generate(
+                LLMRequest(
+                    prompt=json.dumps(payload, sort_keys=True),
+                    system=(
+                        "You create Build-tab agent configs for AgentLab. "
+                        "Return JSON only. Preserve the requested model name when provided. "
+                        "If instruction_xml is present, use it as the primary system_prompt unless the request explicitly asks to replace it."
+                    ),
+                    temperature=0.1,
+                    max_tokens=1600,
+                    metadata={"task": "build_generate_agent_config"},
+                )
+            )
+        except Exception:
+            return None
+
+        parsed = self._extract_json_payload(response.text)
+        if parsed is None:
+            return None
+
+        normalized = self._normalize_generated_config_output(parsed)
+        if not normalized["system_prompt"].strip():
+            return None
+        return normalized
+
+    def _refine_agent_config_with_llm(
+        self,
+        message: str,
+        current_config: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Use a real LLM router to refine an existing Build config.
+
+        WHY: Conversational refinement must apply the user's actual requested
+        change instead of matching canned keywords. Structured JSON keeps the
+        response stable enough for the UI and tests.
+        """
+        router = self._llm_router
+        if router is None or getattr(router, "mock_mode", False):
+            return None
+
+        payload = {
+            "task": "refine_agent_build_config",
+            "instruction": message,
+            "current_config": current_config,
+            "response_schema": {
+                "response": "string",
+                "config": {
+                    "model": "string",
+                    "system_prompt": "string",
+                    "tools": [{"name": "string", "description": "string", "parameters": ["string"]}],
+                    "routing_rules": [{"condition": "string", "action": "string", "priority": "integer"}],
+                    "policies": [{"name": "string", "description": "string", "enforcement": "strict|advisory"}],
+                    "eval_criteria": [{"name": "string", "weight": "number between 0 and 1", "description": "string"}],
+                    "metadata": {
+                        "agent_name": "string",
+                        "version": "string",
+                        "created_from": "prompt|transcript",
+                    },
+                },
+            },
+        }
+
+        try:
+            response = router.generate(
+                LLMRequest(
+                    prompt=json.dumps(payload, sort_keys=True),
+                    system=(
+                        "You refine AgentLab Build configs. Return JSON only. "
+                        "Apply the requested change while preserving unrelated fields. "
+                        "The `response` field should summarize the concrete changes that were applied."
+                    ),
+                    temperature=0.1,
+                    max_tokens=1600,
+                    metadata={"task": "build_refine_agent_config"},
+                )
+            )
+        except Exception:
+            return None
+
+        parsed = self._extract_json_payload(response.text)
+        if parsed is None:
+            return None
+
+        next_config = parsed.get("config")
+        if not isinstance(next_config, dict):
+            return None
+
+        normalized = self._normalize_generated_config_output(next_config)
+        response_text = str(parsed.get("response") or "").strip()
+        if not response_text:
+            response_text = "Updated the config to match the latest refinement request."
+        return {
+            "response": response_text,
+            "config": normalized,
+        }
+
+    def _build_generation_report_summary(self, transcript_report_id: str | None) -> dict[str, Any] | None:
+        """Summarize transcript findings for the LLM generation prompt."""
+        if transcript_report_id is None:
+            return None
+        report = self.get_report(transcript_report_id)
+        if report is None:
+            return None
+        return {
+            "archive_name": report.archive_name,
+            "conversation_count": len(report.conversations),
+            "languages": report.languages,
+            "missing_intents": [item.get("intent", "") for item in report.missing_intents[:5]],
+            "workflow_suggestions": [
+                {
+                    "title": item.get("title", ""),
+                    "description": item.get("description", ""),
+                }
+                for item in report.workflow_suggestions[:3]
+            ],
+            "faq_entries": [
+                {
+                    "question": item.get("question", ""),
+                    "answer": item.get("answer", ""),
+                }
+                for item in report.faq_entries[:3]
+            ],
+        }
+
+    def _default_build_model(self) -> str:
+        """Return the first configured model name for Build defaults."""
+        router = self._llm_router
+        models = getattr(router, "models", []) if router is not None else []
+        if models:
+            first_model = getattr(models[0], "model", "")
+            if isinstance(first_model, str) and first_model.strip():
+                return first_model
+        return "gpt-4o"
 
     def _normalize_tool_parameters(self, parameters: Any) -> list[str]:
         """Collapse tool parameter definitions into a readable parameter-name list."""

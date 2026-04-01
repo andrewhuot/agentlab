@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 import yaml
 
+from builder.workspace_config import persist_generated_config, preview_generated_config
 from optimizer.providers import build_router_from_runtime_config
 from optimizer.transcript_intelligence import TranscriptIntelligenceService
 from shared.build_artifact_store import BuildArtifactStore
@@ -40,9 +41,26 @@ class BuildAgentRequest(BaseModel):
 class GenerateAgentRequest(BaseModel):
     prompt: str = Field(..., min_length=1)
     transcript_report_id: str | None = Field(None)
+    instruction_xml: str | None = Field(None)
+    requested_model: str | None = Field(None)
+    requested_agent_name: str | None = Field(None)
+    tool_hints: list[str] = Field(default_factory=list)
 
 
 class ChatRefineRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    config: dict = Field(...)
+
+
+class SaveGeneratedAgentRequest(BaseModel):
+    config: dict = Field(...)
+    source: str = Field("prompt")
+    prompt_used: str | None = Field(None)
+    transcript_report_id: str | None = Field(None)
+    builder_session_id: str | None = Field(None)
+
+
+class PreviewGeneratedAgentRequest(BaseModel):
     message: str = Field(..., min_length=1)
     config: dict = Field(...)
 
@@ -194,7 +212,14 @@ async def build_agent_from_prompt(body: BuildAgentRequest, request: Request) -> 
 @router.post("/generate-agent")
 async def generate_agent(body: GenerateAgentRequest, request: Request) -> dict[str, Any]:
     service = _get_service(request)
-    generated = service.generate_agent_config(body.prompt, body.transcript_report_id)
+    generated = service.generate_agent_config(
+        body.prompt,
+        body.transcript_report_id,
+        instruction_xml=body.instruction_xml,
+        requested_model=body.requested_model,
+        requested_agent_name=body.requested_agent_name,
+        tool_hints=body.tool_hints,
+    )
     config_yaml = yaml.safe_dump(generated, sort_keys=False)
     source = "transcript" if body.transcript_report_id else "prompt"
     build_artifact_store = _get_build_artifact_store(request)
@@ -228,6 +253,32 @@ async def generate_agent(body: GenerateAgentRequest, request: Request) -> dict[s
 async def chat_refine(body: ChatRefineRequest, request: Request) -> dict[str, Any]:
     service = _get_service(request)
     return service.chat_refine(body.message, body.config)
+
+
+@router.post("/save-agent")
+async def save_generated_agent(body: SaveGeneratedAgentRequest, request: Request) -> dict[str, Any]:
+    build_artifact_store = _get_build_artifact_store(request)
+    try:
+        saved = persist_generated_config(
+            body.config,
+            artifact_store=build_artifact_store,
+            source=body.source,
+            source_prompt=body.prompt_used,
+            transcript_report_id=body.transcript_report_id,
+            builder_session_id=body.builder_session_id,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return saved.to_dict()
+
+
+@router.post("/preview-agent")
+async def preview_generated_agent_route(body: PreviewGeneratedAgentRequest) -> dict[str, Any]:
+    try:
+        preview = preview_generated_config(body.config, body.message)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return preview.to_dict()
 
 
 @router.get("/knowledge/{asset_id}")

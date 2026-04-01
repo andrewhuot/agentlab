@@ -57,6 +57,7 @@ class BuilderConfigDraft:
     """Mutable agent config assembled through conversation."""
 
     agent_name: str = "Customer Support Agent"
+    model: str = ""
     system_prompt: str = ""
     tools: list[BuilderToolDraft] = field(default_factory=list)
     routing_rules: list[BuilderRoutingRuleDraft] = field(default_factory=list)
@@ -82,4 +83,7 @@ class BuilderChatSession:
     updated_at: float = field(default_factory=now_ts)
     messages: list[BuilderChatMessage] = field(default_factory=list)
     config: BuilderConfigDraft = field(default_factory=BuilderConfigDraft)
+    generated_config: dict[str, Any] | None = None
+    mock_mode: bool = True
+    mock_reason: str = ""
     evals: BuilderEvalDraft | None = None
