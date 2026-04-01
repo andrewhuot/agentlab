@@ -99,6 +99,7 @@ async def start_optimization(body: OptimizeRequest, request: Request) -> Optimiz
                 result = OptimizeCycleResult(
                     accepted=False,
                     status_message=f"System healthy; no optimization needed (mode={body.mode})",
+                    strategy=diagnostics.strategy,
                     search_strategy=diagnostics.strategy,
                     selected_operator_family=diagnostics.selected_operator_family,
                     pareto_front=diagnostics.pareto_front,
@@ -148,7 +149,7 @@ async def start_optimization(body: OptimizeRequest, request: Request) -> Optimiz
                     "global_dimensions": score.global_dimensions,
                     "per_agent_dimensions": score.per_agent_dimensions,
                 }
-                deploy_msg = deployer.deploy(new_config, scores_dict)
+                deploy_msg = deployer.deploy(new_config, scores_dict, strategy="immediate")
                 task.progress = 90
 
             # Get the latest attempt for details
@@ -168,6 +169,7 @@ async def start_optimization(body: OptimizeRequest, request: Request) -> Optimiz
                 score_before=score_before,
                 score_after=score_after,
                 deploy_message=deploy_msg,
+                strategy=diagnostics.strategy,
                 search_strategy=diagnostics.strategy,
                 selected_operator_family=diagnostics.selected_operator_family,
                 pareto_front=diagnostics.pareto_front,

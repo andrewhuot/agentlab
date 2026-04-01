@@ -2,17 +2,30 @@
 
 from __future__ import annotations
 
+import threading
 import time
+import uuid
+from copy import deepcopy
+from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
+from api.routes import config as config_routes
 from api.routes import optimize as optimize_routes
-from api.tasks import TaskManager
+from api.tasks import Task, TaskManager
+from deployer import Deployer
+from evals.scorer import CompositeScore, DimensionScores, EvalResult
+from observer.metrics import HealthMetrics, HealthReport
+from optimizer.loop import Optimizer
+from optimizer.memory import OptimizationMemory
+from optimizer.proposer import Proposal
 from optimizer.search import SearchStrategy
 
 
@@ -94,6 +107,200 @@ class _DummyMemory:
         return []
 
 
+class _RecordingTask(Task):
+    __slots__ = ("progress_log",)
+
+    def __init__(self, task_id: str, task_type: str) -> None:
+        object.__setattr__(self, "progress_log", [])
+        super().__init__(task_id=task_id, task_type=task_type)
+
+    def __setattr__(self, name, value):  # noqa: ANN001
+        object.__setattr__(self, name, value)
+        if name == "progress":
+            progress_log = getattr(self, "progress_log", None)
+            if progress_log is not None:
+                progress_log.append(value)
+
+
+class _RecordingTaskManager(TaskManager):
+    def create_task(self, task_type, fn):  # noqa: ANN001
+        task_id = str(uuid.uuid4())[:12]
+        task = _RecordingTask(task_id=task_id, task_type=task_type)
+
+        def _run() -> None:
+            try:
+                with self._lock:
+                    task.status = "running"
+                    task.updated_at = datetime.now(timezone.utc)
+                result = fn(task)
+                with self._lock:
+                    task.status = "completed"
+                    task.progress = 100
+                    if task.result is None:
+                        task.result = result
+                    task.updated_at = datetime.now(timezone.utc)
+            except Exception as exc:  # pragma: no cover - mirrors production manager
+                with self._lock:
+                    task.status = "failed"
+                    task.error = str(exc)
+                    task.updated_at = datetime.now(timezone.utc)
+
+        thread = threading.Thread(target=_run, daemon=True)
+        task._thread = thread
+
+        with self._lock:
+            self._tasks[task_id] = task
+
+        thread.start()
+        return task
+
+
+class _RecordingWsManager:
+    def __init__(self) -> None:
+        self.messages: list[dict] = []
+
+    async def broadcast(self, payload):  # noqa: ANN001
+        self.messages.append(payload)
+        return None
+
+
+class _RealObserver:
+    def observe(self, window: int = 100) -> HealthReport:  # noqa: ARG002
+        time.sleep(0.01)
+        return HealthReport(
+            metrics=HealthMetrics(
+                success_rate=0.61,
+                avg_latency_ms=410.0,
+                error_rate=0.22,
+                safety_violation_rate=0.01,
+                avg_cost=0.19,
+                total_conversations=42,
+            ),
+            failure_buckets={"routing_error": 4},
+            needs_optimization=True,
+            reason="error rate too high",
+        )
+
+
+class _PromptBoostProposer:
+    def propose(
+        self,
+        current_config: dict,
+        health_metrics: dict,
+        failure_samples: list[dict],
+        failure_buckets: dict[str, int],
+        past_attempts: list[dict],
+    ) -> Proposal:
+        del health_metrics, failure_samples, failure_buckets, past_attempts
+        candidate = deepcopy(current_config)
+        candidate["prompts"]["root"] = current_config["prompts"]["root"] + " Validate every answer."
+        return Proposal(
+            change_description="Strengthen root prompt",
+            config_section="prompts",
+            new_config=candidate,
+            reasoning="Improve routing clarity and answer quality",
+        )
+
+
+class _PromptSensitiveEvalRunner:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    def run(self, config=None):  # noqa: ANN001
+        config_dict = config or {}
+        self.calls.append(config_dict)
+        time.sleep(0.01)
+        prompt = ((config_dict.get("prompts") or {}).get("root") or "")
+        improved = "Validate every answer." in prompt
+        if improved:
+            return self._score(
+                quality=0.84,
+                safety=1.0,
+                latency=0.79,
+                cost=0.78,
+                composite=0.84,
+                quality_values=[0.92, 0.88, 0.83, 0.86, 0.84],
+                global_dimensions=DimensionScores(
+                    task_success_rate=0.84,
+                    response_quality=0.84,
+                    safety_compliance=1.0,
+                ),
+            )
+        return self._score(
+            quality=0.72,
+            safety=1.0,
+            latency=0.74,
+            cost=0.73,
+            composite=0.72,
+            quality_values=[0.79, 0.74, 0.70, 0.69, 0.68],
+            global_dimensions=DimensionScores(
+                task_success_rate=0.72,
+                response_quality=0.72,
+                safety_compliance=1.0,
+            ),
+        )
+
+    @staticmethod
+    def _score(
+        *,
+        quality: float,
+        safety: float,
+        latency: float,
+        cost: float,
+        composite: float,
+        quality_values: list[float],
+        global_dimensions: DimensionScores,
+    ) -> CompositeScore:
+        results = [
+            EvalResult(
+                case_id=f"case-{index}",
+                category="regression",
+                passed=value >= 0.7,
+                quality_score=value,
+                safety_passed=True,
+                latency_ms=120.0,
+                token_count=180,
+            )
+            for index, value in enumerate(quality_values, start=1)
+        ]
+        return CompositeScore(
+            quality=quality,
+            safety=safety,
+            latency=latency,
+            cost=cost,
+            composite=composite,
+            safety_failures=0,
+            total_cases=len(results),
+            passed_cases=sum(1 for result in results if result.passed),
+            results=results,
+            dimensions=global_dimensions,
+        )
+
+
+class _RecordingDeployer(Deployer):
+    def __init__(self, configs_dir: str) -> None:
+        super().__init__(configs_dir=configs_dir, store=None)
+        self.deploy_calls: list[dict[str, object]] = []
+
+    def deploy(self, config: dict, scores: dict, *args, **kwargs) -> str:  # noqa: ANN401
+        self.deploy_calls.append({"config": config, "scores": scores, "args": args, "kwargs": kwargs})
+        return super().deploy(config, scores, *args, **kwargs)
+
+
+class _FailureStore:
+    def get_failures(self, limit=25):  # noqa: ANN001, ARG002
+        return []
+
+
+def _add_task_status_route(test_app: FastAPI) -> None:
+    @test_app.get("/api/tasks/{task_id}")
+    async def get_task_status(task_id: str) -> dict[str, object]:
+        task = test_app.state.task_manager.get_task(task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
+        return task.to_dict()
+
+
 @pytest.fixture()
 def app() -> FastAPI:
     test_app = FastAPI()
@@ -166,3 +373,264 @@ def test_start_optimization_uses_selected_agent_config_when_config_path_is_provi
     optimizer = app.state.optimizer
     assert optimizer.received_current_configs[-1]["model"] == "selected-model"
     assert optimizer.received_current_configs[-1]["prompts"]["root"] == "Selected config prompt"
+
+
+def test_accepted_optimization_run_promotes_active_config_persists_history_and_broadcasts_completion(
+    tmp_path: Path,
+    base_config: dict,
+) -> None:
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer_memory.db"))
+    eval_runner = _PromptSensitiveEvalRunner()
+    optimizer = Optimizer(
+        eval_runner=eval_runner,
+        memory=memory,
+        proposer=_PromptBoostProposer(),
+        require_statistical_significance=False,
+    )
+    observe_calls: list[int] = []
+    original_optimize = optimizer.optimize
+    optimize_calls: list[dict[str, object]] = []
+
+    def wrapped_optimize(report, current_config, failure_samples=None, **kwargs):  # noqa: ANN001
+        optimize_calls.append({
+            "report": report,
+            "current_config": current_config,
+            "failure_samples": failure_samples,
+            "kwargs": kwargs,
+        })
+        return original_optimize(report, current_config, failure_samples=failure_samples, **kwargs)
+
+    optimizer.optimize = wrapped_optimize  # type: ignore[method-assign]
+
+    deployer = _RecordingDeployer(configs_dir=str(tmp_path / "configs"))
+    deployer.version_manager.save_version(base_config, scores={"composite": 0.72}, status="active")
+    ws_manager = _RecordingWsManager()
+
+    config_path = tmp_path / "workspace" / "selected-agent.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(yaml.safe_dump(base_config, sort_keys=False), encoding="utf-8")
+
+    observer = _RealObserver()
+    original_observe = observer.observe
+
+    def wrapped_observe(window: int = 100) -> HealthReport:
+        observe_calls.append(window)
+        return original_observe(window=window)
+
+    observer.observe = wrapped_observe  # type: ignore[method-assign]
+
+    test_app = FastAPI()
+    test_app.include_router(optimize_routes.router)
+    test_app.include_router(config_routes.router)
+    test_app.state.task_manager = _RecordingTaskManager()
+    test_app.state.ws_manager = ws_manager
+    test_app.state.observer = observer
+    test_app.state.optimizer = optimizer
+    test_app.state.deployer = deployer
+    test_app.state.eval_runner = eval_runner
+    test_app.state.conversation_store = _FailureStore()
+    test_app.state.optimization_memory = memory
+    test_app.state.version_manager = deployer.version_manager
+
+    _add_task_status_route(test_app)
+
+    client = TestClient(test_app)
+
+    response = client.post(
+        "/api/optimize/run",
+        json={
+            "window": 25,
+            "force": True,
+            "mode": "standard",
+            "objective": "improve answer quality",
+            "guardrails": ["safety >= 0.99"],
+            "research_algorithm": "",
+            "budget_cycles": 5,
+            "budget_dollars": 3.0,
+            "config_path": str(config_path),
+        },
+    )
+
+    assert response.status_code == 202
+    task_id = response.json()["task_id"]
+
+    task_payload: dict[str, object] | None = None
+    for _ in range(100):
+        task_response = client.get(f"/api/tasks/{task_id}")
+        assert task_response.status_code == 200
+        task_payload = task_response.json()
+        if task_payload["status"] == "completed":
+            break
+        time.sleep(0.02)
+
+    assert task_payload is not None
+    assert task_payload["status"] == "completed"
+
+    result = task_payload["result"]
+    assert result["accepted"] is True
+    assert "ACCEPTED" in result["status_message"]
+    assert result["change_description"] == "Strengthen root prompt"
+    assert "Validate every answer." in result["config_diff"]
+    assert result["score_before"] == pytest.approx(0.72)
+    assert result["score_after"] == pytest.approx(0.84)
+    assert "active" in result["deploy_message"].lower()
+    assert result["search_strategy"] == "simple"
+    assert result["strategy"] == "simple"
+    assert isinstance(result["governance_notes"], list)
+    assert result["global_dimensions"]["task_success_rate"] == pytest.approx(0.84)
+
+    task = test_app.state.task_manager.get_task(task_id)
+    assert task is not None
+    assert set((10, 20, 30, 40, 70, 90, 100)).issubset(set(task.progress_log))
+
+    assert observe_calls == [25]
+    assert len(optimize_calls) == 1
+    assert len(eval_runner.calls) == 4
+    assert len(deployer.deploy_calls) == 1
+    assert deployer.deploy_calls[0]["kwargs"].get("strategy") == "immediate"
+
+    history_response = client.get("/api/optimize/history")
+    assert history_response.status_code == 200
+    history = history_response.json()
+    assert len(history) == 1
+    assert history[0]["change_description"] == "Strengthen root prompt"
+    assert "significance_p_value" in history[0]
+    assert "significance_delta" in history[0]
+    assert "significance_n" in history[0]
+
+    configs_response = client.get("/api/config/list")
+    assert configs_response.status_code == 200
+    configs_payload = configs_response.json()
+    assert configs_payload["active_version"] == 2
+    assert configs_payload["canary_version"] is None
+    assert any(version["version"] == 2 and version["status"] == "active" for version in configs_payload["versions"])
+
+    assert ws_manager.messages[-1]["type"] == "optimize_complete"
+    assert ws_manager.messages[-1]["task_id"] == task_id
+    assert ws_manager.messages[-1]["accepted"] is True
+    assert ws_manager.messages[-1]["status"].startswith("ACCEPTED:")
+
+
+def test_start_optimization_bootstraps_active_config_from_base_config_when_none_exists(
+    tmp_path: Path,
+) -> None:
+    deployer = _RecordingDeployer(configs_dir=str(tmp_path / "configs"))
+    optimizer = _DummyOptimizer()
+
+    test_app = FastAPI()
+    test_app.include_router(optimize_routes.router)
+    test_app.include_router(config_routes.router)
+    test_app.state.task_manager = TaskManager()
+    test_app.state.ws_manager = _RecordingWsManager()
+    test_app.state.observer = _DummyObserver()
+    test_app.state.optimizer = optimizer
+    test_app.state.deployer = deployer
+    test_app.state.eval_runner = _DummyEvalRunner()
+    test_app.state.conversation_store = _FailureStore()
+    test_app.state.optimization_memory = _DummyMemory()
+    test_app.state.version_manager = deployer.version_manager
+    _add_task_status_route(test_app)
+
+    client = TestClient(test_app)
+
+    response = client.post(
+        "/api/optimize/run",
+        json={
+            "window": 20,
+            "force": True,
+            "mode": "standard",
+            "objective": "",
+            "guardrails": [],
+            "research_algorithm": "",
+            "budget_cycles": 3,
+            "budget_dollars": 2.0,
+        },
+    )
+
+    assert response.status_code == 202
+    task_id = response.json()["task_id"]
+
+    task_payload = None
+    for _ in range(100):
+        task_response = client.get(f"/api/tasks/{task_id}")
+        assert task_response.status_code == 200
+        task_payload = task_response.json()
+        if task_payload["status"] == "completed":
+            break
+        time.sleep(0.02)
+
+    assert task_payload is not None
+    assert task_payload["status"] == "completed"
+    assert optimizer.received_current_configs[-1]["model"] == "gemini-2.0-flash"
+    assert "prompts" in optimizer.received_current_configs[-1]
+
+    configs_response = client.get("/api/config/list")
+    assert configs_response.status_code == 200
+    configs_payload = configs_response.json()
+    assert configs_payload["active_version"] == 1
+    assert any(version["version"] == 1 and version["status"] == "active" for version in configs_payload["versions"])
+
+
+def test_start_optimization_with_minimal_config_completes_without_crashing(
+    tmp_path: Path,
+    base_config: dict,
+) -> None:
+    memory = OptimizationMemory(db_path=str(tmp_path / "optimizer_memory.db"))
+    deployer = _RecordingDeployer(configs_dir=str(tmp_path / "configs"))
+    deployer.version_manager.save_version(base_config, scores={"composite": 0.72}, status="active")
+
+    config_path = tmp_path / "workspace" / "minimal-agent.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text("{}\n", encoding="utf-8")
+
+    test_app = FastAPI()
+    test_app.include_router(optimize_routes.router)
+    test_app.state.task_manager = TaskManager()
+    test_app.state.ws_manager = _RecordingWsManager()
+    test_app.state.observer = _RealObserver()
+    test_app.state.optimizer = Optimizer(
+        eval_runner=_PromptSensitiveEvalRunner(),
+        memory=memory,
+        require_statistical_significance=False,
+    )
+    test_app.state.deployer = deployer
+    test_app.state.eval_runner = _PromptSensitiveEvalRunner()
+    test_app.state.conversation_store = _FailureStore()
+    test_app.state.optimization_memory = memory
+    _add_task_status_route(test_app)
+
+    client = TestClient(test_app)
+
+    response = client.post(
+        "/api/optimize/run",
+        json={
+            "window": 20,
+            "force": True,
+            "mode": "standard",
+            "objective": "",
+            "guardrails": [],
+            "research_algorithm": "",
+            "budget_cycles": 3,
+            "budget_dollars": 2.0,
+            "config_path": str(config_path),
+        },
+    )
+
+    assert response.status_code == 202
+    task_id = response.json()["task_id"]
+
+    task_payload = None
+    for _ in range(100):
+        task_response = client.get(f"/api/tasks/{task_id}")
+        assert task_response.status_code == 200
+        task_payload = task_response.json()
+        if task_payload["status"] == "completed":
+            break
+        time.sleep(0.02)
+
+    assert task_payload is not None
+    assert task_payload["status"] == "completed"
+    assert task_payload["error"] is None
+    assert task_payload["result"]["accepted"] is False
+    assert task_payload["result"]["status_message"].startswith("REJECTED")
+    assert task_payload["result"]["deploy_message"] is None

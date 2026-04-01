@@ -144,8 +144,12 @@ class Deployer:
         self.version_manager = ConfigVersionManager(configs_dir)
         self.canary_manager = CanaryManager(self.version_manager, store)
 
-    def deploy(self, config: dict, scores: dict) -> str:
-        """Deploy a new config as canary."""
+    def deploy(self, config: dict, scores: dict, *, strategy: str = "canary") -> str:
+        """Deploy a new config as canary or immediately activate it."""
+        if strategy == "immediate":
+            version = self.version_manager.save_version(config, scores, status="active").version
+            return f"Deployed v{version:03d} as active (immediate)"
+
         version = self.canary_manager.deploy_canary(config, scores)
         return f"Deployed v{version:03d} as canary (10% traffic)"
 

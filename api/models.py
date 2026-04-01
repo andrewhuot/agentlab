@@ -576,6 +576,7 @@ class OptimizeCycleResult(BaseModel):
     score_before: Optional[float] = Field(None, description="Composite score before change")
     score_after: Optional[float] = Field(None, description="Composite score after change")
     deploy_message: Optional[str] = Field(None, description="Deployment result message")
+    strategy: str = Field("simple", description="Search strategy used for the cycle")
     search_strategy: str = Field("simple", description="Search strategy used for the cycle")
     selected_operator_family: Optional[str] = Field(
         None,
