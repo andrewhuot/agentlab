@@ -74,7 +74,7 @@ This list includes only **P0/P1** issues that are realistically **small effort**
 ## 8) Complete page title map
 
 - Priority: P1
-- Problem: many routes render generic “AutoAgent” title.
+- Problem: many routes render generic “AgentLab” title.
 - Evidence: `web/src/components/Layout.tsx:9-33` vs app routes in `web/src/App.tsx:49-77`
 - Action: extend `pageTitles` map to all routes.
 - Success criteria: every page displays correct title in header.

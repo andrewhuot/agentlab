@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Make AutoAgent VNextCC production-grade for multi-provider optimization loops with durable state and reliable evaluation.
+**Goal:** Make AgentLab VNextCC production-grade for multi-provider optimization loops with durable state and reliable evaluation.
 
 **Architecture:** Introduce provider and orchestration abstractions around optimizer/eval paths while preserving existing CLI/API contracts. Persist run state/events to durable storage and isolate long-running loop controls (checkpointing, shutdown, watchdog) from business logic.
 

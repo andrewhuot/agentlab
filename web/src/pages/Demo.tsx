@@ -148,7 +148,7 @@ export function Demo() {
     <div className="space-y-6">
       <PageHeader
         title="VP Demo: E-commerce Support Bot"
-        description="Watch AutoAgent optimize a real-world support bot from 0.62 → 0.87 health"
+        description="Watch AgentLab optimize a real-world support bot from 0.62 → 0.87 health"
         actions={
           <>
             <button

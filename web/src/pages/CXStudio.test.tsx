@@ -83,7 +83,7 @@ describe('CXStudio', () => {
           agent_name: 'Support Bot',
           config_path: 'workspace/configs/v001.yaml',
           eval_path: 'workspace/evals/cases/imported_connect.yaml',
-          snapshot_path: 'workspace/.autoagent/cx/snapshot.json',
+          snapshot_path: 'workspace/.agentlab/cx/snapshot.json',
           surfaces_mapped: ['prompts', 'flows', 'intents'],
           test_cases_imported: 3,
           workspace_path: 'workspace',

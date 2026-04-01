@@ -1,7 +1,7 @@
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
-  name: autoagent-vnextcc
+  name: agentlab
   annotations:
     run.googleapis.com/ingress: all
 spec:
@@ -15,7 +15,7 @@ spec:
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
-        - image: REGION-docker.pkg.dev/PROJECT_ID/autoagent/autoagent-vnextcc:latest
+        - image: REGION-docker.pkg.dev/PROJECT_ID/agentlab/agentlab:latest
           ports:
             - containerPort: 8000
           resources:
@@ -23,11 +23,11 @@ spec:
               cpu: "2"
               memory: 2Gi
           env:
-            - name: AUTOAGENT_DB
+            - name: AGENTLAB_DB
               value: /app/data/conversations.db
-            - name: AUTOAGENT_CONFIGS
+            - name: AGENTLAB_CONFIGS
               value: /app/data/configs
-            - name: AUTOAGENT_MEMORY_DB
+            - name: AGENTLAB_MEMORY_DB
               value: /app/data/optimizer_memory.db
             - name: GOOGLE_API_KEY
               valueFrom:

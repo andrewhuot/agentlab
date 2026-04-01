@@ -127,7 +127,7 @@ class CxDeployer:
         ref: CxAgentRef,
         artifact: dict[str, Any],
     ) -> dict[str, Any]:
-        """Deploy AutoAgent artifact to CX Agent Studio.
+        """Deploy AgentLab artifact to CX Agent Studio.
 
         Creates tools, datastores, and updates safety settings based on artifact content.
 

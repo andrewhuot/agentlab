@@ -1,4 +1,4 @@
-"""Status rendering helpers for the AutoAgent CLI home screen."""
+"""Status rendering helpers for the AgentLab CLI home screen."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ class StatusSnapshot:
 
 def render_status(snapshot: StatusSnapshot, *, verbose: bool = False) -> None:
     """Render a colorful status home screen from a status snapshot."""
-    click.echo(click.style("\nAutoAgent Status", bold=True))
+    click.echo(click.style("\nAgentLab Status", bold=True))
     click.echo("━━━━━━━━━━━━━━━━━")
     click.echo(click.style(f"  Workspace:  {snapshot.workspace_name}", fg="cyan", bold=True))
     click.echo(f"  Path:       {snapshot.workspace_path}")

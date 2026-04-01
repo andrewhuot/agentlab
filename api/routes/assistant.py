@@ -1,6 +1,6 @@
 """Assistant API routes — conversational AI interface with SSE streaming.
 
-FastAPI endpoints for the AutoAgent Assistant:
+FastAPI endpoints for the AgentLab Assistant:
 - POST /api/assistant/message - Send message, get streaming response (SSE)
 - POST /api/assistant/upload - Upload files for processing
 - GET /api/assistant/history - Get conversation history

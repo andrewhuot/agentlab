@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for AutoAgent VNext tests."""
+"""Shared pytest fixtures for AgentLab VNext tests."""
 
 from __future__ import annotations
 

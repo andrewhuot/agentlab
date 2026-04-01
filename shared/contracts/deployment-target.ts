@@ -1,4 +1,4 @@
-export type DeploymentTargetKind = 'autoagent' | 'cx-studio' | 'adk' | 'mcp' | 'custom';
+export type DeploymentTargetKind = 'agentlab' | 'cx-studio' | 'adk' | 'mcp' | 'custom';
 
 export interface DeploymentTarget {
   target_id: string;

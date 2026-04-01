@@ -21,7 +21,7 @@ Researcher #2's simplicity thesis: iteration speed > sophistication. Karpathy lo
 13. `evals/data_engine.py` — Add CoherenceDetector class
 14. `evals/runner.py` — Add difficulty scoring (_difficulty_from_history) and pipeline eval mode
 15. `optimizer/loop.py` — Wire cost_tracker, human_control, event_log, immutable_surfaces
-16. `autoagent.yaml` — Add budget and human_control sections
+16. `agentlab.yaml` — Add budget and human_control sections
 17. `runner.py` — Add CLI commands: pause, resume, reject, pin, unpin
 18. `api/server.py` — Register control/events routes, wire control_store + event_log to app.state
 19. `web/src/pages/Dashboard.tsx` — Replace with R2's simplicity-first scorecard

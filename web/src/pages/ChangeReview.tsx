@@ -355,7 +355,7 @@ export function ChangeReview({ embedded = false }: ChangeReviewProps) {
           icon={FileCheck}
           title="No change cards yet"
           description="Change cards are generated when the optimizer proposes config improvements. Run an optimization cycle to see proposals here."
-          cliHint="autoagent optimize"
+          cliHint="agentlab optimize"
         />
       )}
 

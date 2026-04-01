@@ -1,6 +1,6 @@
 # Architecture and process diagrams
 
-Visual guide to how AutoAgent is structured and how data flows through the system.
+Visual guide to how AgentLab is structured and how data flows through the system.
 
 ---
 
@@ -13,7 +13,7 @@ Three interfaces sit on top of a FastAPI backend that orchestrates all subsystem
 │                          User interfaces                                │
 │                                                                         │
 │   CLI                        API                   Web console          │
-│   autoagent <cmd>            200+ REST endpoints   Web console (React)  │
+│   agentlab <cmd>            200+ REST endpoints   Web console (React)  │
 │                              WebSocket + SSE       TypeScript/Tailwind  │
 └───────────────┬──────────────────┬──────────────────────┬───────────────┘
                 │                  │                      │
@@ -307,7 +307,7 @@ How a single API request or CLI command flows through the system.
 ```
     User
      │
-     ├─► CLI: autoagent optimize
+     ├─► CLI: agentlab optimize
      │     │
      │     └─► runner.py → Click command
      │           │
@@ -412,10 +412,10 @@ Key entities and how they relate.
 ## Project structure
 
 ```
-autoagent-vnextcc/
+agentlab/
 │
-├── runner.py              CLI entry point (autoagent command)
-├── autoagent.yaml         Runtime configuration
+├── runner.py              CLI entry point (agentlab command)
+├── agentlab.yaml         Runtime configuration
 ├── Dockerfile             Container build
 ├── docker-compose.yaml    Multi-service compose
 ├── Makefile               Dev commands (setup, test, dev, deploy)

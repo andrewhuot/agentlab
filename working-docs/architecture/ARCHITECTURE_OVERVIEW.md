@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — Architecture & Implementation Overview
+# AgentLab VNextCC — Architecture & Implementation Overview
 
 **What it is:** A product-grade platform that continuously evaluates and optimizes AI agents in production. Point it at an ADK agent, and it will run an autonomous loop — trace, diagnose, search for improvements, gate on statistical significance, deploy via canary, repeat — for days or weeks without human intervention.
 
@@ -11,7 +11,7 @@
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                            Operator Interfaces                                │
-│   CLI (autoagent ...)       REST API (/api/*)        Web Console (39 pages)   │
+│   CLI (agentlab ...)       REST API (/api/*)        Web Console (39 pages)   │
 └──────────────────────────────────────┬───────────────────────────────────────┘
                                        │
                          ┌─────────────▼─────────────┐
@@ -86,7 +86,7 @@ Each cycle is wrapped in exception handling. Failures go to a dead letter queue 
 ## Package Map
 
 ```
-autoagent/
+agentlab/
 ├── agent/                  — ADK agent wrapper, graph construction
 ├── agent_skills/           — Agent-specific skill templates, generators, gap analyzer
 ├── api/                    — FastAPI app, 39 route modules, 200+ endpoints
@@ -452,7 +452,7 @@ POST   /api/scorers/test             — Test scorer against sample data
 
 ## Configuration
 
-Everything is driven by `autoagent.yaml`:
+Everything is driven by `agentlab.yaml`:
 
 ```yaml
 optimizer:
@@ -465,7 +465,7 @@ optimizer:
 
 loop:
   schedule_mode: continuous
-  checkpoint_path: .autoagent/loop_checkpoint.json
+  checkpoint_path: .agentlab/loop_checkpoint.json
   watchdog_timeout_seconds: 300
 
 eval:
@@ -493,11 +493,11 @@ budget:
   per_cycle_dollars: 1.0
   daily_dollars: 10.0
   stall_threshold_cycles: 5
-  tracker_db_path: .autoagent/cost_tracker.db
+  tracker_db_path: .agentlab/cost_tracker.db
 
 human_control:
   immutable_surfaces: ["safety_instructions"]
-  state_path: .autoagent/human_control.json
+  state_path: .agentlab/human_control.json
 ```
 
 ---
@@ -607,7 +607,7 @@ All fields have sensible defaults. The `simple` strategy with defaults is equiva
 
 ## Researcher-Advised Refactor (v5)
 
-The v5 refactor transforms AutoAgent from a prompt optimizer into **CI/CD for agents**, based on AI researcher feedback. The moat: "we can faithfully replay, grade, and safely improve real enterprise agent workflows."
+The v5 refactor transforms AgentLab from a prompt optimizer into **CI/CD for agents**, based on AI researcher feedback. The moat: "we can faithfully replay, grade, and safely improve real enterprise agent workflows."
 
 ### New First-Class Domain Objects (`core/`)
 
@@ -706,9 +706,9 @@ The v6 merge folds production-critical features from Codex R2 (simplicity thesis
 
 | Action | CLI | API | Dashboard |
 |--------|-----|-----|-----------|
-| Pause/resume optimization | `autoagent pause/resume` | `POST /api/control/pause` | Button |
-| Pin immutable surface | `autoagent pin <surface>` | `POST /api/control/pin/{surface}` | Input + tags |
-| Reject experiment + rollback | `autoagent reject <id>` | `POST /api/control/reject/{id}` | Input + button |
+| Pause/resume optimization | `agentlab pause/resume` | `POST /api/control/pause` | Button |
+| Pin immutable surface | `agentlab pin <surface>` | `POST /api/control/pin/{surface}` | Input + tags |
+| Reject experiment + rollback | `agentlab reject <id>` | `POST /api/control/reject/{id}` | Input + button |
 | Inject manual mutation | — | `POST /api/control/inject` | — |
 
 ### Append-Only Event Log (`data/event_log.py`, `api/routes/events.py`)
@@ -789,4 +789,4 @@ Replaced the 9-dimension dashboard with R2's simplicity-first design:
 
 ---
 
-*Repository: https://github.com/andrewhuot/autoagent-vnextcc*
+*Repository: https://github.com/andrewhuot/agentlab*

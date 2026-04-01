@@ -1,4 +1,4 @@
-"""Synthetic data generator for bootstrapping AutoAgent projects.
+"""Synthetic data generator for bootstrapping AgentLab projects.
 
 Generates realistic conversations, eval cases, and traces so that new users
 can experience the full optimisation loop without bringing their own data.

@@ -47,7 +47,7 @@ class SlaTarget:
 class SlaMonitor:
     """Define SLA targets and check compliance against a SQLite metrics store."""
 
-    def __init__(self, db_path: str = ".autoagent/sla.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/sla.db") -> None:
         self.db_path = db_path
         self._targets: dict[str, SlaTarget] = {}
         self._init_db()

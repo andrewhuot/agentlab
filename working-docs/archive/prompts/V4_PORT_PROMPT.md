@@ -1,14 +1,14 @@
-# AutoAgent VNextCC — Port v4 Research into Production
+# AgentLab VNextCC — Port v4 Research into Production
 
 ## Mission
 
-Port the best ideas from AutoAgent v4 Research into VNextCC's existing architecture. The goal is to make the optimizer and evals dramatically more effective WITHOUT changing the user experience. The UX stays simple (`autoagent init` → `autoagent run` → see results). The internals get much smarter.
+Port the best ideas from AgentLab v4 Research into VNextCC's existing architecture. The goal is to make the optimizer and evals dramatically more effective WITHOUT changing the user experience. The UX stays simple (`agentlab init` → `agentlab run` → see results). The internals get much smarter.
 
 ## What to Port
 
 ### 1. 9-Dimension Evaluation Framework (from v4 EVALUATION_FRAMEWORK.md)
 
-Read `~/Desktop/AutoAgent-v4-Research/EVALUATION_FRAMEWORK.md` (580 lines) thoroughly.
+Read `~/Desktop/AgentLab-v4-Research/EVALUATION_FRAMEWORK.md` (580 lines) thoroughly.
 
 Port these dimensions into VNextCC's scorer:
 - **G1**: Task success rate
@@ -30,7 +30,7 @@ Plus per-agent dimensions:
 
 ### 2. Constrained Pareto Archive (from v4 V4_PROPOSAL.md)
 
-Read `~/Desktop/AutoAgent-v4-Research/V4_PROPOSAL.md` (507 lines).
+Read `~/Desktop/AgentLab-v4-Research/V4_PROPOSAL.md` (507 lines).
 
 Port the Constrained Pareto Archive (CPA):
 - Separate feasible and infeasible candidate sets explicitly
@@ -58,7 +58,7 @@ Port:
 
 ### 5. Top Novel Contributions (from NOVEL_CONTRIBUTIONS.md)
 
-Read `~/Desktop/AutoAgent-v4-Research/NOVEL_CONTRIBUTIONS.md` (2034 lines). Cherry-pick what's implementable NOW:
+Read `~/Desktop/AgentLab-v4-Research/NOVEL_CONTRIBUTIONS.md` (2034 lines). Cherry-pick what's implementable NOW:
 - **Bandit-guided experiment selection** — replace uniform allocation with UCB/Thompson sampling for which agent/surface to optimize next
 - **Curriculum learning** — start with easy failure clusters, graduate to harder ones (cheap early wins → hard problems later)
 
@@ -90,7 +90,7 @@ optimizer:
 
 ## Constraints
 
-- **DO NOT change the default UX** — `autoagent run` should work exactly as before with `search_strategy: simple`
+- **DO NOT change the default UX** — `agentlab run` should work exactly as before with `search_strategy: simple`
 - **DO NOT break existing tests** — 193 tests must still pass, plus new ones
 - **DO NOT add external dependencies** — no new pip packages beyond what's already used
 - **Keep Gemini-first** — all LLM calls default to Gemini

@@ -193,7 +193,7 @@ def test_eval_run_real_agent_survives_provider_errors(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    """`autoagent eval run --real-agent` should finish even when the live router fails."""
+    """`agentlab eval run --real-agent` should finish even when the live router fails."""
     runner = CliRunner()
     workspace = tmp_path / "fallback-agent"
     init_result = runner.invoke(cli, ["init", "--dir", str(workspace), "--no-synthetic-data"])
@@ -216,7 +216,7 @@ def test_eval_run_real_agent_survives_provider_errors(
     assert "mixed mode" in result.output.lower()
     assert "Warning:" in result.output
     assert "falling back to deterministic mock responses" in result.output.lower()
-    latest = _read_json(workspace / ".autoagent" / "eval_results_latest.json")
+    latest = _read_json(workspace / ".agentlab" / "eval_results_latest.json")
     assert latest["mode"] == "mixed"
     assert latest["total"] == 3
     assert latest["passed"] >= 2
@@ -231,7 +231,7 @@ def test_eval_run_require_live_fails_when_provider_falls_back(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    """`autoagent eval run --require-live` should fail instead of silently persisting mock results."""
+    """`agentlab eval run --require-live` should fail instead of silently persisting mock results."""
     runner = CliRunner()
     workspace = tmp_path / "require-live-agent"
     init_result = runner.invoke(cli, ["init", "--dir", str(workspace), "--no-synthetic-data"])
@@ -252,4 +252,4 @@ def test_eval_run_require_live_fails_when_provider_falls_back(
 
     assert result.exit_code != 0
     assert "require live" in result.output.lower() or "live eval required" in result.output.lower()
-    assert not (workspace / ".autoagent" / "eval_results_latest.json").exists()
+    assert not (workspace / ".agentlab" / "eval_results_latest.json").exists()

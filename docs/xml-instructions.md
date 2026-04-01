@@ -1,6 +1,6 @@
 # XML Instructions
 
-AutoAgent now defaults to XML-based agent instructions for new workspaces and starter templates.
+AgentLab now defaults to XML-based agent instructions for new workspaces and starter templates.
 
 This follows Google Cloud CX Agent Studio guidance for structuring instructions so models can separate role, goals, constraints, taskflow, and examples more reliably.
 
@@ -20,7 +20,7 @@ Plain-text instructions still work, but XML has a few practical advantages:
 
 ## Supported XML Structure
 
-AutoAgent follows the Google-recommended XML tags:
+AgentLab follows the Google-recommended XML tags:
 
 - `<role>`: the agent's core responsibility
 - `<persona>`: tone and behavior guidance
@@ -33,7 +33,7 @@ AutoAgent follows the Google-recommended XML tags:
 - `<action>`: what the agent should do when the trigger matches
 - `<examples>`: inline few-shot examples
 
-AutoAgent also preserves free text before the first XML tag as preamble/context when present.
+AgentLab also preserves free text before the first XML tag as preamble/context when present.
 
 ## Example
 
@@ -73,9 +73,9 @@ CURRENT CUSTOMER: {username}
 </examples>
 ```
 
-## Where AutoAgent Uses XML
+## Where AgentLab Uses XML
 
-AutoAgent now uses XML instructions in four main places:
+AgentLab now uses XML instructions in four main places:
 
 1. Starter templates in `docs/templates/`
 2. The default base config in `agent/config/base_config.yaml`
@@ -86,13 +86,13 @@ For workspace configs, the root instruction usually lives in `prompts.root`.
 
 ## Backward Compatibility
 
-AutoAgent still supports plain-text instructions.
+AgentLab still supports plain-text instructions.
 
 Compatibility behavior:
 
 - Existing plain-text configs continue to load.
-- `autoagent instruction validate` will tell you when a prompt is still plain text.
-- `autoagent instruction migrate` converts a plain-text instruction into the XML default.
+- `agentlab instruction validate` will tell you when a prompt is still plain text.
+- `agentlab instruction migrate` converts a plain-text instruction into the XML default.
 - The eval adapter can handle mixed inputs, including XML root instructions plus plain-text specialist instructions.
 
 ## CLI Workflows
@@ -102,37 +102,37 @@ The new `instruction` command group operates on the active workspace config by d
 ### Show the current instruction
 
 ```bash
-autoagent instruction show
+agentlab instruction show
 ```
 
 ### Validate the XML structure
 
 ```bash
-autoagent instruction validate
+agentlab instruction validate
 ```
 
 ### Edit the instruction in your editor
 
 ```bash
-autoagent instruction edit
+agentlab instruction edit
 ```
 
 ### Generate a fresh XML draft from a brief
 
 ```bash
-autoagent instruction generate --brief "customer support agent for order tracking and refunds"
+agentlab instruction generate --brief "customer support agent for order tracking and refunds"
 ```
 
 Apply the generated draft back to the active config:
 
 ```bash
-autoagent instruction generate --brief "customer support agent for order tracking and refunds" --apply
+agentlab instruction generate --brief "customer support agent for order tracking and refunds" --apply
 ```
 
 ### Migrate plain text to XML
 
 ```bash
-autoagent instruction migrate
+agentlab instruction migrate
 ```
 
 ## Eval Overrides
@@ -151,7 +151,7 @@ constraints:
 Run an eval with that override:
 
 ```bash
-autoagent eval run --instruction-overrides instruction_override.yaml
+agentlab eval run --instruction-overrides instruction_override.yaml
 ```
 
 This is useful when you want to compare variants of:
@@ -235,9 +235,9 @@ The shared builder supports:
 
 For a new workspace:
 
-1. Run `autoagent new my-agent --template customer-support`
-2. Inspect the default XML with `autoagent instruction show`
-3. Adjust it with `autoagent instruction edit` or the Build UI
-4. Validate it with `autoagent instruction validate`
-5. Run `autoagent eval run`
+1. Run `agentlab new my-agent --template customer-support`
+2. Inspect the default XML with `agentlab instruction show`
+3. Adjust it with `agentlab instruction edit` or the Build UI
+4. Validate it with `agentlab instruction validate`
+5. Run `agentlab eval run`
 6. Use `--instruction-overrides` when you want to compare XML variants quickly

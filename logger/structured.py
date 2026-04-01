@@ -42,7 +42,7 @@ class JsonFormatter(logging.Formatter):
 def configure_structured_logging(
     *,
     log_path: str,
-    logger_name: str = "autoagent",
+    logger_name: str = "agentlab",
     level: int = logging.INFO,
     max_bytes: int = 5_000_000,
     backup_count: int = 5,

@@ -1,4 +1,4 @@
-"""Export AutoAgent workspaces back to Dialogflow CX with diff and sync support."""
+"""Export AgentLab workspaces back to Dialogflow CX with diff and sync support."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ _MISSING = object()
 
 
 class CxExporter:
-    """Export local AutoAgent changes to Dialogflow CX resources."""
+    """Export local AgentLab changes to Dialogflow CX resources."""
 
     def __init__(self, client, mapper: CxMapper | None = None):
         self._client = client

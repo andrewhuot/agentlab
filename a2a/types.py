@@ -1,4 +1,4 @@
-"""A2A Protocol type definitions for AutoAgent VNextCC.
+"""A2A Protocol type definitions for AgentLab VNextCC.
 
 Follows the Agent-to-Agent (A2A) protocol specification for interoperable
 agent discovery and task execution.

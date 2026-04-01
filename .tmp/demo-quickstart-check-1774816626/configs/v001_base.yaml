@@ -14,7 +14,7 @@ routing:
 
 prompts:
   root: >
-    You are AutoAgent, a helpful customer service assistant. Route customer
+    You are AgentLab, a helpful customer service assistant. Route customer
     requests to the appropriate specialist. If unclear, ask a clarifying
     question. Be friendly and concise.
   support: >

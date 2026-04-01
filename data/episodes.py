@@ -237,11 +237,11 @@ class EpisodeStore:
         """Export episodes to a JSONL file. Returns the output path.
 
         When episode_ids is None all stored episodes are exported.
-        When output_path is None a timestamped file is written under .autoagent/.
+        When output_path is None a timestamped file is written under .agentlab/.
         """
-        os.makedirs(".autoagent", exist_ok=True)
+        os.makedirs(".agentlab", exist_ok=True)
         if output_path is None:
-            output_path = f".autoagent/episodes_{uuid.uuid4().hex[:8]}.jsonl"
+            output_path = f".agentlab/episodes_{uuid.uuid4().hex[:8]}.jsonl"
 
         if episode_ids is not None:
             placeholders = ", ".join("?" for _ in episode_ids)

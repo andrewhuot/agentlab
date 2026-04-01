@@ -1,14 +1,14 @@
-# AutoAgent VNextCC — Major Refactor Based on AI Researcher Review
+# AgentLab VNextCC — Major Refactor Based on AI Researcher Review
 
 ## Context
 
 An AI researcher reviewed our evaluation and optimization architecture. Their feedback is in `RESEARCHER_ADVICE.md`. Read it FIRST — every word. This is the most important input you'll receive.
 
-Their headline: **"Build AutoAgent as an eval-native experimentation system around versioned agent graphs, skills, tool contracts, and stateful sandbox replay. The moat is not 'we mutate prompts.' The moat is 'we can faithfully replay, grade, and safely improve real enterprise agent workflows.'"**
+Their headline: **"Build AgentLab as an eval-native experimentation system around versioned agent graphs, skills, tool contracts, and stateful sandbox replay. The moat is not 'we mutate prompts.' The moat is 'we can faithfully replay, grade, and safely improve real enterprise agent workflows.'"**
 
 ## Your Mission
 
-Implement a deep architectural refactor that transforms AutoAgent from a prompt optimizer into CI/CD for agents. This is a foundational rewrite of core abstractions, not a feature addition.
+Implement a deep architectural refactor that transforms AgentLab from a prompt optimizer into CI/CD for agents. This is a foundational rewrite of core abstractions, not a feature addition.
 
 ## Phase 1: Planning (Opus-level thinking, write REFACTOR_PLAN.md)
 
@@ -169,7 +169,7 @@ Use sub-agents for parallel work streams:
 - Gemini stays default, but judge must use a DIFFERENT model family config than proposer
 - Single-process stays, but code should be structured into control/execution/data planes
 - Frontend stays Apple/Linear aesthetic
-- `autoagent run` with `search_strategy: simple` must work identically to before
+- `agentlab run` with `search_strategy: simple` must work identically to before
 - Keep the failure-bucket proposer as simple mode — it's the right v0
 
 ## When Done

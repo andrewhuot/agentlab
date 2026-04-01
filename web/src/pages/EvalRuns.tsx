@@ -420,7 +420,7 @@ export function EvalRuns() {
           icon={FlaskConical}
           title="No eval runs yet"
           description="Run your first eval:"
-          cliHint="autoagent eval run"
+          cliHint="agentlab eval run"
           actionLabel="Create Eval Run"
           onAction={() => setShowForm(true)}
         />

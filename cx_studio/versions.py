@@ -67,7 +67,7 @@ class CxVersionManager:
         Args:
             agent_id: Fully-qualified CX agent resource name or local ID.
             description: Human-readable description, e.g. ``"pre-optimization snapshot"``.
-            config_snapshot: AutoAgent config dict to snapshot.
+            config_snapshot: AgentLab config dict to snapshot.
 
         Returns:
             A ``CxVersion`` instance representing the created version.

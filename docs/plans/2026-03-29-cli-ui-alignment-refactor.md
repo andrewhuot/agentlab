@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Align the AutoAgent CLI, API, and web UI around one shared taxonomy, one shared contract layer, and one shared persistence model while preserving existing behavior through compatibility routes and adapters.
+**Goal:** Align the AgentLab CLI, API, and web UI around one shared taxonomy, one shared contract layer, and one shared persistence model while preserving existing behavior through compatibility routes and adapters.
 
 **Architecture:** Add a thin shared boundary layer first: `shared/contracts/*` for DTOs and `shared/taxonomy.*` for the 10 top-level command groups. Migrate surface boundaries to those contracts one seam at a time instead of rewriting internal domain models. Preserve current UI routes via aliases and keep `runner.py` and `api/server.py` under single-owner integration to avoid merge conflicts.
 
@@ -150,7 +150,7 @@ Expected: FAIL because there is no shared build artifact store or API surface ye
 **Step 3: Implement the shared build artifact store**
 
 Requirements:
-- Preserve `.autoagent/build_artifact_latest.json` compatibility.
+- Preserve `.agentlab/build_artifact_latest.json` compatibility.
 - The store should expose `save_latest`, `get_latest`, `list_recent`, and `get_by_id` or equivalent.
 - Keep `runner.py build` behavior intact: config generation, eval generation, and summary output.
 - Add API endpoints or route extensions so the UI can list saved artifacts for the new Build page.
@@ -254,7 +254,7 @@ Expected: FAIL because transcript reports are in-memory on the API side and skil
 
 Requirements:
 - Persist transcript reports durably without renaming the optimizer’s internal report model.
-- Normalize skills to one canonical `.autoagent/core_skills.db` path unless there is a stronger existing constant to reuse.
+- Normalize skills to one canonical `.agentlab/core_skills.db` path unless there is a stronger existing constant to reuse.
 - Keep registry-backed executable skills separate from lifecycle skills, but make the distinction explicit.
 
 **Step 4: Run the tests again**

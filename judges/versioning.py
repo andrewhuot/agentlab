@@ -53,7 +53,7 @@ class GraderVersion:
 class GraderVersionStore:
     """SQLite-backed store for grader version history."""
 
-    def __init__(self, db_path: str = ".autoagent/grader_versions.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/grader_versions.db") -> None:
         self._db_path = db_path
         self._ensure_table()
 

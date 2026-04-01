@@ -1,1 +1,1 @@
-"""Example scripts for AutoAgent."""
+"""Example scripts for AgentLab."""

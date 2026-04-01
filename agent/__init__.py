@@ -1,4 +1,4 @@
-"""AutoAgent VNext agent package."""
+"""AgentLab VNext agent package."""
 
 
 def create_root_agent(*args, **kwargs):

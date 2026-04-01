@@ -1,4 +1,4 @@
-"""ADK Runtime Adapter for executing agents with AutoAgent tracing."""
+"""ADK Runtime Adapter for executing agents with AgentLab tracing."""
 from __future__ import annotations
 
 import time
@@ -23,9 +23,9 @@ class AdkExecutionResult:
 
 
 class AdkRuntimeAdapter:
-    """Adapter that executes ADK agents and produces AutoAgent-compatible trace events.
+    """Adapter that executes ADK agents and produces AgentLab-compatible trace events.
 
-    This class wraps the ADK execution loop with AutoAgent instrumentation so
+    This class wraps the ADK execution loop with AgentLab instrumentation so
     that every invocation produces structured trace events, token counts, and a
     final state snapshot. The implementation is intentionally dependency-light:
     the actual ADK SDK is imported lazily so that the module can be imported in
@@ -61,7 +61,7 @@ class AdkRuntimeAdapter:
 
         If the Google ADK SDK is available the agent is run via the SDK runner.
         Otherwise a lightweight stub execution is performed so that the rest of
-        the AutoAgent pipeline can function in offline / test mode.
+        the AgentLab pipeline can function in offline / test mode.
 
         Args:
             user_message: The human turn message to send to the agent.
@@ -205,7 +205,7 @@ class AdkRuntimeAdapter:
         raw_events: list[Any],
         state: dict,
     ) -> list[dict]:
-        """Convert raw ADK execution events into AutoAgent trace event dicts.
+        """Convert raw ADK execution events into AgentLab trace event dicts.
 
         The resulting list is ordered chronologically. Each event has:
         - ``event_id``: monotonically increasing integer string
@@ -220,7 +220,7 @@ class AdkRuntimeAdapter:
             state: Final state snapshot.
 
         Returns:
-            Ordered list of AutoAgent-format trace event dicts.
+            Ordered list of AgentLab-format trace event dicts.
         """
         events: list[dict] = []
         counter = 0
@@ -377,7 +377,7 @@ class AdkRuntimeAdapter:
         runner = InMemoryRunner(agent=agent, app_name=agent_name)
         session = runner.session_service.create_session(
             app_name=agent_name,
-            user_id="autoagent",
+            user_id="agentlab",
         )
 
         content = genai_types.Content(
@@ -390,7 +390,7 @@ class AdkRuntimeAdapter:
         tokens_used = 0
 
         for event in runner.run(
-            user_id="autoagent",
+            user_id="agentlab",
             session_id=session.id,
             new_message=content,
         ):
@@ -442,7 +442,7 @@ class AdkRuntimeAdapter:
         runner = InMemoryRunner(agent=agent, app_name=agent_name)
         session = runner.session_service.create_session(
             app_name=agent_name,
-            user_id="autoagent",
+            user_id="agentlab",
         )
         content = genai_types.Content(
             role="user",
@@ -450,7 +450,7 @@ class AdkRuntimeAdapter:
         )
 
         for event in runner.run(
-            user_id="autoagent",
+            user_id="agentlab",
             session_id=session.id,
             new_message=content,
         ):

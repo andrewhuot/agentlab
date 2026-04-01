@@ -64,7 +64,7 @@ def test_mcp_status_reports_workspace_runtime_state(runner: CliRunner) -> None:
             json.dumps(
                 {
                     "mcpServers": {
-                        "autoagent": {"command": "autoagent", "args": ["mcp-server"]},
+                        "agentlab": {"command": "agentlab", "args": ["mcp-server"]},
                         "browser": {"command": "python", "args": ["-m", "browser_mcp"]},
                     }
                 },
@@ -77,5 +77,5 @@ def test_mcp_status_reports_workspace_runtime_state(runner: CliRunner) -> None:
 
         assert result.exit_code == 0, result.output
         assert "2 workspace MCP server" in result.output
-        assert "autoagent" in result.output
+        assert "agentlab" in result.output
         assert ".mcp.json" in result.output

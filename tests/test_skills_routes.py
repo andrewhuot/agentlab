@@ -17,7 +17,7 @@ from core.skills import Skill, SkillKind, MutationOperator, ToolDefinition
 @pytest.fixture(autouse=True)
 def clean_skill_db():
     """Clean up the skill database before and after each test."""
-    db_path = Path(".autoagent/core_skills.db")
+    db_path = Path(".agentlab/core_skills.db")
 
     # Remove database before test
     if db_path.exists():

@@ -8,7 +8,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions }: PageHeaderProps) {
   useEffect(() => {
-    document.title = `${title} • AutoAgent`;
+    document.title = `${title} • AgentLab`;
   }, [title]);
 
   return (

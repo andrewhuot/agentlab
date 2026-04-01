@@ -16,7 +16,7 @@ def test_autofix_apply_persists_output() -> None:
         init_result = runner.invoke(cli, ["init", "--dir", "."])
         assert init_result.exit_code == 0, init_result.output
 
-        Path(".autoagent").mkdir(parents=True, exist_ok=True)
+        Path(".agentlab").mkdir(parents=True, exist_ok=True)
         store = AutoFixStore()
         proposal = AutoFixProposal(
             proposal_id="persist001",

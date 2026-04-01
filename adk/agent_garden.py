@@ -28,10 +28,10 @@ _SEMVER_RE = re.compile(r"^\d+\.\d+(\.\d+)?$")
 
 
 class AgentGardenExporter:
-    """Exports AutoAgent configurations to the Vertex AI Agent Garden format.
+    """Exports AgentLab configurations to the Vertex AI Agent Garden format.
 
     The Agent Garden is a registry of reusable, shareable agents hosted on
-    Vertex AI. This exporter converts an AutoAgent config dict into the
+    Vertex AI. This exporter converts an AgentLab config dict into the
     schema expected by the Agent Garden API, validates it, and returns the
     formatted payload.
     """
@@ -44,7 +44,7 @@ class AgentGardenExporter:
         """Convert an agent configuration to Agent Garden format.
 
         Args:
-            agent_config: AutoAgent configuration dict.  Recognised keys
+            agent_config: AgentLab configuration dict.  Recognised keys
                 include ``name``, ``model``, ``instruction``, ``tools``,
                 ``sub_agents``, and ``generate_config``.
             metadata: Extra metadata to embed in the Agent Garden entry.

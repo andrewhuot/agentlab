@@ -1,4 +1,4 @@
-"""Pre-built guardrails for AutoAgent VNextCC (P1-3).
+"""Pre-built guardrails for AgentLab VNextCC (P1-3).
 
 Each guardrail is a concrete subclass of ``Guardrail`` that can be registered
 with a ``GuardrailRegistry`` and composed into ``GuardrailChain`` instances.

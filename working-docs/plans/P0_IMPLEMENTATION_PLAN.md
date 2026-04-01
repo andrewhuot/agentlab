@@ -1,4 +1,4 @@
-# P0 Implementation Plan — AutoAgent VNextCC Architectural Overhaul
+# P0 Implementation Plan — AgentLab VNextCC Architectural Overhaul
 
 ## Current State Summary
 
@@ -12,7 +12,7 @@
 1. **Gemini-first** — default model stays Gemini 2.5 Pro
 2. **Single-process** — no Celery/Redis/Kafka; SQLite for persistence
 3. **Headless-first** — CLI + API primary, web console for insight
-4. **User journey simplicity** — `autoagent init` → `autoagent run` → see results
+4. **User journey simplicity** — `agentlab init` → `agentlab run` → see results
 
 ---
 
@@ -33,7 +33,7 @@ TraceCollector → OpportunityQueue → SearchEngine → [MutationOperator...] �
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         Operator Interfaces                          │
-│   CLI (autoagent ...)      REST API (/api/*)      Web Console        │
+│   CLI (agentlab ...)      REST API (/api/*)      Web Console        │
 └─────────────────────────────────┬────────────────────────────────────┘
                                   │
                     ┌─────────────▼─────────────┐
@@ -265,7 +265,7 @@ Phase 5 — Verification
 - `observer/classifier.py` → Feed into clustering (Feature 4)
 - `observer/metrics.py` → Add trace-derived metrics (Feature 3)
 - `agent/config/schema.py` → Add context/memory/compaction config sections (Feature 11)
-- `autoagent.yaml` → Add new config sections
+- `agentlab.yaml` → Add new config sections
 - `runner.py` → Add new CLI commands
 - `web/src/lib/types.ts` → Add new types
 - `web/src/lib/api.ts` → Add new API hooks
@@ -318,8 +318,8 @@ Phase 5 — Verification
 
 ## Risk Mitigation
 
-1. **Backwards compatibility**: The existing `autoagent optimize` → `autoagent deploy` flow MUST keep working. New features are additive.
-2. **Config migration**: New `autoagent.yaml` sections have defaults. Old configs continue to work.
+1. **Backwards compatibility**: The existing `agentlab optimize` → `agentlab deploy` flow MUST keep working. New features are additive.
+2. **Config migration**: New `agentlab.yaml` sections have defaults. Old configs continue to work.
 3. **Test coverage**: Every new module gets tests. Existing 42 tests must keep passing.
 4. **Frontend**: New pages are additive. Existing pages keep working but get enhanced data.
 

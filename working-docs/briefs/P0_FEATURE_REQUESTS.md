@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — P0 Feature Requests
+# AgentLab VNextCC — P0 Feature Requests
 
 These are P0 changes required before calling the product production-ready. They represent a heavy refactor of architecture, backend, and frontend. We should maintain simplicity in the user journey — not every detail needs to be accepted verbatim, but the spirit of each request must be addressed.
 

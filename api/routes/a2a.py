@@ -82,17 +82,17 @@ class DiscoverRequest(BaseModel):
 
 @router.get("/.well-known/agent-card.json", include_in_schema=True)
 async def get_agent_card(request: Request) -> JSONResponse:
-    """Serve the agent card for this AutoAgent instance.
+    """Serve the agent card for this AgentLab instance.
 
     The card is generated from environment / app.state configuration on each
     call so it always reflects the current set of registered agents.
     """
     base_url = _get_base_url(request)
 
-    agent_name = os.environ.get("A2A_AGENT_NAME", "AutoAgent VNextCC")
+    agent_name = os.environ.get("A2A_AGENT_NAME", "AgentLab VNextCC")
     agent_description = os.environ.get(
         "A2A_AGENT_DESCRIPTION",
-        "AutoAgent VNextCC — CI/CD for AI agents. "
+        "AgentLab VNextCC — CI/CD for AI agents. "
         "Experiment-driven optimization, evaluation, and deployment.",
     )
     agent_version = os.environ.get("A2A_AGENT_VERSION", "1.0")
@@ -141,7 +141,7 @@ async def get_agent_card(request: Request) -> JSONResponse:
         },
         "input_modes": ["text"],
         "output_modes": ["text"],
-        "metadata": {"platform": "autoagent-vnextcc"},
+        "metadata": {"platform": "agentlab"},
     }
 
     card = _card_generator.generate_card(

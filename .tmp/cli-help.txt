@@ -9,9 +9,9 @@ EXIT=0
       ||        Continuous Agent Optimization Platform   v1.0.0
       ||        Created by Andrew Huot
   ------------------------------------------------------------------------
-Usage: autoagent [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab [OPTIONS] COMMAND [ARGS]...
 
-  AutoAgent VNextCC — agent optimization platform.
+  AgentLab VNextCC — agent optimization platform.
 
   A product-grade platform for iterating ADK agent quality. CLI-first, API-
   ready, with a web console for visual insight.
@@ -42,12 +42,12 @@ Commands:
   eval        Evaluate agent configs against test suites.
   explain     Generate a plain-English summary of the agent's current state.
   full-auto   Run optimization + loop in dangerous full-auto mode.
-  init        Scaffold a new AutoAgent project with config, eval suite,...
+  init        Scaffold a new AgentLab project with config, eval suite,...
   judges      Judge Ops — monitoring, calibration, and human feedback.
   logs        Browse conversation logs.
   loop        Run the continuous autoresearch loop.
   mcp-server  Start MCP server for AI coding tool integration.
-  memory      Project memory — manage AUTOAGENT.md persistent context.
+  memory      Project memory — manage AGENTLAB.md persistent context.
   optimize    Run optimization cycles to improve agent config.
   outcomes    Manage business outcome data.
   pause       Pause the optimization loop (human escape hatch).
@@ -73,18 +73,18 @@ Commands:
 
 ## init
 EXIT=0
-Usage: autoagent init [OPTIONS]
+Usage: agentlab init [OPTIONS]
 
-  Scaffold a new AutoAgent project with config, eval suite, and structure.
+  Scaffold a new AgentLab project with config, eval suite, and structure.
 
 Options:
   --template [customer-support|minimal]
                                   Project template to scaffold.  [default:
                                   customer-support]
   --dir TEXT                      Directory to initialize in.  [default: .]
-  --agent-name TEXT               Agent name for AUTOAGENT.md.  [default: My
+  --agent-name TEXT               Agent name for AGENTLAB.md.  [default: My
                                   Agent]
-  --platform TEXT                 Platform for AUTOAGENT.md.  [default: Google
+  --platform TEXT                 Platform for AGENTLAB.md.  [default: Google
                                   ADK]
   --with-synthetic-data / --no-synthetic-data
                                   Seed synthetic conversations and evals.
@@ -94,7 +94,7 @@ Options:
 
 ## build
 EXIT=0
-Usage: autoagent build [OPTIONS] PROMPT
+Usage: agentlab build [OPTIONS] PROMPT
 
   Build an agent artifact from natural language and scaffold eval/deploy
   handoff files.
@@ -109,7 +109,7 @@ Options:
 
 ## eval
 EXIT=0
-Usage: autoagent eval [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab eval [OPTIONS] COMMAND [ARGS]...
 
   Evaluate agent configs against test suites.
 
@@ -125,13 +125,13 @@ Commands:
 
 ## eval run
 EXIT=0
-Usage: autoagent eval run [OPTIONS]
+Usage: agentlab eval run [OPTIONS]
 
   Run eval suite against a config.
 
-  Examples:   autoagent eval run   autoagent eval run --config
-  configs/v003.yaml   autoagent eval run --config configs/v003.yaml --category
-  safety   autoagent eval run --output results.json
+  Examples:   agentlab eval run   agentlab eval run --config
+  configs/v003.yaml   agentlab eval run --config configs/v003.yaml --category
+  safety   agentlab eval run --output results.json
 
 Options:
   --config TEXT             Path to config YAML.
@@ -149,11 +149,11 @@ Options:
 
 ## eval results
 EXIT=0
-Usage: autoagent eval results [OPTIONS]
+Usage: agentlab eval results [OPTIONS]
 
   View eval results from a previous run.
 
-  Examples:   autoagent eval results --file results.json
+  Examples:   agentlab eval results --file results.json
 
 Options:
   --run-id TEXT  Run ID to show results for.
@@ -163,7 +163,7 @@ Options:
 
 ## eval list
 EXIT=0
-Usage: autoagent eval list [OPTIONS]
+Usage: agentlab eval list [OPTIONS]
 
   List recent eval runs.
 
@@ -176,13 +176,13 @@ Options:
 
 ## eval generate
 EXIT=0
-Usage: autoagent eval generate [OPTIONS]
+Usage: agentlab eval generate [OPTIONS]
 
   AI-generate a comprehensive eval suite from agent config.
 
-  Examples:   autoagent eval generate   autoagent eval generate --config
-  agent_config.yaml   autoagent eval generate --config agent_config.yaml
-  --output evals.json   autoagent eval generate --provider mock --agent-name
+  Examples:   agentlab eval generate   agentlab eval generate --config
+  agent_config.yaml   agentlab eval generate --config agent_config.yaml
+  --output evals.json   agentlab eval generate --provider mock --agent-name
   "My Agent"
 
 Options:
@@ -199,11 +199,11 @@ Options:
 
 ## optimize
 EXIT=0
-Usage: autoagent optimize [OPTIONS]
+Usage: agentlab optimize [OPTIONS]
 
   Run optimization cycles to improve agent config.
 
-  Examples:   autoagent optimize   autoagent optimize --cycles 5   autoagent
+  Examples:   agentlab optimize   agentlab optimize --cycles 5   agentlab
   optimize --mode advanced --cycles 3
 
 Options:
@@ -223,7 +223,7 @@ Options:
 
 ## config
 EXIT=0
-Usage: autoagent config [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab config [OPTIONS] COMMAND [ARGS]...
 
   Manage agent config versions.
 
@@ -239,11 +239,11 @@ Commands:
 
 ## config list
 EXIT=0
-Usage: autoagent config list [OPTIONS]
+Usage: agentlab config list [OPTIONS]
 
   List all config versions.
 
-  Examples:   autoagent config list
+  Examples:   agentlab config list
 
 Options:
   --configs-dir TEXT  Configs directory.  [default: configs]
@@ -252,11 +252,11 @@ Options:
 
 ## config show
 EXIT=0
-Usage: autoagent config show [OPTIONS] [VERSION]
+Usage: agentlab config show [OPTIONS] [VERSION]
 
   Show config YAML for a version (defaults to active).
 
-  Examples:   autoagent config show   autoagent config show 3
+  Examples:   agentlab config show   agentlab config show 3
 
 Options:
   --configs-dir TEXT  Configs directory.  [default: configs]
@@ -265,11 +265,11 @@ Options:
 
 ## config diff
 EXIT=0
-Usage: autoagent config diff [OPTIONS] V1 V2
+Usage: agentlab config diff [OPTIONS] V1 V2
 
   Diff two config versions.
 
-  Examples:   autoagent config diff 1 3
+  Examples:   agentlab config diff 1 3
 
 Options:
   --configs-dir TEXT  Configs directory.  [default: configs]
@@ -278,15 +278,15 @@ Options:
 
 ## config migrate
 EXIT=0
-Usage: autoagent config migrate [OPTIONS] INPUT_FILE
+Usage: agentlab config migrate [OPTIONS] INPUT_FILE
 
   Migrate old optimizer config format to new optimization section.
 
   Converts legacy optimizer.search_strategy / bandit_policy settings into the
   new optimization.mode / budget / autonomy format.
 
-  Examples:   autoagent config migrate autoagent.yaml   autoagent config
-  migrate autoagent.yaml --output autoagent_v2.yaml
+  Examples:   agentlab config migrate agentlab.yaml   agentlab config
+  migrate agentlab.yaml --output agentlab_v2.yaml
 
 Options:
   --output TEXT  Output file path (prints to stdout if omitted).
@@ -295,12 +295,12 @@ Options:
 
 ## deploy
 EXIT=0
-Usage: autoagent deploy [OPTIONS]
+Usage: agentlab deploy [OPTIONS]
 
   Deploy a config version.
 
-  Examples:   autoagent deploy --config-version 5 --strategy canary
-  autoagent deploy --strategy immediate   autoagent deploy --target cx-studio
+  Examples:   agentlab deploy --config-version 5 --strategy canary
+  agentlab deploy --strategy immediate   agentlab deploy --target cx-studio
 
 Options:
   --config-version INTEGER        Config version to deploy. Defaults to latest
@@ -309,11 +309,11 @@ Options:
   --configs-dir TEXT              Configs directory.  [default: configs]
   --db TEXT                       Conversation store DB.  [default:
                                   conversations.db]
-  --target [autoagent|cx-studio]  Deployment target.  [default: autoagent]
+  --target [agentlab|cx-studio]  Deployment target.  [default: agentlab]
   --project TEXT                  GCP project ID (required for CX push).
   --location TEXT                 CX agent location.  [default: global]
   --agent-id TEXT                 CX agent ID (required for CX push).
-  --snapshot TEXT                 CX snapshot JSON path from `autoagent cx
+  --snapshot TEXT                 CX snapshot JSON path from `agentlab cx
                                   import`.
   --credentials TEXT              Path to service account JSON for CX calls.
   --output TEXT                   Output path for CX export package JSON.
@@ -324,14 +324,14 @@ Options:
 
 ## loop
 EXIT=0
-Usage: autoagent loop [OPTIONS]
+Usage: agentlab loop [OPTIONS]
 
   Run the continuous autoresearch loop.
 
   Observes agent health, proposes improvements, evaluates them, and deploys
   accepted changes — automatically, cycle after cycle.
 
-  Examples:   autoagent loop   autoagent loop --max-cycles 100 --stop-on-
+  Examples:   agentlab loop   agentlab loop --max-cycles 100 --stop-on-
   plateau
 
 Options:
@@ -340,13 +340,13 @@ Options:
                                   cycles.
   --delay FLOAT                   Seconds between cycles.  [default: 1.0]
   --schedule [continuous|interval|cron]
-                                  Scheduling mode. Defaults to autoagent.yaml
+                                  Scheduling mode. Defaults to agentlab.yaml
                                   loop.schedule_mode.
   --interval-minutes FLOAT        Interval minutes for --schedule interval.
   --cron TEXT                     Cron expression for --schedule cron (5-field
                                   UTC).
   --checkpoint-file TEXT          Checkpoint file path. Defaults to
-                                  autoagent.yaml loop.checkpoint_path.
+                                  agentlab.yaml loop.checkpoint_path.
   --resume / --no-resume          Resume from checkpoint when available.
                                   [default: resume]
   --full-auto                     Danger mode: auto-promote accepted configs
@@ -361,11 +361,11 @@ Options:
 
 ## status
 EXIT=0
-Usage: autoagent status [OPTIONS]
+Usage: agentlab status [OPTIONS]
 
   Show system health, config versions, and recent activity.
 
-  Examples:   autoagent status
+  Examples:   agentlab status
 
 Options:
   --db TEXT           Conversation store DB.  [default: conversations.db]
@@ -377,11 +377,11 @@ Options:
 
 ## logs
 EXIT=0
-Usage: autoagent logs [OPTIONS]
+Usage: agentlab logs [OPTIONS]
 
   Browse conversation logs.
 
-  Examples:   autoagent logs   autoagent logs --limit 50 --outcome fail
+  Examples:   agentlab logs   agentlab logs --limit 50 --outcome fail
 
 Options:
   --limit INTEGER                 Number of logs to show.  [default: 20]
@@ -394,27 +394,27 @@ Options:
 
 ## doctor
 EXIT=0
-Usage: autoagent doctor [OPTIONS]
+Usage: agentlab doctor [OPTIONS]
 
   Check system health and configuration.
 
   Reports on API keys, mock mode, data stores, eval cases, and config
   versions.
 
-  Examples:   autoagent doctor
+  Examples:   agentlab doctor
 
 Options:
-  --config TEXT  Path to runtime config YAML.  [default: autoagent.yaml]
+  --config TEXT  Path to runtime config YAML.  [default: agentlab.yaml]
   --help         Show this message and exit.
 
 
 ## pause
 EXIT=0
-Usage: autoagent pause [OPTIONS]
+Usage: agentlab pause [OPTIONS]
 
   Pause the optimization loop (human escape hatch).
 
-  Examples:   autoagent pause
+  Examples:   agentlab pause
 
 Options:
   --help  Show this message and exit.
@@ -422,11 +422,11 @@ Options:
 
 ## resume
 EXIT=0
-Usage: autoagent resume [OPTIONS]
+Usage: agentlab resume [OPTIONS]
 
   Resume the optimization loop after a pause.
 
-  Examples:   autoagent resume
+  Examples:   agentlab resume
 
 Options:
   --help  Show this message and exit.
@@ -434,11 +434,11 @@ Options:
 
 ## reject
 EXIT=0
-Usage: autoagent reject [OPTIONS] EXPERIMENT_ID
+Usage: agentlab reject [OPTIONS] EXPERIMENT_ID
 
   Reject a promoted experiment and rollback any active canary.
 
-  Examples:   autoagent reject abc12345
+  Examples:   agentlab reject abc12345
 
 Options:
   --configs-dir TEXT  Configs directory.  [default: configs]
@@ -448,11 +448,11 @@ Options:
 
 ## pin
 EXIT=0
-Usage: autoagent pin [OPTIONS] SURFACE
+Usage: agentlab pin [OPTIONS] SURFACE
 
   Mark a config surface as immutable (e.g. prompts.root, safety_instructions).
 
-  Examples:   autoagent pin safety_instructions   autoagent pin prompts.root
+  Examples:   agentlab pin safety_instructions   agentlab pin prompts.root
 
 Options:
   --help  Show this message and exit.
@@ -460,11 +460,11 @@ Options:
 
 ## unpin
 EXIT=0
-Usage: autoagent unpin [OPTIONS] SURFACE
+Usage: agentlab unpin [OPTIONS] SURFACE
 
   Remove immutable marking from a config surface.
 
-  Examples:   autoagent unpin safety_instructions
+  Examples:   agentlab unpin safety_instructions
 
 Options:
   --help  Show this message and exit.
@@ -472,7 +472,7 @@ Options:
 
 ## autofix
 EXIT=0
-Usage: autoagent autofix [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab autofix [OPTIONS] COMMAND [ARGS]...
 
   AutoFix Copilot — reviewable improvement proposals.
 
@@ -487,11 +487,11 @@ Commands:
 
 ## autofix suggest
 EXIT=0
-Usage: autoagent autofix suggest [OPTIONS]
+Usage: agentlab autofix suggest [OPTIONS]
 
   Generate AutoFix proposals without applying them.
 
-  Examples:   autoagent autofix suggest
+  Examples:   agentlab autofix suggest
 
 Options:
   --help  Show this message and exit.
@@ -499,11 +499,11 @@ Options:
 
 ## autofix apply
 EXIT=0
-Usage: autoagent autofix apply [OPTIONS] PROPOSAL_ID
+Usage: agentlab autofix apply [OPTIONS] PROPOSAL_ID
 
   Apply a specific AutoFix proposal.
 
-  Examples:   autoagent autofix apply abc123
+  Examples:   agentlab autofix apply abc123
 
 Options:
   --help  Show this message and exit.
@@ -511,11 +511,11 @@ Options:
 
 ## autofix history
 EXIT=0
-Usage: autoagent autofix history [OPTIONS]
+Usage: agentlab autofix history [OPTIONS]
 
   Show past AutoFix proposals and outcomes.
 
-  Examples:   autoagent autofix history
+  Examples:   agentlab autofix history
 
 Options:
   --limit INTEGER  Number of proposals to show.  [default: 20]
@@ -524,7 +524,7 @@ Options:
 
 ## judges
 EXIT=0
-Usage: autoagent judges [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab judges [OPTIONS] COMMAND [ARGS]...
 
   Judge Ops — monitoring, calibration, and human feedback.
 
@@ -539,11 +539,11 @@ Commands:
 
 ## judges list
 EXIT=0
-Usage: autoagent judges list [OPTIONS]
+Usage: agentlab judges list [OPTIONS]
 
   Show active judges with version and agreement stats.
 
-  Examples:   autoagent judges list
+  Examples:   agentlab judges list
 
 Options:
   --help  Show this message and exit.
@@ -551,11 +551,11 @@ Options:
 
 ## judges calibrate
 EXIT=0
-Usage: autoagent judges calibrate [OPTIONS]
+Usage: agentlab judges calibrate [OPTIONS]
 
   Sample cases for human calibration review.
 
-  Examples:   autoagent judges calibrate --sample 50   autoagent judges
+  Examples:   agentlab judges calibrate --sample 50   agentlab judges
   calibrate --judge-id llm_judge
 
 Options:
@@ -566,11 +566,11 @@ Options:
 
 ## judges drift
 EXIT=0
-Usage: autoagent judges drift [OPTIONS]
+Usage: agentlab judges drift [OPTIONS]
 
   Show drift report for all judges.
 
-  Examples:   autoagent judges drift
+  Examples:   agentlab judges drift
 
 Options:
   --help  Show this message and exit.
@@ -578,7 +578,7 @@ Options:
 
 ## context
 EXIT=0
-Usage: autoagent context [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab context [OPTIONS] COMMAND [ARGS]...
 
   Context Engineering Workbench — diagnose and tune agent context.
 
@@ -593,11 +593,11 @@ Commands:
 
 ## context analyze
 EXIT=0
-Usage: autoagent context analyze [OPTIONS]
+Usage: agentlab context analyze [OPTIONS]
 
   Analyze context utilization for a trace.
 
-  Examples:   autoagent context analyze --trace abc123
+  Examples:   agentlab context analyze --trace abc123
 
 Options:
   --trace TEXT  Trace ID to analyze.  [required]
@@ -606,11 +606,11 @@ Options:
 
 ## context simulate
 EXIT=0
-Usage: autoagent context simulate [OPTIONS]
+Usage: agentlab context simulate [OPTIONS]
 
   Simulate a compaction strategy.
 
-  Examples:   autoagent context simulate --strategy aggressive
+  Examples:   agentlab context simulate --strategy aggressive
 
 Options:
   --strategy [aggressive|balanced|conservative]
@@ -621,11 +621,11 @@ Options:
 
 ## context report
 EXIT=0
-Usage: autoagent context report [OPTIONS]
+Usage: agentlab context report [OPTIONS]
 
   Show aggregate context health report.
 
-  Examples:   autoagent context report
+  Examples:   agentlab context report
 
 Options:
   --help  Show this message and exit.
@@ -633,7 +633,7 @@ Options:
 
 ## review
 EXIT=0
-Usage: autoagent review [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab review [OPTIONS] COMMAND [ARGS]...
 
   Review proposed change cards from the optimizer.
 
@@ -650,11 +650,11 @@ Commands:
 
 ## review list
 EXIT=0
-Usage: autoagent review list [OPTIONS]
+Usage: agentlab review list [OPTIONS]
 
   List pending change cards.
 
-  Examples:   autoagent review   autoagent review list
+  Examples:   agentlab review   agentlab review list
 
 Options:
   --limit INTEGER  Number of cards to show.  [default: 20]
@@ -663,11 +663,11 @@ Options:
 
 ## review show
 EXIT=0
-Usage: autoagent review show [OPTIONS] CARD_ID
+Usage: agentlab review show [OPTIONS] CARD_ID
 
   Show a specific change card with full terminal rendering.
 
-  Examples:   autoagent review show abc12345
+  Examples:   agentlab review show abc12345
 
 Options:
   --help  Show this message and exit.
@@ -675,11 +675,11 @@ Options:
 
 ## review apply
 EXIT=0
-Usage: autoagent review apply [OPTIONS] CARD_ID
+Usage: agentlab review apply [OPTIONS] CARD_ID
 
   Apply (accept) a change card.
 
-  Examples:   autoagent review apply abc12345
+  Examples:   agentlab review apply abc12345
 
 Options:
   --help  Show this message and exit.
@@ -687,11 +687,11 @@ Options:
 
 ## review reject
 EXIT=0
-Usage: autoagent review reject [OPTIONS] CARD_ID
+Usage: agentlab review reject [OPTIONS] CARD_ID
 
   Reject a change card with an optional reason.
 
-  Examples:   autoagent review reject abc12345 --reason "Too risky"
+  Examples:   agentlab review reject abc12345 --reason "Too risky"
 
 Options:
   --reason TEXT  Reason for rejection.
@@ -700,11 +700,11 @@ Options:
 
 ## review export
 EXIT=0
-Usage: autoagent review export [OPTIONS] CARD_ID
+Usage: agentlab review export [OPTIONS] CARD_ID
 
   Export a change card as markdown.
 
-  Examples:   autoagent review export abc12345
+  Examples:   agentlab review export abc12345
 
 Options:
   --help  Show this message and exit.
@@ -712,7 +712,7 @@ Options:
 
 ## changes
 EXIT=0
-Usage: autoagent changes [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab changes [OPTIONS] COMMAND [ARGS]...
 
   Changes — aliases for reviewable optimizer change cards.
 
@@ -720,18 +720,18 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  approve  Approve/apply a change card (alias for `autoagent review apply`).
-  export   Export a change card markdown (alias for `autoagent review...
-  list     List pending change cards (alias for `autoagent review list`).
-  reject   Reject a change card (alias for `autoagent review reject`).
-  show     Show a specific change card (alias for `autoagent review show`).
+  approve  Approve/apply a change card (alias for `agentlab review apply`).
+  export   Export a change card markdown (alias for `agentlab review...
+  list     List pending change cards (alias for `agentlab review list`).
+  reject   Reject a change card (alias for `agentlab review reject`).
+  show     Show a specific change card (alias for `agentlab review show`).
 
 
 ## changes list
 EXIT=0
-Usage: autoagent changes list [OPTIONS]
+Usage: agentlab changes list [OPTIONS]
 
-  List pending change cards (alias for `autoagent review list`).
+  List pending change cards (alias for `agentlab review list`).
 
 Options:
   --limit INTEGER  Number of cards to show.  [default: 20]
@@ -740,9 +740,9 @@ Options:
 
 ## changes show
 EXIT=0
-Usage: autoagent changes show [OPTIONS] CARD_ID
+Usage: agentlab changes show [OPTIONS] CARD_ID
 
-  Show a specific change card (alias for `autoagent review show`).
+  Show a specific change card (alias for `agentlab review show`).
 
 Options:
   --help  Show this message and exit.
@@ -750,9 +750,9 @@ Options:
 
 ## changes approve
 EXIT=0
-Usage: autoagent changes approve [OPTIONS] CARD_ID
+Usage: agentlab changes approve [OPTIONS] CARD_ID
 
-  Approve/apply a change card (alias for `autoagent review apply`).
+  Approve/apply a change card (alias for `agentlab review apply`).
 
 Options:
   --help  Show this message and exit.
@@ -760,9 +760,9 @@ Options:
 
 ## changes reject
 EXIT=0
-Usage: autoagent changes reject [OPTIONS] CARD_ID
+Usage: agentlab changes reject [OPTIONS] CARD_ID
 
-  Reject a change card (alias for `autoagent review reject`).
+  Reject a change card (alias for `agentlab review reject`).
 
 Options:
   --reason TEXT  Reason for rejection.
@@ -771,9 +771,9 @@ Options:
 
 ## changes export
 EXIT=0
-Usage: autoagent changes export [OPTIONS] CARD_ID
+Usage: agentlab changes export [OPTIONS] CARD_ID
 
-  Export a change card markdown (alias for `autoagent review export`).
+  Export a change card markdown (alias for `agentlab review export`).
 
 Options:
   --help  Show this message and exit.
@@ -781,7 +781,7 @@ Options:
 
 ## runbook
 EXIT=0
-Usage: autoagent runbook [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab runbook [OPTIONS] COMMAND [ARGS]...
 
   Runbooks — curated bundles of skills, policies, and tool contracts.
 
@@ -797,11 +797,11 @@ Commands:
 
 ## runbook list
 EXIT=0
-Usage: autoagent runbook list [OPTIONS]
+Usage: agentlab runbook list [OPTIONS]
 
   List all runbooks.
 
-  Examples:   autoagent runbook list
+  Examples:   agentlab runbook list
 
 Options:
   --db TEXT  [default: registry.db]
@@ -810,11 +810,11 @@ Options:
 
 ## runbook show
 EXIT=0
-Usage: autoagent runbook show [OPTIONS] NAME
+Usage: agentlab runbook show [OPTIONS] NAME
 
   Show runbook details.
 
-  Examples:   autoagent runbook show fix-retrieval-grounding
+  Examples:   agentlab runbook show fix-retrieval-grounding
 
 Options:
   --db TEXT  [default: registry.db]
@@ -823,11 +823,11 @@ Options:
 
 ## runbook apply
 EXIT=0
-Usage: autoagent runbook apply [OPTIONS] NAME
+Usage: agentlab runbook apply [OPTIONS] NAME
 
   Apply a runbook — registers its skills, policies, and tool contracts.
 
-  Examples:   autoagent runbook apply fix-retrieval-grounding
+  Examples:   agentlab runbook apply fix-retrieval-grounding
 
 Options:
   --db TEXT  [default: registry.db]
@@ -836,11 +836,11 @@ Options:
 
 ## runbook create
 EXIT=0
-Usage: autoagent runbook create [OPTIONS]
+Usage: agentlab runbook create [OPTIONS]
 
   Create a runbook from a YAML file.
 
-  Examples:   autoagent runbook create --name my-runbook --file runbook.yaml
+  Examples:   agentlab runbook create --name my-runbook --file runbook.yaml
 
 Options:
   --name TEXT  Runbook name.  [required]
@@ -851,25 +851,25 @@ Options:
 
 ## memory
 EXIT=0
-Usage: autoagent memory [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab memory [OPTIONS] COMMAND [ARGS]...
 
-  Project memory — manage AUTOAGENT.md persistent context.
+  Project memory — manage AGENTLAB.md persistent context.
 
 Options:
   --help  Show this message and exit.
 
 Commands:
-  add   Add a note to a section of AUTOAGENT.md.
-  show  Show AUTOAGENT.md contents.
+  add   Add a note to a section of AGENTLAB.md.
+  show  Show AGENTLAB.md contents.
 
 
 ## memory show
 EXIT=0
-Usage: autoagent memory show [OPTIONS]
+Usage: agentlab memory show [OPTIONS]
 
-  Show AUTOAGENT.md contents.
+  Show AGENTLAB.md contents.
 
-  Examples:   autoagent memory show
+  Examples:   agentlab memory show
 
 Options:
   --help  Show this message and exit.
@@ -877,12 +877,12 @@ Options:
 
 ## memory add
 EXIT=0
-Usage: autoagent memory add [OPTIONS] NOTE
+Usage: agentlab memory add [OPTIONS] NOTE
 
-  Add a note to a section of AUTOAGENT.md.
+  Add a note to a section of AGENTLAB.md.
 
-  Examples:   autoagent memory add "Prefer instruction edits over model swaps"
-  --section preference   autoagent memory add "Never use gpt-3.5 for safety
+  Examples:   agentlab memory add "Prefer instruction edits over model swaps"
+  --section preference   agentlab memory add "Never use gpt-3.5 for safety
   checks" --section bad
 
 Options:
@@ -893,14 +893,14 @@ Options:
 
 ## server
 EXIT=0
-Usage: autoagent server [OPTIONS]
+Usage: agentlab server [OPTIONS]
 
   Start the API server + web console.
 
   Starts the FastAPI backend serving both the REST API and the web console.
   API docs available at http://localhost:8000/docs
 
-  Examples:   autoagent server   autoagent server --port 3000 --reload
+  Examples:   agentlab server   agentlab server --port 3000 --reload
 
 Options:
   --quiet         Suppress the branded startup banner.
@@ -913,7 +913,7 @@ Options:
 
 ## mcp-server
 EXIT=0
-Usage: autoagent mcp-server [OPTIONS]
+Usage: agentlab mcp-server [OPTIONS]
 
   Start MCP server for AI coding tool integration.
 
@@ -921,11 +921,11 @@ Usage: autoagent mcp-server [OPTIONS]
   compatible tools. Supply --port to serve streamable HTTP locally.
 
   Setup for Claude Code (project-scoped .mcp.json example):   {
-  "mcpServers": {       "autoagent": {         "command": "python3",
+  "mcpServers": {       "agentlab": {         "command": "python3",
   "args": ["-m", "mcp_server"]       }     }   }
 
-  Examples:   autoagent mcp-server                         # Stdio mode
-  (default)   autoagent mcp-server --host 127.0.0.1 --port 8081
+  Examples:   agentlab mcp-server                         # Stdio mode
+  (default)   agentlab mcp-server --host 127.0.0.1 --port 8081
 
 Options:
   --host TEXT     HTTP bind host when using --port.  [default: 127.0.0.1]
@@ -936,7 +936,7 @@ Options:
 
 ## registry
 EXIT=0
-Usage: autoagent registry [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab registry [OPTIONS] COMMAND [ARGS]...
 
   Modular registry — skills, policies, tool contracts, handoff schemas.
 
@@ -953,11 +953,11 @@ Commands:
 
 ## registry list
 EXIT=0
-Usage: autoagent registry list [OPTIONS]
+Usage: agentlab registry list [OPTIONS]
 
   List registered items.
 
-  Examples:   autoagent registry list   autoagent registry list --type skills
+  Examples:   agentlab registry list   agentlab registry list --type skills
 
 Options:
   --type [skills|policies|tools|handoffs]
@@ -968,11 +968,11 @@ Options:
 
 ## registry show
 EXIT=0
-Usage: autoagent registry show [OPTIONS] {skills|policies|tools|handoffs} NAME
+Usage: agentlab registry show [OPTIONS] {skills|policies|tools|handoffs} NAME
 
   Show details for a registry item.
 
-  Examples:   autoagent registry show skills returns_handling   autoagent
+  Examples:   agentlab registry show skills returns_handling   agentlab
   registry show tools order_lookup --version 2
 
 Options:
@@ -983,11 +983,11 @@ Options:
 
 ## registry add
 EXIT=0
-Usage: autoagent registry add [OPTIONS] {skills|policies|tools|handoffs} NAME
+Usage: agentlab registry add [OPTIONS] {skills|policies|tools|handoffs} NAME
 
   Add a new item (or new version) to the registry.
 
-  Examples:   autoagent registry add skills returns_handling --file skill.yaml
+  Examples:   agentlab registry add skills returns_handling --file skill.yaml
 
 Options:
   --file PATH  YAML/JSON file with item data.  [required]
@@ -997,12 +997,12 @@ Options:
 
 ## registry diff
 EXIT=0
-Usage: autoagent registry diff [OPTIONS] {skills|policies|tools|handoffs} NAME
+Usage: agentlab registry diff [OPTIONS] {skills|policies|tools|handoffs} NAME
                                V1 V2
 
   Diff two versions of a registry item.
 
-  Examples:   autoagent registry diff skills returns_handling 1 2
+  Examples:   agentlab registry diff skills returns_handling 1 2
 
 Options:
   --db TEXT  [default: registry.db]
@@ -1011,11 +1011,11 @@ Options:
 
 ## registry import
 EXIT=0
-Usage: autoagent registry import [OPTIONS] PATH
+Usage: agentlab registry import [OPTIONS] PATH
 
   Bulk-import registry items from a YAML/JSON file.
 
-  Examples:   autoagent registry import registry_export.yaml
+  Examples:   agentlab registry import registry_export.yaml
 
 Options:
   --db TEXT  [default: registry.db]
@@ -1024,7 +1024,7 @@ Options:
 
 ## skill
 EXIT=0
-Usage: autoagent skill [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab skill [OPTIONS] COMMAND [ARGS]...
 
   Unified skill management — build-time and run-time skills.
 
@@ -1051,7 +1051,7 @@ Commands:
 
 ## skill export-md
 EXIT=0
-Usage: autoagent skill export-md [OPTIONS] SKILL_NAME
+Usage: agentlab skill export-md [OPTIONS] SKILL_NAME
 
   Export a skill as SKILL.md.
 
@@ -1062,7 +1062,7 @@ Options:
 
 ## skill import-md
 EXIT=0
-Usage: autoagent skill import-md [OPTIONS] PATH
+Usage: agentlab skill import-md [OPTIONS] PATH
 
   Import a skill from SKILL.md file.
 
@@ -1072,7 +1072,7 @@ Options:
 
 ## curriculum
 EXIT=0
-Usage: autoagent curriculum [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab curriculum [OPTIONS] COMMAND [ARGS]...
 
   Self-play curriculum generator for adversarial eval prompts.
 
@@ -1087,11 +1087,11 @@ Commands:
 
 ## curriculum generate
 EXIT=0
-Usage: autoagent curriculum generate [OPTIONS]
+Usage: agentlab curriculum generate [OPTIONS]
 
   Generate a new curriculum batch from recent failures.
 
-  Examples:   autoagent curriculum generate   autoagent curriculum generate
+  Examples:   agentlab curriculum generate   agentlab curriculum generate
   --limit 20 --prompts-per-cluster 5
 
 Options:
@@ -1102,43 +1102,43 @@ Options:
   --db TEXT                      Conversation database path  [default:
                                  conversations.db]
   --output-dir TEXT              Output directory  [default:
-                                 .autoagent/curriculum]
+                                 .agentlab/curriculum]
   --help                         Show this message and exit.
 
 
 ## curriculum list
 EXIT=0
-Usage: autoagent curriculum list [OPTIONS]
+Usage: agentlab curriculum list [OPTIONS]
 
   List generated curriculum batches.
 
-  Examples:   autoagent curriculum list   autoagent curriculum list --json
+  Examples:   agentlab curriculum list   agentlab curriculum list --json
 
 Options:
   --limit INTEGER    Max batches to list  [default: 20]
-  --output-dir TEXT  Curriculum directory  [default: .autoagent/curriculum]
+  --output-dir TEXT  Curriculum directory  [default: .agentlab/curriculum]
   --json             Output as JSON
   --help             Show this message and exit.
 
 
 ## curriculum apply
 EXIT=0
-Usage: autoagent curriculum apply [OPTIONS] BATCH_ID
+Usage: agentlab curriculum apply [OPTIONS] BATCH_ID
 
   Apply a curriculum batch to the active eval set.
 
-  Examples:   autoagent curriculum apply curriculum_abc123
+  Examples:   agentlab curriculum apply curriculum_abc123
 
 Options:
   --output-dir TEXT      Curriculum directory  [default:
-                         .autoagent/curriculum]
+                         .agentlab/curriculum]
   --eval-cases-dir TEXT  Eval cases directory  [default: evals/cases]
   --help                 Show this message and exit.
 
 
 ## trace
 EXIT=0
-Usage: autoagent trace [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab trace [OPTIONS] COMMAND [ARGS]...
 
   Trace analysis — grading, blame maps, and graphs.
 
@@ -1154,49 +1154,49 @@ Commands:
 
 ## trace grade
 EXIT=0
-Usage: autoagent trace grade [OPTIONS] TRACE_ID
+Usage: agentlab trace grade [OPTIONS] TRACE_ID
 
   Grade all spans in a trace.
 
-  Examples:   autoagent trace grade abc-123
+  Examples:   agentlab trace grade abc-123
 
 Options:
-  --db TEXT  [default: .autoagent/traces.db]
+  --db TEXT  [default: .agentlab/traces.db]
   --help     Show this message and exit.
 
 
 ## trace blame
 EXIT=0
-Usage: autoagent trace blame [OPTIONS]
+Usage: agentlab trace blame [OPTIONS]
 
   Build a blame map of failure clusters.
 
-  Examples:   autoagent trace blame --window 24h   autoagent trace blame
+  Examples:   agentlab trace blame --window 24h   agentlab trace blame
   --window 7d --top 5
 
 Options:
   --window TEXT  Time window (e.g. 24h, 7d, 30m).  [default: 24h]
   --top INTEGER  Number of clusters to show.  [default: 10]
-  --db TEXT      [default: .autoagent/traces.db]
+  --db TEXT      [default: .agentlab/traces.db]
   --help         Show this message and exit.
 
 
 ## trace graph
 EXIT=0
-Usage: autoagent trace graph [OPTIONS] TRACE_ID
+Usage: agentlab trace graph [OPTIONS] TRACE_ID
 
   Render a trace as a dependency graph with critical-path analysis.
 
-  Examples:   autoagent trace graph abc-123
+  Examples:   agentlab trace graph abc-123
 
 Options:
-  --db TEXT  [default: .autoagent/traces.db]
+  --db TEXT  [default: .agentlab/traces.db]
   --help     Show this message and exit.
 
 
 ## trace promote
 EXIT=0
-Usage: autoagent trace promote [OPTIONS] TRACE_ID
+Usage: agentlab trace promote [OPTIONS] TRACE_ID
 
   Promote a trace to an eval case.
 
@@ -1206,7 +1206,7 @@ Options:
 
 ## scorer
 EXIT=0
-Usage: autoagent scorer [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab scorer [OPTIONS] COMMAND [ARGS]...
 
   NL Scorer — create eval scorers from natural language descriptions.
 
@@ -1223,12 +1223,12 @@ Commands:
 
 ## scorer create
 EXIT=0
-Usage: autoagent scorer create [OPTIONS] [DESCRIPTION]
+Usage: agentlab scorer create [OPTIONS] [DESCRIPTION]
 
   Create a scorer from a natural language description.
 
-  Examples:   autoagent scorer create "The agent should respond within 5
-  seconds"   autoagent scorer create --from-file criteria.txt --name
+  Examples:   agentlab scorer create "The agent should respond within 5
+  seconds"   agentlab scorer create --from-file criteria.txt --name
   latency_check
 
 Options:
@@ -1239,11 +1239,11 @@ Options:
 
 ## scorer list
 EXIT=0
-Usage: autoagent scorer list [OPTIONS]
+Usage: agentlab scorer list [OPTIONS]
 
   List all scorer specs in memory.
 
-  Examples:   autoagent scorer list
+  Examples:   agentlab scorer list
 
 Options:
   --help  Show this message and exit.
@@ -1251,11 +1251,11 @@ Options:
 
 ## scorer show
 EXIT=0
-Usage: autoagent scorer show [OPTIONS] NAME
+Usage: agentlab scorer show [OPTIONS] NAME
 
   Show a scorer spec in detail.
 
-  Examples:   autoagent scorer show latency_check
+  Examples:   agentlab scorer show latency_check
 
 Options:
   --help  Show this message and exit.
@@ -1263,11 +1263,11 @@ Options:
 
 ## scorer refine
 EXIT=0
-Usage: autoagent scorer refine [OPTIONS] NAME ADDITIONAL_NL
+Usage: agentlab scorer refine [OPTIONS] NAME ADDITIONAL_NL
 
   Refine an existing scorer with additional criteria.
 
-  Examples:   autoagent scorer refine latency_check "Also check for empathy"
+  Examples:   agentlab scorer refine latency_check "Also check for empathy"
 
 Options:
   --help  Show this message and exit.
@@ -1275,21 +1275,21 @@ Options:
 
 ## scorer test
 EXIT=0
-Usage: autoagent scorer test [OPTIONS] NAME
+Usage: agentlab scorer test [OPTIONS] NAME
 
   Test a scorer against a trace.
 
-  Examples:   autoagent scorer test latency_check --trace abc-123
+  Examples:   agentlab scorer test latency_check --trace abc-123
 
 Options:
   --trace TEXT  Trace ID to test against.  [required]
-  --db TEXT     [default: .autoagent/traces.db]
+  --db TEXT     [default: .agentlab/traces.db]
   --help        Show this message and exit.
 
 
 ## full-auto
 EXIT=0
-Usage: autoagent full-auto [OPTIONS]
+Usage: agentlab full-auto [OPTIONS]
 
   Run optimization + loop in dangerous full-auto mode.
 
@@ -1307,7 +1307,7 @@ Options:
 
 ## autonomous
 EXIT=0
-Usage: autoagent autonomous [OPTIONS]
+Usage: agentlab autonomous [OPTIONS]
 
   Run autonomous optimization with scoped permissions.
 
@@ -1321,19 +1321,19 @@ Options:
 
 ## quickstart
 EXIT=0
-Usage: autoagent quickstart [OPTIONS]
+Usage: agentlab quickstart [OPTIONS]
 
   Run the ENTIRE golden path: init → seed → eval → optimize → summary.
 
   A single command that takes you from zero to optimized agent in minutes.
 
-  Examples:   autoagent quickstart   autoagent quickstart --agent-name
+  Examples:   agentlab quickstart   agentlab quickstart --agent-name
   "Support Bot" --verbose
 
 Options:
   --quiet             Suppress the branded startup banner.
   --no-banner         Suppress the branded startup banner.
-  --agent-name TEXT   Agent name for AUTOAGENT.md.  [default: My Agent]
+  --agent-name TEXT   Agent name for AGENTLAB.md.  [default: My Agent]
   --verbose           Show detailed output.
   --dir TEXT          Directory to initialize in.  [default: .]
   --open / --no-open  Auto-open web console after completion.
@@ -1342,12 +1342,12 @@ Options:
 
 ## edit
 EXIT=0
-Usage: autoagent edit [OPTIONS] [DESCRIPTION]
+Usage: agentlab edit [OPTIONS] [DESCRIPTION]
 
   Apply natural language edits to agent config.
 
-  Examples:   autoagent edit "Make the billing agent more empathetic"
-  autoagent edit "Reduce response verbosity" --dry-run   autoagent edit
+  Examples:   agentlab edit "Make the billing agent more empathetic"
+  agentlab edit "Reduce response verbosity" --dry-run   agentlab edit
   --interactive
 
 Options:
@@ -1361,7 +1361,7 @@ Options:
 
 ## explain
 EXIT=0
-Usage: autoagent explain [OPTIONS]
+Usage: agentlab explain [OPTIONS]
 
   Generate a plain-English summary of the agent's current state.
 
@@ -1376,7 +1376,7 @@ Options:
 
 ## diagnose
 EXIT=0
-Usage: autoagent diagnose [OPTIONS]
+Usage: agentlab diagnose [OPTIONS]
 
   Run failure diagnosis and optionally fix issues interactively.
 
@@ -1391,7 +1391,7 @@ Options:
 
 ## replay
 EXIT=0
-Usage: autoagent replay [OPTIONS]
+Usage: agentlab replay [OPTIONS]
 
   Show optimization history like git log --oneline.
 
@@ -1404,7 +1404,7 @@ Options:
 
 ## cx
 EXIT=0
-Usage: autoagent cx [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab cx [OPTIONS] COMMAND [ARGS]...
 
   Google Cloud CX Agent Studio — import, export, deploy.
 
@@ -1415,7 +1415,7 @@ Commands:
   compat  Show CX Agent Studio compatibility matrix.
   deploy  Deploy agent to a CX environment.
   export  Export optimized config back to CX Agent Studio.
-  import  Import a CX agent into AutoAgent format.
+  import  Import a CX agent into AgentLab format.
   list    List CX agents in a project.
   status  Show CX agent deployment status.
   widget  Generate a chat-messenger web widget HTML file.
@@ -1423,7 +1423,7 @@ Commands:
 
 ## cx compat
 EXIT=0
-Usage: autoagent cx compat [OPTIONS]
+Usage: agentlab cx compat [OPTIONS]
 
   Show CX Agent Studio compatibility matrix.
 
@@ -1433,7 +1433,7 @@ Options:
 
 ## cx list
 EXIT=0
-Usage: autoagent cx list [OPTIONS]
+Usage: agentlab cx list [OPTIONS]
 
   List CX agents in a project.
 
@@ -1446,9 +1446,9 @@ Options:
 
 ## cx import
 EXIT=0
-Usage: autoagent cx import [OPTIONS]
+Usage: agentlab cx import [OPTIONS]
 
-  Import a CX agent into AutoAgent format.
+  Import a CX agent into AgentLab format.
 
 Options:
   --project TEXT                  GCP project ID.  [required]
@@ -1463,7 +1463,7 @@ Options:
 
 ## cx export
 EXIT=0
-Usage: autoagent cx export [OPTIONS]
+Usage: agentlab cx export [OPTIONS]
 
   Export optimized config back to CX Agent Studio.
 
@@ -1471,7 +1471,7 @@ Options:
   --project TEXT      GCP project ID.  [required]
   --location TEXT     [default: global]
   --agent TEXT        CX agent ID.  [required]
-  --config TEXT       AutoAgent config YAML path.  [required]
+  --config TEXT       AgentLab config YAML path.  [required]
   --snapshot TEXT     CX snapshot JSON from import.  [required]
   --credentials TEXT  Path to service account JSON.
   --dry-run           Preview changes without pushing.
@@ -1480,7 +1480,7 @@ Options:
 
 ## cx deploy
 EXIT=0
-Usage: autoagent cx deploy [OPTIONS]
+Usage: agentlab cx deploy [OPTIONS]
 
   Deploy agent to a CX environment.
 
@@ -1495,7 +1495,7 @@ Options:
 
 ## cx widget
 EXIT=0
-Usage: autoagent cx widget [OPTIONS]
+Usage: agentlab cx widget [OPTIONS]
 
   Generate a chat-messenger web widget HTML file.
 
@@ -1511,7 +1511,7 @@ Options:
 
 ## cx status
 EXIT=0
-Usage: autoagent cx status [OPTIONS]
+Usage: agentlab cx status [OPTIONS]
 
   Show CX agent deployment status.
 
@@ -1525,7 +1525,7 @@ Options:
 
 ## adk
 EXIT=0
-Usage: autoagent adk [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab adk [OPTIONS] COMMAND [ARGS]...
 
   Google Agent Development Kit (ADK) integration — import, export, deploy.
 
@@ -1542,7 +1542,7 @@ Commands:
 
 ## adk import
 EXIT=0
-Usage: autoagent adk import [OPTIONS] PATH
+Usage: agentlab adk import [OPTIONS] PATH
 
   Import an ADK agent from a local directory.
 
@@ -1553,7 +1553,7 @@ Options:
 
 ## adk export
 EXIT=0
-Usage: autoagent adk export [OPTIONS] PATH
+Usage: agentlab adk export [OPTIONS] PATH
 
   Export optimized config back to ADK source files.
 
@@ -1566,7 +1566,7 @@ Options:
 
 ## adk deploy
 EXIT=0
-Usage: autoagent adk deploy [OPTIONS] PATH
+Usage: agentlab adk deploy [OPTIONS] PATH
 
   Deploy ADK agent to Cloud Run or Vertex AI.
 
@@ -1579,7 +1579,7 @@ Options:
 
 ## adk status
 EXIT=0
-Usage: autoagent adk status [OPTIONS] PATH
+Usage: agentlab adk status [OPTIONS] PATH
 
   Show ADK agent structure and config summary.
 
@@ -1590,7 +1590,7 @@ Options:
 
 ## adk diff
 EXIT=0
-Usage: autoagent adk diff [OPTIONS] PATH
+Usage: agentlab adk diff [OPTIONS] PATH
 
   Preview what would change on export.
 
@@ -1601,7 +1601,7 @@ Options:
 
 ## dataset
 EXIT=0
-Usage: autoagent dataset [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab dataset [OPTIONS] COMMAND [ARGS]...
 
   Manage datasets for evaluation and training.
 
@@ -1616,7 +1616,7 @@ Commands:
 
 ## dataset create
 EXIT=0
-Usage: autoagent dataset create [OPTIONS] NAME
+Usage: agentlab dataset create [OPTIONS] NAME
 
   Create a new dataset.
 
@@ -1627,7 +1627,7 @@ Options:
 
 ## dataset list
 EXIT=0
-Usage: autoagent dataset list [OPTIONS]
+Usage: agentlab dataset list [OPTIONS]
 
   List all datasets.
 
@@ -1637,7 +1637,7 @@ Options:
 
 ## dataset stats
 EXIT=0
-Usage: autoagent dataset stats [OPTIONS] DATASET_ID
+Usage: agentlab dataset stats [OPTIONS] DATASET_ID
 
   Show dataset statistics.
 
@@ -1647,7 +1647,7 @@ Options:
 
 ## outcomes
 EXIT=0
-Usage: autoagent outcomes [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab outcomes [OPTIONS] COMMAND [ARGS]...
 
   Manage business outcome data.
 
@@ -1660,7 +1660,7 @@ Commands:
 
 ## outcomes import
 EXIT=0
-Usage: autoagent outcomes import [OPTIONS]
+Usage: agentlab outcomes import [OPTIONS]
 
   Import business outcomes.
 
@@ -1672,7 +1672,7 @@ Options:
 
 ## release
 EXIT=0
-Usage: autoagent release [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab release [OPTIONS] COMMAND [ARGS]...
 
   Manage signed release objects.
 
@@ -1686,7 +1686,7 @@ Commands:
 
 ## release list
 EXIT=0
-Usage: autoagent release list [OPTIONS]
+Usage: agentlab release list [OPTIONS]
 
   List release objects.
 
@@ -1696,7 +1696,7 @@ Options:
 
 ## release create
 EXIT=0
-Usage: autoagent release create [OPTIONS]
+Usage: agentlab release create [OPTIONS]
 
   Create a new release object from an experiment.
 
@@ -1707,7 +1707,7 @@ Options:
 
 ## benchmark
 EXIT=0
-Usage: autoagent benchmark [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab benchmark [OPTIONS] COMMAND [ARGS]...
 
   Run standard benchmarks.
 
@@ -1720,7 +1720,7 @@ Commands:
 
 ## benchmark run
 EXIT=0
-Usage: autoagent benchmark run [OPTIONS] BENCHMARK_NAME
+Usage: agentlab benchmark run [OPTIONS] BENCHMARK_NAME
 
   Run a benchmark suite.
 
@@ -1731,7 +1731,7 @@ Options:
 
 ## reward
 EXIT=0
-Usage: autoagent reward [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab reward [OPTIONS] COMMAND [ARGS]...
 
   Manage reward definitions.
 
@@ -1746,7 +1746,7 @@ Commands:
 
 ## reward create
 EXIT=0
-Usage: autoagent reward create [OPTIONS] NAME
+Usage: agentlab reward create [OPTIONS] NAME
 
   Create a new reward definition.
 
@@ -1763,7 +1763,7 @@ Options:
 
 ## reward list
 EXIT=0
-Usage: autoagent reward list [OPTIONS]
+Usage: agentlab reward list [OPTIONS]
 
   List all reward definitions.
 
@@ -1774,7 +1774,7 @@ Options:
 
 ## reward test
 EXIT=0
-Usage: autoagent reward test [OPTIONS] NAME
+Usage: agentlab reward test [OPTIONS] NAME
 
   Test a reward definition.
 
@@ -1785,7 +1785,7 @@ Options:
 
 ## rl
 EXIT=0
-Usage: autoagent rl [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab rl [OPTIONS] COMMAND [ARGS]...
 
   Policy optimization commands.
 
@@ -1804,7 +1804,7 @@ Commands:
 
 ## rl train
 EXIT=0
-Usage: autoagent rl train [OPTIONS]
+Usage: agentlab rl train [OPTIONS]
 
   Start a policy training job.
 
@@ -1820,7 +1820,7 @@ Options:
 
 ## rl jobs
 EXIT=0
-Usage: autoagent rl jobs [OPTIONS]
+Usage: agentlab rl jobs [OPTIONS]
 
   List training jobs.
 
@@ -1831,7 +1831,7 @@ Options:
 
 ## rl eval
 EXIT=0
-Usage: autoagent rl eval [OPTIONS] POLICY_ID
+Usage: agentlab rl eval [OPTIONS] POLICY_ID
 
   Evaluate a policy artifact offline.
 
@@ -1841,7 +1841,7 @@ Options:
 
 ## rl promote
 EXIT=0
-Usage: autoagent rl promote [OPTIONS] POLICY_ID
+Usage: agentlab rl promote [OPTIONS] POLICY_ID
 
   Promote a policy to active status.
 
@@ -1851,7 +1851,7 @@ Options:
 
 ## rl rollback
 EXIT=0
-Usage: autoagent rl rollback [OPTIONS] POLICY_ID
+Usage: agentlab rl rollback [OPTIONS] POLICY_ID
 
   Rollback a promoted policy.
 
@@ -1861,7 +1861,7 @@ Options:
 
 ## rl dataset
 EXIT=0
-Usage: autoagent rl dataset [OPTIONS]
+Usage: agentlab rl dataset [OPTIONS]
 
   Build a training dataset from episodes.
 
@@ -1873,7 +1873,7 @@ Options:
 
 ## rl canary
 EXIT=0
-Usage: autoagent rl canary [OPTIONS] POLICY_ID
+Usage: agentlab rl canary [OPTIONS] POLICY_ID
 
   Start canary evaluation for a policy.
 
@@ -1883,7 +1883,7 @@ Options:
 
 ## pref
 EXIT=0
-Usage: autoagent pref [OPTIONS] COMMAND [ARGS]...
+Usage: agentlab pref [OPTIONS] COMMAND [ARGS]...
 
   Preference collection and export.
 
@@ -1897,7 +1897,7 @@ Commands:
 
 ## pref collect
 EXIT=0
-Usage: autoagent pref collect [OPTIONS]
+Usage: agentlab pref collect [OPTIONS]
 
   Add a preference pair.
 
@@ -1911,7 +1911,7 @@ Options:
 
 ## pref export
 EXIT=0
-Usage: autoagent pref export [OPTIONS]
+Usage: agentlab pref export [OPTIONS]
 
   Export preference pairs as DPO dataset.
 

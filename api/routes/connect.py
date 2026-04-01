@@ -1,4 +1,4 @@
-"""Connect routes for importing external runtimes into AutoAgent workspaces."""
+"""Connect routes for importing external runtimes into AgentLab workspaces."""
 
 from __future__ import annotations
 

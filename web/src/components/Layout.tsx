@@ -46,7 +46,7 @@ export function getRouteContext(pathname: string): RouteContext {
   const title = getRouteTitle(normalizedPathname);
   const breadcrumbs = toBreadcrumbItems(getBreadcrumbForPath(normalizedPathname));
 
-  if (title === 'AutoAgent' && breadcrumbs.length === 0) {
+  if (title === 'AgentLab' && breadcrumbs.length === 0) {
     return { title, breadcrumbs };
   }
 

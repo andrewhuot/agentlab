@@ -1,4 +1,4 @@
-# AutoAgent Dependency Layers
+# AgentLab Dependency Layers
 
 ## Layer 0: Core (the loop primitives)
 > A new reader should understand this in 30 minutes.

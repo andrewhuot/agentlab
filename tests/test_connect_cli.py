@@ -1,4 +1,4 @@
-"""Tests for the new `autoagent connect` CLI flow."""
+"""Tests for the new `agentlab connect` CLI flow."""
 
 from __future__ import annotations
 
@@ -50,10 +50,10 @@ def test_connect_transcript_creates_workspace_with_imported_assets(
 
     assert result.exit_code == 0, result.output
     assert workspace.is_dir()
-    assert (workspace / ".autoagent" / "adapter_spec.json").exists()
-    assert (workspace / ".autoagent" / "adapter_config.json").exists()
+    assert (workspace / ".agentlab" / "adapter_spec.json").exists()
+    assert (workspace / ".agentlab" / "adapter_config.json").exists()
     assert (workspace / "configs" / "v001.yaml").exists()
     assert (workspace / "evals" / "cases" / "imported_connect.yaml").exists()
-    adapter_spec = json.loads((workspace / ".autoagent" / "adapter_spec.json").read_text(encoding="utf-8"))
+    adapter_spec = json.loads((workspace / ".agentlab" / "adapter_spec.json").read_text(encoding="utf-8"))
     assert adapter_spec["adapter"] == "transcript"
     assert adapter_spec["agent_name"] == "transcript-import"

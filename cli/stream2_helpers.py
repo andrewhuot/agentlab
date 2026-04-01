@@ -100,9 +100,9 @@ class ConfigImporter:
 # ---------------------------------------------------------------------------
 
 class ReleaseStore:
-    """Persist release objects to .autoagent/releases/."""
+    """Persist release objects to .agentlab/releases/."""
 
-    def __init__(self, store_dir: str = ".autoagent/releases") -> None:
+    def __init__(self, store_dir: str = ".agentlab/releases") -> None:
         self.store_dir = Path(store_dir)
         self.store_dir.mkdir(parents=True, exist_ok=True)
 
@@ -209,14 +209,14 @@ def is_selector(value: str) -> bool:
 # FR-13: Inspect helpers
 # ---------------------------------------------------------------------------
 
-def get_latest_build_artifact(autoagent_dir: str = ".autoagent") -> dict | None:
+def get_latest_build_artifact(agentlab_dir: str = ".agentlab") -> dict | None:
     """Load the latest build artifact."""
     from shared.build_artifact_store import BuildArtifactStore
 
-    autoagent_path = Path(autoagent_dir)
+    agentlab_path = Path(agentlab_dir)
     store = BuildArtifactStore(
-        path=autoagent_path / "build_artifacts.json",
-        latest_path=autoagent_path / "build_artifact_latest.json",
+        path=agentlab_path / "build_artifacts.json",
+        latest_path=agentlab_path / "build_artifact_latest.json",
     )
     artifact = store.get_latest_legacy()
     if artifact is not None:
@@ -228,7 +228,7 @@ def get_latest_eval_result() -> dict | None:
     """Find the most recent eval results file."""
     candidates: list[Path] = []
     seen: set[Path] = set()
-    for root in (Path("."), Path(".autoagent")):
+    for root in (Path("."), Path(".agentlab")):
         if not root.exists():
             continue
         for path in sorted(root.glob("*results*.json"), key=lambda p: p.stat().st_mtime, reverse=True):

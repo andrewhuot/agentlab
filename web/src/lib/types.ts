@@ -1366,7 +1366,7 @@ export interface SetupOverview {
 }
 
 // ---------------------------------------------------------------------------
-// Project Memory (AUTOAGENT.md)
+// Project Memory (AGENTLAB.md)
 // ---------------------------------------------------------------------------
 
 export interface ProjectMemorySection {

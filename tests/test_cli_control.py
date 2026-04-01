@@ -41,14 +41,14 @@ def isolated_control_store(tmp_dir, monkeypatch):
 
 
 class TestPauseCommand:
-    """Test the 'autoagent pause' command."""
+    """Test the 'agentlab pause' command."""
 
     def test_pause_outputs_confirmation(self, runner, isolated_control_store):
         """pause command outputs confirmation message."""
         result = runner.invoke(cli, ["pause"])
         assert result.exit_code == 0
         assert "Optimizer paused" in result.output
-        assert "autoagent resume" in result.output
+        assert "agentlab resume" in result.output
 
     def test_pause_creates_state_file(self, runner, isolated_control_store):
         """pause command creates the control state file."""
@@ -74,7 +74,7 @@ class TestPauseCommand:
 
 
 class TestResumeCommand:
-    """Test the 'autoagent resume' command."""
+    """Test the 'agentlab resume' command."""
 
     def test_resume_outputs_confirmation(self, runner, isolated_control_store):
         """resume command outputs confirmation message."""
@@ -103,7 +103,7 @@ class TestResumeCommand:
 
 
 class TestPinCommand:
-    """Test the 'autoagent pin' command."""
+    """Test the 'agentlab pin' command."""
 
     def test_pin_requires_surface_argument(self, runner):
         """pin command requires a surface argument."""
@@ -143,7 +143,7 @@ class TestPinCommand:
 
 
 class TestUnpinCommand:
-    """Test the 'autoagent unpin' command."""
+    """Test the 'agentlab unpin' command."""
 
     def test_unpin_requires_surface_argument(self, runner):
         """unpin command requires a surface argument."""
@@ -192,7 +192,7 @@ class TestUnpinCommand:
 
 
 class TestRejectCommand:
-    """Test the 'autoagent reject' command."""
+    """Test the 'agentlab reject' command."""
 
     def test_reject_requires_experiment_id_argument(self, runner):
         """reject command requires an experiment_id argument."""

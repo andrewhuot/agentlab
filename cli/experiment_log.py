@@ -23,7 +23,7 @@ EXPERIMENT_LOG_HEADER = [
     "status",
     "description",
 ]
-DEFAULT_EXPERIMENT_LOG_PATH = Path(".autoagent/experiment_log.tsv")
+DEFAULT_EXPERIMENT_LOG_PATH = Path(".agentlab/experiment_log.tsv")
 STATUS_COLORS = {
     "keep": "green",
     "discard": "red",

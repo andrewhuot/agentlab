@@ -1,5 +1,5 @@
 [project]
-name = "autoagent-vnextcc"
+name = "agentlab"
 version = "1.0.0"
 description = "Product-grade agent optimization platform — CLI, API, and web console for iterating ADK agent quality"
 requires-python = ">=3.11"
@@ -26,7 +26,7 @@ dev = [
 ]
 
 [project.scripts]
-autoagent = "runner:cli"
+agentlab = "runner:cli"
 
 [build-system]
 requires = ["setuptools>=68.0"]

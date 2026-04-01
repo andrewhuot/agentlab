@@ -124,7 +124,7 @@ def render_workspace_mcp_status(*, root: str | Path = ".", json_output: bool = F
     """Render workspace MCP runtime status."""
     snapshot = mcp_status_snapshot(root)
     if json_output:
-        click.echo(render_json_envelope("ok", snapshot, next_command="autoagent mcp list"))
+        click.echo(render_json_envelope("ok", snapshot, next_command="agentlab mcp list"))
         return
     click.echo("Workspace MCP runtime")
     click.echo(f"  Config: {snapshot['path']}")
@@ -141,11 +141,11 @@ def register_runtime_commands(mcp_group: click.Group) -> None:
     def list_cmd(json_output: bool = False) -> None:
         data = list_mcp_servers()
         if json_output:
-            click.echo(render_json_envelope("ok", data, next_command="autoagent mcp inspect <name>"))
+            click.echo(render_json_envelope("ok", data, next_command="agentlab mcp inspect <name>"))
             return
         if not data:
             click.echo("No workspace MCP servers configured.")
-            click.echo("Run: autoagent mcp add <name> --command <cmd>")
+            click.echo("Run: agentlab mcp add <name> --command <cmd>")
             return
         click.echo("Workspace MCP servers")
         for item in data:
@@ -175,6 +175,6 @@ def register_runtime_commands(mcp_group: click.Group) -> None:
         if item is None:
             raise click.ClickException(f"MCP server not found: {name}")
         if json_output:
-            click.echo(render_json_envelope("ok", item, next_command="autoagent mcp remove <name>"))
+            click.echo(render_json_envelope("ok", item, next_command="agentlab mcp remove <name>"))
             return
         click.echo(json.dumps(item, indent=2))

@@ -2,7 +2,7 @@
 
 **Research Date:** 2026-03-26
 **Product:** Sierra Ghostwriter + Agent OS 2.0
-**Context:** AutoAgent VNextCC competitive positioning
+**Context:** AgentLab VNextCC competitive positioning
 
 ---
 
@@ -134,19 +134,19 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 
 ---
 
-## 3. Where AutoAgent Already Wins
+## 3. Where AgentLab Already Wins
 
 ### Research-Grade Optimization
 
-**AutoAgent:** MIPROv2, BootstrapFewShot, GEPA, SIMBA — four research-grade prompt optimization algorithms with Bayesian surrogates, genetic search, simulation-based optimization.
+**AgentLab:** MIPROv2, BootstrapFewShot, GEPA, SIMBA — four research-grade prompt optimization algorithms with Bayesian surrogates, genetic search, simulation-based optimization.
 **Sierra:** Ghostwriter's optimization approach is not publicly documented at this level of algorithmic detail.
 
-**Files:** `autoagent/optimizer/prompt_opt/mipro.py`, `gepa.py`, `simba.py`, `bootstrap_fewshot.py`
-**Advantage:** AutoAgent has proven academic algorithms for prompt optimization. Sierra's approach may be heuristic-based.
+**Files:** `agentlab/optimizer/prompt_opt/mipro.py`, `gepa.py`, `simba.py`, `bootstrap_fewshot.py`
+**Advantage:** AgentLab has proven academic algorithms for prompt optimization. Sierra's approach may be heuristic-based.
 
 ### Statistical Rigor
 
-**AutoAgent:**
+**AgentLab:**
 - Clustered bootstrap by conversation/user
 - Sequential testing (O'Brien-Fleming alpha spending)
 - Multiple-hypothesis correction (Holm-Bonferroni)
@@ -158,60 +158,60 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 - Simulations run 35,000+ tests/day
 - No public mention of statistical hypothesis testing, power analysis, or multiple-testing correction
 
-**Files:** `autoagent/evals/statistics.py`
-**Advantage:** AutoAgent gates promotions on statistical significance. Sierra's validation approach is less transparent.
+**Files:** `agentlab/evals/statistics.py`
+**Advantage:** AgentLab gates promotions on statistical significance. Sierra's validation approach is less transparent.
 
 ### Framework-Agnostic Architecture
 
-**AutoAgent:** Works with any agent framework that emits ADK-compatible traces or OpenTelemetry spans. Integrates with Dialogflow CX, Vertex AI Agent Builder, custom frameworks.
+**AgentLab:** Works with any agent framework that emits ADK-compatible traces or OpenTelemetry spans. Integrates with Dialogflow CX, Vertex AI Agent Builder, custom frameworks.
 **Sierra:** Designed for Sierra Agent OS. Not a standalone optimization platform for external agents.
 
-**Files:** `autoagent/agent/graph.py`, `autoagent/observer/traces.py`
-**Advantage:** AutoAgent optimizes agents you already have. Sierra requires using their platform.
+**Files:** `agentlab/agent/graph.py`, `agentlab/observer/traces.py`
+**Advantage:** AgentLab optimizes agents you already have. Sierra requires using their platform.
 
 ### Typed Mutation Registry
 
-**AutoAgent:** 9+ typed mutation operators with risk classes, validators, auto-deploy policies. Each operator targets a specific config surface (instructions, few-shot, tools, routing, model, callbacks, context caching, memory policy).
+**AgentLab:** 9+ typed mutation operators with risk classes, validators, auto-deploy policies. Each operator targets a specific config surface (instructions, few-shot, tools, routing, model, callbacks, context caching, memory policy).
 **Sierra:** Ghostwriter's mutation approach is not exposed as a typed operator library.
 
-**Files:** `autoagent/optimizer/mutations.py`
-**Advantage:** AutoAgent's mutations are first-class objects with explicit risk/safety semantics. Sierra's are opaque.
+**Files:** `agentlab/optimizer/mutations.py`
+**Advantage:** AgentLab's mutations are first-class objects with explicit risk/safety semantics. Sierra's are opaque.
 
 ### Trace-Level Diagnosis with Span Graders
 
-**AutoAgent:** 7 span-level graders score individual trace spans — routing, tool selection, tool arguments, retrieval quality, handoff quality, memory use, final outcome.
+**AgentLab:** 7 span-level graders score individual trace spans — routing, tool selection, tool arguments, retrieval quality, handoff quality, memory use, final outcome.
 **Sierra:** Conversation-level analysis (Explorer, Insights) but no public API for span-level grading within a trace.
 
-**Files:** `autoagent/observer/trace_grading.py`
-**Advantage:** AutoAgent pinpoints exactly where an agent failed within a conversation. Sierra identifies aggregate patterns.
+**Files:** `agentlab/observer/trace_grading.py`
+**Advantage:** AgentLab pinpoints exactly where an agent failed within a conversation. Sierra identifies aggregate patterns.
 
 ### Blame Map with Failure Clustering
 
-**AutoAgent:** `BlameCluster` groups failures by root cause with impact scoring (frequency × severity × business impact) and trend detection.
+**AgentLab:** `BlameCluster` groups failures by root cause with impact scoring (frequency × severity × business impact) and trend detection.
 **Sierra:** Explorer surfaces themes, but no documented "blame map" visualization or impact scoring.
 
-**Files:** `autoagent/observer/blame_map.py`
-**Advantage:** AutoAgent prioritizes optimization by failure cluster impact. Sierra's prioritization is less transparent.
+**Files:** `agentlab/observer/blame_map.py`
+**Advantage:** AgentLab prioritizes optimization by failure cluster impact. Sierra's prioritization is less transparent.
 
 ### Multi-Hypothesis Search Engine
 
-**AutoAgent:** Budget-aware search generates diverse candidate mutations, ranks by predicted lift/risk/novelty, evaluates top K under fixed budget, learns which operators work for which failure families.
+**AgentLab:** Budget-aware search generates diverse candidate mutations, ranks by predicted lift/risk/novelty, evaluates top K under fixed budget, learns which operators work for which failure families.
 **Sierra:** Ghostwriter proposes improvements but multi-hypothesis search is not documented.
 
-**Files:** `autoagent/optimizer/search.py`
-**Advantage:** AutoAgent explores the mutation space systematically. Sierra's search strategy is opaque.
+**Files:** `agentlab/optimizer/search.py`
+**Advantage:** AgentLab explores the mutation space systematically. Sierra's search strategy is opaque.
 
 ### Pareto Archive with Named Roles
 
-**AutoAgent:** Elite archive with named roles — `quality_leader`, `cost_leader`, `latency_leader`, `safety_leader`, `cluster_specialist`, `incumbent`. New candidates can branch from any archive entry.
+**AgentLab:** Elite archive with named roles — `quality_leader`, `cost_leader`, `latency_leader`, `safety_leader`, `cluster_specialist`, `incumbent`. New candidates can branch from any archive entry.
 **Sierra:** No documented Pareto frontier or multi-objective optimization.
 
-**Files:** `autoagent/optimizer/experiments.py`
-**Advantage:** AutoAgent optimizes across conflicting objectives without collapsing to a single score.
+**Files:** `agentlab/optimizer/experiments.py`
+**Advantage:** AgentLab optimizes across conflicting objectives without collapsing to a single score.
 
 ### Judge Ops
 
-**AutoAgent:**
+**AgentLab:**
 - Judge versioning with full lineage (`GraderVersionStore`)
 - Drift monitoring (score distribution changes, agreement rate drops)
 - Human feedback integration (`HumanFeedbackStore`)
@@ -221,12 +221,12 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 - Simulations for testing
 - No public documentation on judge drift, versioning, or calibration
 
-**Files:** `autoagent/judges/`, `autoagent/data/repositories.py`
-**Advantage:** AutoAgent treats judges as production infrastructure with monitoring and versioning. Sierra's judge ops are not exposed.
+**Files:** `agentlab/judges/`, `agentlab/data/repositories.py`
+**Advantage:** AgentLab treats judges as production infrastructure with monitoring and versioning. Sierra's judge ops are not exposed.
 
 ### Context Engineering Workbench
 
-**AutoAgent:**
+**AgentLab:**
 - Context composition analysis (instructions, examples, retrieved content, conversation history)
 - Compaction simulation with information loss tracking
 - Growth pattern detection (linear, exponential, sawtooth)
@@ -236,12 +236,12 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 - Agent Data Platform for unified customer memory
 - No public documentation on context window optimization or compaction strategies
 
-**Files:** `autoagent/context/analyzer.py`, `simulator.py`, `metrics.py`
-**Advantage:** AutoAgent optimizes what goes into the context window. Sierra assumes the constellation handles it.
+**Files:** `agentlab/context/analyzer.py`, `simulator.py`, `metrics.py`
+**Advantage:** AgentLab optimizes what goes into the context window. Sierra assumes the constellation handles it.
 
 ### Developer-First Tooling
 
-**AutoAgent:**
+**AgentLab:**
 - 87 CLI commands
 - 131 API endpoints across 18 route modules
 - 31 web pages (dashboard, traces, blame map, experiments, judge ops, context workbench, scorer studio, registry)
@@ -252,12 +252,12 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 - Agent SDK for developers
 - Web console (no public CLI or REST API documentation)
 
-**Files:** CLI in `scripts/`, API in `autoagent/api/`, web in `web/src/`
-**Advantage:** AutoAgent is designed for developers who want programmatic control. Sierra prioritizes non-technical users.
+**Files:** CLI in `scripts/`, API in `agentlab/api/`, web in `web/src/`
+**Advantage:** AgentLab is designed for developers who want programmatic control. Sierra prioritizes non-technical users.
 
 ### Cost Controls & Budget Tracking
 
-**AutoAgent:**
+**AgentLab:**
 - Per-cycle and daily budget tracking
 - Diminishing returns (stall) detection
 - Cost-per-improvement ROI metrics
@@ -266,16 +266,16 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 **Sierra:**
 - No public documentation on cost controls or budget caps
 
-**Files:** `autoagent/optimizer/cost_tracker.py`
-**Advantage:** AutoAgent runs within fixed budgets. Sierra's cost model is opaque.
+**Files:** `agentlab/optimizer/cost_tracker.py`
+**Advantage:** AgentLab runs within fixed budgets. Sierra's cost model is opaque.
 
 ### Experiment Cards
 
-**AutoAgent:** Every optimization attempt produces a reviewable experiment card with hypothesis, diff, baseline/candidate SHA, risk class, p-value, significance delta, deployment policy, rollback handle.
+**AgentLab:** Every optimization attempt produces a reviewable experiment card with hypothesis, diff, baseline/candidate SHA, risk class, p-value, significance delta, deployment policy, rollback handle.
 **Sierra:** Changes are prepared for review, but experiment card schema is not documented.
 
-**Files:** `autoagent/optimizer/experiments.py`
-**Advantage:** AutoAgent makes optimization auditable. Sierra's review process is less structured.
+**Files:** `agentlab/optimizer/experiments.py`
+**Advantage:** AgentLab makes optimization auditable. Sierra's review process is less structured.
 
 ---
 
@@ -284,101 +284,101 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 ### Natural Language Agent Building
 
 **Sierra:** Upload docs, audio, sketches, or describe goals in plain English. Ghostwriter builds the agent.
-**AutoAgent:** Requires agent to already exist. Optimizes existing configurations, not a "from-scratch" builder.
+**AgentLab:** Requires agent to already exist. Optimizes existing configurations, not a "from-scratch" builder.
 
-**Why It Matters:** Sierra lowers the barrier for non-technical users. AutoAgent assumes you already have an agent.
+**Why It Matters:** Sierra lowers the barrier for non-technical users. AgentLab assumes you already have an agent.
 
-**Gap:** AutoAgent lacks a conversational agent builder. You need to define `autoagent.yaml` and agent structure manually.
+**Gap:** AgentLab lacks a conversational agent builder. You need to define `agentlab.yaml` and agent structure manually.
 
 ### Voice-First Testing
 
 **Sierra:** Voice Sims test voice agents under realistic conditions (noise, interruptions, emotional tone) before customer contact.
-**AutoAgent:** Replay harness works with text traces. No voice simulation.
+**AgentLab:** Replay harness works with text traces. No voice simulation.
 
 **Why It Matters:** Voice agents have unique failure modes (tone, empathy, interruptions) that text testing misses.
 
-**Gap:** AutoAgent doesn't test voice agents. Eval harness replays tool I/O but not voice characteristics.
+**Gap:** AgentLab doesn't test voice agents. Eval harness replays tool I/O but not voice characteristics.
 
 ### Multi-Modal Deployment
 
 **Sierra:** Build once, deploy to voice, chat, email, SMS, ChatGPT, contact center.
-**AutoAgent:** Framework-agnostic but doesn't include deployment to voice/SMS/email channels.
+**AgentLab:** Framework-agnostic but doesn't include deployment to voice/SMS/email channels.
 
 **Why It Matters:** CX teams need agents everywhere. Sierra's multi-modal deploy is turnkey.
 
-**Gap:** AutoAgent optimizes agents but doesn't deploy them to channels. Integrations required.
+**Gap:** AgentLab optimizes agents but doesn't deploy them to channels. Integrations required.
 
 ### Conversation Analysis at Scale (Explorer)
 
 **Sierra:** NL queries to scan thousands of conversations, surface themes, drill into root causes with follow-up questions.
-**AutoAgent:** Blame map clusters failures, trace grading scores spans, but no NL query interface.
+**AgentLab:** Blame map clusters failures, trace grading scores spans, but no NL query interface.
 
 **Why It Matters:** Non-technical users can ask "Why are customers frustrated with shipping?" without writing SQL or Python.
 
-**Gap:** AutoAgent's blame map is developer-facing. No conversational query interface.
+**Gap:** AgentLab's blame map is developer-facing. No conversational query interface.
 
 ### Knowledge Extraction (Expert Answers)
 
 **Sierra:** Auto-captures resolutions from support conversations, turns them into reviewable knowledge, feeds back into agent.
-**AutoAgent:** Trace-to-eval converter captures failure cases but doesn't extract knowledge from successful resolutions.
+**AgentLab:** Trace-to-eval converter captures failure cases but doesn't extract knowledge from successful resolutions.
 
 **Why It Matters:** Agent gets smarter from every conversation, not just failures.
 
-**Gap:** AutoAgent optimizes based on failures. Doesn't mine successful conversations for knowledge.
+**Gap:** AgentLab optimizes based on failures. Doesn't mine successful conversations for knowledge.
 
 ### Unified Customer Memory (Agent Data Platform)
 
 **Sierra:** Unifies customer data across sessions, channels, systems. Agents greet by name, remember preferences, surface insights.
-**AutoAgent:** Context engineering workbench optimizes context window but doesn't manage cross-session memory.
+**AgentLab:** Context engineering workbench optimizes context window but doesn't manage cross-session memory.
 
 **Why It Matters:** Customers expect agents to remember them. Sierra's ADP makes this easy.
 
-**Gap:** AutoAgent doesn't include a memory layer. Agents are stateless unless framework provides it.
+**Gap:** AgentLab doesn't include a memory layer. Agents are stateless unless framework provides it.
 
 ### System of Record Integrations
 
 **Sierra:** Out-of-box integrations with CRMs, order management systems, support platforms. Agents can update cases, process returns, manage deliveries.
-**AutoAgent:** Framework-agnostic but no pre-built integrations.
+**AgentLab:** Framework-agnostic but no pre-built integrations.
 
 **Why It Matters:** CX agents need to take actions, not just answer questions. Sierra's integrations are turnkey.
 
-**Gap:** AutoAgent optimizes agent behavior but doesn't provide action integrations.
+**Gap:** AgentLab optimizes agent behavior but doesn't provide action integrations.
 
 ### Constellation Model Architecture
 
 **Sierra:** 15+ models orchestrated, each task routed to best-suited model, automatic failover, auto-upgrade as frontier models improve.
-**AutoAgent:** Multi-model provider router (Google, OpenAI, Anthropic, OpenAI-compatible) but no task-level routing to different models within one agent.
+**AgentLab:** Multi-model provider router (Google, OpenAI, Anthropic, OpenAI-compatible) but no task-level routing to different models within one agent.
 
 **Why It Matters:** Best-of-breed performance for each task. Resilience to model provider outages.
 
-**Gap:** AutoAgent can swap the entire agent's model but doesn't route different tasks to different models.
+**Gap:** AgentLab can swap the entire agent's model but doesn't route different tasks to different models.
 
 ### Customer Experience Team UX
 
 **Sierra:** Designed for non-technical CX teams. Conversational interface, no code, no clicks.
-**AutoAgent:** CLI-first, developer-first. Web console exists but assumes technical literacy.
+**AgentLab:** CLI-first, developer-first. Web console exists but assumes technical literacy.
 
 **Why It Matters:** Most CX teams don't write Python. Sierra's UX matches their workflow.
 
-**Gap:** AutoAgent's web console is readable but not conversational. CX teams need training.
+**Gap:** AgentLab's web console is readable but not conversational. CX teams need training.
 
 ### Fully Autonomous Improvement Loop
 
 **Sierra:** Ghostwriter runs continuously: analyzes → improves → tests → prepares for review. No human intervention until review.
-**AutoAgent:** Loop runs autonomously but requires initial configuration. Human control is emphasized (pause, pin surfaces, reject experiments).
+**AgentLab:** Loop runs autonomously but requires initial configuration. Human control is emphasized (pause, pin surfaces, reject experiments).
 
-**Why It Matters:** Sierra's loop is fully hands-off. AutoAgent's loop expects developers to monitor.
+**Why It Matters:** Sierra's loop is fully hands-off. AgentLab's loop expects developers to monitor.
 
-**Gap:** AutoAgent prioritizes human-in-the-loop control. Sierra prioritizes full autonomy.
+**Gap:** AgentLab prioritizes human-in-the-loop control. Sierra prioritizes full autonomy.
 
 ### CI/CD Integration for Simulations
 
 **Sierra:** Simulations plug into GitHub Actions, gate releases on tests like unit tests.
-**AutoAgent:** Eval harness runs on demand or in loop. No documented GitHub Actions integration.
+**AgentLab:** Eval harness runs on demand or in loop. No documented GitHub Actions integration.
 
 **Why It Matters:** Simulations as CI/CD gates prevent regressions before deployment.
 
-**Gap:** AutoAgent doesn't integrate with GitHub Actions workflows.
+**Gap:** AgentLab doesn't integrate with GitHub Actions workflows.
 
 ---
 
@@ -389,16 +389,16 @@ Autonomous improvement doesn't mean reckless deployment. Changes are validated b
 **What Sierra Does:**
 Conversational interface. Upload docs, audio, sketches → Ghostwriter builds agent.
 
-**How We'd Implement in AutoAgent:**
-New CLI command: `autoagent build --from-docs <path>` or `autoagent build --interactive`
+**How We'd Implement in AgentLab:**
+New CLI command: `agentlab build --from-docs <path>` or `agentlab build --interactive`
 - Parse uploaded documents (PDFs, transcripts, audio via Whisper API)
 - Extract behaviors, edge cases, tools, policies
-- Generate `autoagent.yaml` + agent graph
+- Generate `agentlab.yaml` + agent graph
 - Preview generated config → human approval → save
 
 **Files to Modify/Create:**
-- New module: `autoagent/builder/nl_builder.py`
-- CLI: `scripts/autoagent` add `build` subcommand
+- New module: `agentlab/builder/nl_builder.py`
+- CLI: `scripts/agentlab` add `build` subcommand
 - API: `POST /api/build/from-docs`, `POST /api/build/interactive`
 - Web: New page `BuilderStudio.tsx` with doc upload + conversational interface
 
@@ -413,17 +413,17 @@ New CLI command: `autoagent build --from-docs <path>` or `autoagent build --inte
 **What Sierra Does:**
 Voice Sims test voice agents with realistic personas (noisy, emotional, interrupted conversations) before customer contact.
 
-**How We'd Implement in AutoAgent:**
+**How We'd Implement in AgentLab:**
 - New eval mode: `eval_mode="voice"`
 - Generate synthetic voice conversations using TTS + STT
 - Inject noise, interruptions, emotional tone variations
 - Grade on voice-specific metrics: tone, empathy, interruption handling
-- Voice Sim harness: `autoagent/evals/voice_sim.py`
+- Voice Sim harness: `agentlab/evals/voice_sim.py`
 
 **Files to Modify/Create:**
-- New module: `autoagent/evals/voice_sim.py`
-- New graders: `autoagent/graders/voice_grader.py` (tone, empathy, clarity)
-- CLI: `autoagent eval run --mode voice`
+- New module: `agentlab/evals/voice_sim.py`
+- New graders: `agentlab/graders/voice_grader.py` (tone, empathy, clarity)
+- CLI: `agentlab eval run --mode voice`
 - API: `POST /api/eval/voice-sim`
 - Web: Voice Sim page with playback + grading
 
@@ -438,19 +438,19 @@ Voice Sims test voice agents with realistic personas (noisy, emotional, interrup
 **What Sierra Does:**
 Ask NL questions about conversations: "Why are customers frustrated with shipping?" → AI scans conversations, surfaces themes, allows drill-down.
 
-**How We'd Implement in AutoAgent:**
+**How We'd Implement in AgentLab:**
 - New page: `ExplorerStudio.tsx` with NL query input
-- Backend: `autoagent/observer/explorer.py`
+- Backend: `agentlab/observer/explorer.py`
   - Index trace events in vector DB (Chroma, Weaviate, or SQLite with embeddings)
   - NL query → semantic search → cluster results → summarize with LLM
   - Support follow-up questions (conversation history)
 - API: `POST /api/explorer/query`, `GET /api/explorer/history`
 
 **Files to Modify/Create:**
-- New module: `autoagent/observer/explorer.py`
-- API: `autoagent/api/routes/explorer.py`
+- New module: `agentlab/observer/explorer.py`
+- API: `agentlab/api/routes/explorer.py`
 - Web: `web/src/pages/ExplorerStudio.tsx`
-- CLI: `autoagent explore "why are customers frustrated?"`
+- CLI: `agentlab explore "why are customers frustrated?"`
 
 **Effort:** M (Medium — semantic search + LLM summarization)
 **Priority:** P1
@@ -463,8 +463,8 @@ Ask NL questions about conversations: "Why are customers frustrated with shippin
 **What Sierra Does:**
 Expert Answers auto-captures resolutions from support conversations → reviewable knowledge → feeds back into agent.
 
-**How We'd Implement in AutoAgent:**
-- New module: `autoagent/observer/knowledge_extractor.py`
+**How We'd Implement in AgentLab:**
+- New module: `agentlab/observer/knowledge_extractor.py`
 - Scan successful traces (final_outcome score > 0.9)
 - Extract resolution pattern (tools used, steps taken, final response)
 - Store in `KnowledgeEntry` with context, resolution, evidence
@@ -472,11 +472,11 @@ Expert Answers auto-captures resolutions from support conversations → reviewab
 - API: `GET /api/knowledge/entries`, `POST /api/knowledge/apply/{id}`
 
 **Files to Modify/Create:**
-- New module: `autoagent/observer/knowledge_extractor.py`
+- New module: `agentlab/observer/knowledge_extractor.py`
 - New table: `knowledge_entries` in SQLite
-- API: `autoagent/api/routes/knowledge.py`
+- API: `agentlab/api/routes/knowledge.py`
 - Web: Knowledge Studio page with review/apply workflow
-- CLI: `autoagent knowledge extract`, `autoagent knowledge apply <id>`
+- CLI: `agentlab knowledge extract`, `agentlab knowledge apply <id>`
 
 **Effort:** M (Medium)
 **Priority:** P1
@@ -489,21 +489,21 @@ Expert Answers auto-captures resolutions from support conversations → reviewab
 **What Sierra Does:**
 Agent Data Platform unifies customer data across sessions, channels, systems. Agents remember preferences, greet by name, surface insights.
 
-**How We'd Implement in AutoAgent:**
-- New module: `autoagent/memory/memory_layer.py`
+**How We'd Implement in AgentLab:**
+- New module: `agentlab/memory/memory_layer.py`
 - Store user/session memory in SQLite or Redis
 - API: `GET /api/memory/{user_id}`, `POST /api/memory/{user_id}`, `DELETE /api/memory/{user_id}`
 - Integration with trace collector: auto-extract memory writes from traces
-- Policy: `memory_policy` config in `autoagent.yaml` (preload, write_back, max_entries, TTL)
+- Policy: `memory_policy` config in `agentlab.yaml` (preload, write_back, max_entries, TTL)
 - Agent wrapper injects memory into context window
 
 **Files to Modify/Create:**
-- New module: `autoagent/memory/memory_layer.py`
-- Modify: `autoagent/observer/traces.py` to extract memory events
-- Modify: `autoagent/agent/graph.py` to inject memory into context
-- API: `autoagent/api/routes/memory.py`
+- New module: `agentlab/memory/memory_layer.py`
+- Modify: `agentlab/observer/traces.py` to extract memory events
+- Modify: `agentlab/agent/graph.py` to inject memory into context
+- API: `agentlab/api/routes/memory.py`
 - Web: Memory Inspector page
-- CLI: `autoagent memory show <user_id>`
+- CLI: `agentlab memory show <user_id>`
 
 **Effort:** M (Medium)
 **Priority:** P2
@@ -516,7 +516,7 @@ Agent Data Platform unifies customer data across sessions, channels, systems. Ag
 **What Sierra Does:**
 Ghostwriter has access to full workspace *and* a sandboxed environment. Tests changes before they touch production.
 
-**How We'd Implement in AutoAgent:**
+**How We'd Implement in AgentLab:**
 - Extend replay harness: `sandbox_mode=True`
 - Clone agent config → apply candidate mutation → run eval in isolated environment
 - No side effects touch production tools/data
@@ -524,11 +524,11 @@ Ghostwriter has access to full workspace *and* a sandboxed environment. Tests ch
 - API: `POST /api/sandbox/test`, `GET /api/sandbox/status/{id}`
 
 **Files to Modify/Create:**
-- Modify: `autoagent/evals/replay.py` add `sandbox_mode` parameter
-- New: `autoagent/deployer/sandbox.py` for isolated eval environments
-- API: `autoagent/api/routes/sandbox.py`
+- Modify: `agentlab/evals/replay.py` add `sandbox_mode` parameter
+- New: `agentlab/deployer/sandbox.py` for isolated eval environments
+- API: `agentlab/api/routes/sandbox.py`
 - Web: Sandbox Test page showing isolated eval runs
-- CLI: `autoagent sandbox test <candidate_id>`
+- CLI: `agentlab sandbox test <candidate_id>`
 
 **Effort:** S (Small — extends existing replay harness)
 **Priority:** P1
@@ -541,23 +541,23 @@ Ghostwriter has access to full workspace *and* a sandboxed environment. Tests ch
 **What Sierra Does:**
 Build once, deploy to voice, chat, email, SMS, ChatGPT, contact center.
 
-**How We'd Implement in AutoAgent:**
-- New module: `autoagent/deployer/channels.py`
+**How We'd Implement in AgentLab:**
+- New module: `agentlab/deployer/channels.py`
 - Define `ChannelAdapter` protocol (text, voice, email, SMS)
 - Implementations: `TwilioAdapter`, `SendGridAdapter`, `ChatGPTPluginAdapter`
-- CLI: `autoagent deploy --channel voice --provider twilio`
-- Config: `channels` section in `autoagent.yaml`
+- CLI: `agentlab deploy --channel voice --provider twilio`
+- Config: `channels` section in `agentlab.yaml`
 
 **Files to Modify/Create:**
-- New module: `autoagent/deployer/channels.py`
-- New adapters: `autoagent/deployer/adapters/` (twilio, sendgrid, chatgpt)
+- New module: `agentlab/deployer/channels.py`
+- New adapters: `agentlab/deployer/adapters/` (twilio, sendgrid, chatgpt)
 - API: `POST /api/deploy/channel`, `GET /api/deploy/channels`
 - Web: Deploy page with channel selection
-- CLI: `autoagent deploy --channel <channel>`
+- CLI: `agentlab deploy --channel <channel>`
 
 **Effort:** L (Large — requires external integrations)
 **Priority:** P2
-**Why:** Expands AutoAgent beyond Dialogflow CX. Multi-modal is table stakes.
+**Why:** Expands AgentLab beyond Dialogflow CX. Multi-modal is table stakes.
 
 ---
 
@@ -566,7 +566,7 @@ Build once, deploy to voice, chat, email, SMS, ChatGPT, contact center.
 **What Sierra Does:**
 15+ models orchestrated. Each task (retrieval, classification, tool-calling) routed to best-suited model.
 
-**How We'd Implement in AutoAgent:**
+**How We'd Implement in AgentLab:**
 - Extend `optimizer/providers.py` to support task-level routing
 - Config: `models` becomes a list with `task` field
   ```yaml
@@ -585,11 +585,11 @@ Build once, deploy to voice, chat, email, SMS, ChatGPT, contact center.
 - Fallback chain if primary model fails
 
 **Files to Modify/Create:**
-- Modify: `autoagent/optimizer/providers.py` add `TaskRouter`
-- Modify: `autoagent/agent/graph.py` to use task routing
-- Config schema: update `AgentConfig` in `autoagent/core/config.py`
+- Modify: `agentlab/optimizer/providers.py` add `TaskRouter`
+- Modify: `agentlab/agent/graph.py` to use task routing
+- Config schema: update `AgentConfig` in `agentlab/core/config.py`
 - Web: Model Routing page showing per-task assignments
-- CLI: `autoagent models list`, `autoagent models set <task> <provider> <model>`
+- CLI: `agentlab models list`, `agentlab models set <task> <provider> <model>`
 
 **Effort:** M (Medium)
 **Priority:** P2
@@ -602,22 +602,22 @@ Build once, deploy to voice, chat, email, SMS, ChatGPT, contact center.
 **What Sierra Does:**
 Conversational UI for non-technical CX teams. No code, no clicking through forms.
 
-**How We'd Implement in AutoAgent:**
-- New web page: `Assistant.tsx` — conversational interface over AutoAgent features
+**How We'd Implement in AgentLab:**
+- New web page: `Assistant.tsx` — conversational interface over AgentLab features
 - User asks: "Why is my agent failing on billing questions?"
-- Assistant runs: `autoagent explore "billing failures"` → summarizes blame clusters → suggests fixes
-- User approves → Assistant runs: `autoagent optimize --target billing_routing`
+- Assistant runs: `agentlab explore "billing failures"` → summarizes blame clusters → suggests fixes
+- User approves → Assistant runs: `agentlab optimize --target billing_routing`
 - Hides technical details (CLI commands, YAML diffs) unless user asks
 
 **Files to Modify/Create:**
 - New page: `web/src/pages/Assistant.tsx`
-- Backend: `autoagent/api/routes/assistant.py` (NL → CLI translation)
+- Backend: `agentlab/api/routes/assistant.py` (NL → CLI translation)
 - LLM-based dispatcher: maps NL intents to CLI commands
 - Web: Chat interface with follow-up questions
 
 **Effort:** M (Medium)
 **Priority:** P1
-**Why:** Biggest UX gap vs. Sierra. Makes AutoAgent accessible to CX teams.
+**Why:** Biggest UX gap vs. Sierra. Makes AgentLab accessible to CX teams.
 
 ---
 
@@ -626,21 +626,21 @@ Conversational UI for non-technical CX teams. No code, no clicking through forms
 **What Sierra Does:**
 Simulations plug into GitHub Actions. Gate releases on tests like unit tests.
 
-**How We'd Implement in AutoAgent:**
-- GitHub Action: `autoagent-test`
+**How We'd Implement in AgentLab:**
+- GitHub Action: `agentlab-test`
   ```yaml
-  - uses: autoagent/autoagent-action@v1
+  - uses: agentlab/agentlab-action@v1
     with:
       command: eval run --fail-on-regression
-      config: autoagent.yaml
+      config: agentlab.yaml
   ```
 - Exit code 0 if no regressions, exit code 1 if hard gate failures
 - Output: eval results in GitHub Actions summary
-- Documentation: `.github/workflows/autoagent.yml` template
+- Documentation: `.github/workflows/agentlab.yml` template
 
 **Files to Modify/Create:**
-- New repo: `autoagent-action` (GitHub Action)
-- CLI: `autoagent eval run --fail-on-regression` (exit code based on gates)
+- New repo: `agentlab-action` (GitHub Action)
+- CLI: `agentlab eval run --fail-on-regression` (exit code based on gates)
 - Docs: `docs/github-actions.md`
 
 **Effort:** S (Small)
@@ -654,19 +654,19 @@ Simulations plug into GitHub Actions. Gate releases on tests like unit tests.
 ### 1. Research-Grade Optimization with Conversational UX
 
 **The Idea:**
-Combine Sierra's NL agent builder with AutoAgent's research-grade optimization (MIPROv2, GEPA, SIMBA). Non-technical users build agents conversationally, but optimization runs with academic rigor.
+Combine Sierra's NL agent builder with AgentLab's research-grade optimization (MIPROv2, GEPA, SIMBA). Non-technical users build agents conversationally, but optimization runs with academic rigor.
 
 **Why It Leaps:**
-Sierra has conversational UX but no documented algorithmic depth. AutoAgent has algorithms but CLI-first UX. Combining both gives CX teams academic-grade optimization without needing PhDs.
+Sierra has conversational UX but no documented algorithmic depth. AgentLab has algorithms but CLI-first UX. Combining both gives CX teams academic-grade optimization without needing PhDs.
 
 **Implementation:**
-- NL agent builder (Steal #1) + Pro-mode prompt optimization (`autoagent/optimizer/prompt_opt/`)
+- NL agent builder (Steal #1) + Pro-mode prompt optimization (`agentlab/optimizer/prompt_opt/`)
 - User says: "Improve my agent's routing accuracy"
 - Assistant runs: MIPROv2 with Bayesian surrogate, presents top 5 candidates with p-values
 - User approves best candidate → deploys with experiment card
 
 **Files:**
-- `autoagent/builder/nl_builder.py` + `autoagent/optimizer/prompt_opt/`
+- `agentlab/builder/nl_builder.py` + `agentlab/optimizer/prompt_opt/`
 - `web/src/pages/Assistant.tsx` with optimization recommendations
 
 **Effort:** L
@@ -677,19 +677,19 @@ Sierra has conversational UX but no documented algorithmic depth. AutoAgent has 
 ### 2. Voice Sims with Statistical Significance Testing
 
 **The Idea:**
-Sierra has Voice Sims but no documented statistical testing. AutoAgent has statistical rigor but no voice testing. Combine: realistic voice testing *with* bootstrap confidence intervals, sequential testing, power analysis.
+Sierra has Voice Sims but no documented statistical testing. AgentLab has statistical rigor but no voice testing. Combine: realistic voice testing *with* bootstrap confidence intervals, sequential testing, power analysis.
 
 **Why It Leaps:**
 Voice Sims are great for catching "only-in-calls" bugs. But without statistical testing, you can't know if improvements are real or noise. We'd have the only voice testing platform with hypothesis testing.
 
 **Implementation:**
-- Voice Sim harness (Steal #2) + statistical layer (`autoagent/evals/statistics.py`)
+- Voice Sim harness (Steal #2) + statistical layer (`agentlab/evals/statistics.py`)
 - Generate 100+ voice conversations per candidate
 - Clustered bootstrap by persona (noisy user, calm user, emotional user)
 - Report: "Latency reduced 23% ± 5% (p=0.003, 95% CI [18%, 28%])"
 
 **Files:**
-- `autoagent/evals/voice_sim.py` + `autoagent/evals/statistics.py`
+- `agentlab/evals/voice_sim.py` + `agentlab/evals/statistics.py`
 - Web: Voice Sim Results page with confidence intervals
 
 **Effort:** L
@@ -700,19 +700,19 @@ Voice Sims are great for catching "only-in-calls" bugs. But without statistical 
 ### 3. Conversation Explorer with Blame Map Integration
 
 **The Idea:**
-Sierra's Explorer surfaces themes from NL queries. AutoAgent's Blame Map clusters failures with impact scoring. Combine: NL query → blame clusters with impact scores + trend detection.
+Sierra's Explorer surfaces themes from NL queries. AgentLab's Blame Map clusters failures with impact scoring. Combine: NL query → blame clusters with impact scores + trend detection.
 
 **Why It Leaps:**
 Explorer answers "why are customers frustrated?" Sierra's Explorer surfaces themes manually. Ours would auto-rank by impact and show trends over time.
 
 **Implementation:**
-- Conversation Explorer (Steal #3) + Blame Map (`autoagent/observer/blame_map.py`)
+- Conversation Explorer (Steal #3) + Blame Map (`agentlab/observer/blame_map.py`)
 - User asks: "Why are shipping complaints increasing?"
 - Explorer scans traces → clusters by root cause → ranks by impact score → shows trend graph (3-week spike)
 - Suggests fixes with predicted impact
 
 **Files:**
-- `autoagent/observer/explorer.py` + `autoagent/observer/blame_map.py`
+- `agentlab/observer/explorer.py` + `agentlab/observer/blame_map.py`
 - Web: `ExplorerStudio.tsx` with impact ranking + trend charts
 
 **Effort:** M
@@ -723,19 +723,19 @@ Explorer answers "why are customers frustrated?" Sierra's Explorer surfaces them
 ### 4. Knowledge Extraction with Typed Mutation Operators
 
 **The Idea:**
-Sierra's Expert Answers extracts knowledge from successful conversations. AutoAgent has typed mutation operators. Combine: extracted knowledge → typed mutations with risk classes and validators.
+Sierra's Expert Answers extracts knowledge from successful conversations. AgentLab has typed mutation operators. Combine: extracted knowledge → typed mutations with risk classes and validators.
 
 **Why It Leaps:**
-Sierra extracts knowledge but how it's applied is opaque. AutoAgent's mutations are first-class with risk/safety semantics. Combining gives provenance: "This few-shot example came from conversation #4523, applied via `few_shot_edit` operator with risk=low."
+Sierra extracts knowledge but how it's applied is opaque. AgentLab's mutations are first-class with risk/safety semantics. Combining gives provenance: "This few-shot example came from conversation #4523, applied via `few_shot_edit` operator with risk=low."
 
 **Implementation:**
-- Knowledge extraction (Steal #4) + mutation registry (`autoagent/optimizer/mutations.py`)
+- Knowledge extraction (Steal #4) + mutation registry (`agentlab/optimizer/mutations.py`)
 - Extracted resolution → `KnowledgeEntry`
 - Knowledge Studio page: "Apply as few-shot example?" → triggers `few_shot_edit` mutation
 - Experiment card shows source conversation + knowledge entry
 
 **Files:**
-- `autoagent/observer/knowledge_extractor.py` + `autoagent/optimizer/mutations.py`
+- `agentlab/observer/knowledge_extractor.py` + `agentlab/optimizer/mutations.py`
 - Web: Knowledge Studio with "Apply as Mutation" workflow
 
 **Effort:** M
@@ -746,19 +746,19 @@ Sierra extracts knowledge but how it's applied is opaque. AutoAgent's mutations 
 ### 5. Unified Memory + Context Engineering Workbench
 
 **The Idea:**
-Sierra has Agent Data Platform for cross-session memory. AutoAgent has Context Engineering Workbench for context window optimization. Combine: unified memory *with* compaction simulation and growth pattern detection.
+Sierra has Agent Data Platform for cross-session memory. AgentLab has Context Engineering Workbench for context window optimization. Combine: unified memory *with* compaction simulation and growth pattern detection.
 
 **Why It Leaps:**
-Sierra's memory layer is a black box. AutoAgent's context workbench is transparent. Combining gives CX teams a memory layer *plus* visibility into how memory affects context utilization, waste ratio, and relevance distribution.
+Sierra's memory layer is a black box. AgentLab's context workbench is transparent. Combining gives CX teams a memory layer *plus* visibility into how memory affects context utilization, waste ratio, and relevance distribution.
 
 **Implementation:**
-- Memory layer (Steal #5) + Context Workbench (`autoagent/context/`)
+- Memory layer (Steal #5) + Context Workbench (`agentlab/context/`)
 - Memory entries are analyzed: "User preferences consume 15% of context window"
 - Compaction simulator: "If we deduplicate user preferences, context utilization drops 15% → fits 3 more conversation turns"
 - Growth pattern detection: "Memory growing exponentially, will hit limit in 42 conversations"
 
 **Files:**
-- `autoagent/memory/memory_layer.py` + `autoagent/context/`
+- `agentlab/memory/memory_layer.py` + `agentlab/context/`
 - Web: Memory Inspector + Context Workbench integration
 
 **Effort:** M
@@ -769,19 +769,19 @@ Sierra's memory layer is a black box. AutoAgent's context workbench is transpare
 ### 6. Multi-Modal Deploy with Framework-Agnostic Architecture
 
 **The Idea:**
-Sierra's multi-modal deploy is tied to Sierra Agent OS. AutoAgent is framework-agnostic. Combine: deploy to voice/chat/email/SMS *from any agent framework*.
+Sierra's multi-modal deploy is tied to Sierra Agent OS. AgentLab is framework-agnostic. Combine: deploy to voice/chat/email/SMS *from any agent framework*.
 
 **Why It Leaps:**
-Sierra's deploy is turnkey but locked to their platform. AutoAgent could deploy Dialogflow CX, Vertex AI, LangChain, LlamaIndex, custom agents to any channel.
+Sierra's deploy is turnkey but locked to their platform. AgentLab could deploy Dialogflow CX, Vertex AI, LangChain, LlamaIndex, custom agents to any channel.
 
 **Implementation:**
-- Multi-modal deploy (Steal #7) + framework-agnostic trace collection (`autoagent/observer/traces.py`)
+- Multi-modal deploy (Steal #7) + framework-agnostic trace collection (`agentlab/observer/traces.py`)
 - Define `ChannelAdapter` protocol that accepts ADK-compatible traces
 - Works with any agent that emits traces
-- CLI: `autoagent deploy --agent dialogflow-cx --channel voice --provider twilio`
+- CLI: `agentlab deploy --agent dialogflow-cx --channel voice --provider twilio`
 
 **Files:**
-- `autoagent/deployer/channels.py` + `autoagent/observer/traces.py`
+- `agentlab/deployer/channels.py` + `agentlab/observer/traces.py`
 - Web: Deploy page with framework + channel selection
 
 **Effort:** L
@@ -792,20 +792,20 @@ Sierra's deploy is turnkey but locked to their platform. AutoAgent could deploy 
 ### 7. CX-Friendly UX + Developer Power Tools
 
 **The Idea:**
-Sierra is CX-first (conversational UI, no code). AutoAgent is developer-first (CLI, API). Build both: conversational Assistant for CX teams *plus* full CLI/API for developers.
+Sierra is CX-first (conversational UI, no code). AgentLab is developer-first (CLI, API). Build both: conversational Assistant for CX teams *plus* full CLI/API for developers.
 
 **Why It Leaps:**
-Most platforms choose one audience. Sierra chose CX. AutoAgent chose developers. We'd serve both with one platform.
+Most platforms choose one audience. Sierra chose CX. AgentLab chose developers. We'd serve both with one platform.
 
 **Implementation:**
 - CX-friendly Assistant (Steal #9) + existing CLI/API
 - Assistant uses CLI under the hood but hides complexity
 - Power users can drop into CLI/API for full control
-- Example: Assistant says "I'll run `autoagent optimize --target routing`" with a "Show command" toggle
+- Example: Assistant says "I'll run `agentlab optimize --target routing`" with a "Show command" toggle
 
 **Files:**
 - `web/src/pages/Assistant.tsx` + existing CLI/API
-- Assistant backend: `autoagent/api/routes/assistant.py` (NL → CLI translation)
+- Assistant backend: `agentlab/api/routes/assistant.py` (NL → CLI translation)
 
 **Effort:** M
 **Priority:** P0 (serves both audiences — our broadest reach)
@@ -815,19 +815,19 @@ Most platforms choose one audience. Sierra chose CX. AutoAgent chose developers.
 ### 8. Autonomous Improvement with Human-in-the-Loop Controls
 
 **The Idea:**
-Sierra's Ghostwriter runs fully autonomously (analyzes → improves → tests → prepares for review). AutoAgent has human escape hatches (pause, pin surfaces, reject experiments). Combine: fully autonomous *with* granular human control.
+Sierra's Ghostwriter runs fully autonomously (analyzes → improves → tests → prepares for review). AgentLab has human escape hatches (pause, pin surfaces, reject experiments). Combine: fully autonomous *with* granular human control.
 
 **Why It Leaps:**
-Sierra's autonomy is "trust the agent." AutoAgent's controls are "trust but verify." Combining gives CX teams full autonomy *plus* the ability to pin surfaces, reject changes, inject manual mutations.
+Sierra's autonomy is "trust the agent." AgentLab's controls are "trust but verify." Combining gives CX teams full autonomy *plus* the ability to pin surfaces, reject changes, inject manual mutations.
 
 **Implementation:**
-- Autonomous loop (existing `autoagent loop`) + human controls (`autoagent/control/`)
+- Autonomous loop (existing `agentlab loop`) + human controls (`agentlab/control/`)
 - Default: loop runs autonomously
 - CX team can pause, pin immutable surfaces, reject experiments, inject manual mutations *during* the loop
 - Experiment cards show: "Auto-proposed" vs. "Human-injected"
 
 **Files:**
-- Existing: `autoagent/optimizer/reliability.py` + `autoagent/control/human_control.py`
+- Existing: `agentlab/optimizer/reliability.py` + `agentlab/control/human_control.py`
 - Web: Dashboard with pause/resume, pin surface, reject experiment controls
 
 **Effort:** S (already implemented, just needs UX emphasis)
@@ -839,17 +839,17 @@ Sierra's autonomy is "trust the agent." AutoAgent's controls are "trust but veri
 
 ### Phase 1: Close the UX Gap (3-4 months)
 
-**Goal:** Make AutoAgent accessible to non-technical CX teams.
+**Goal:** Make AgentLab accessible to non-technical CX teams.
 
 | Priority | Feature | Effort | Files | Why Now |
 |----------|---------|--------|-------|---------|
-| P0 | **CX-Friendly Assistant** | M | `web/src/pages/Assistant.tsx`, `autoagent/api/routes/assistant.py` | Biggest gap vs. Sierra. Unlocks CX team adoption. |
-| P0 | **Research-Grade Optimization + NL UX** | L | `autoagent/builder/nl_builder.py`, `autoagent/optimizer/prompt_opt/` | Core differentiator. Sierra has UX, we have algorithms. Combine. |
-| P1 | **Conversation Explorer + Blame Map** | M | `autoagent/observer/explorer.py`, integration with `blame_map.py` | NL queries + impact ranking. Better than Sierra's Explorer. |
-| P1 | **Knowledge Extraction with Typed Mutations** | M | `autoagent/observer/knowledge_extractor.py`, integration with `mutations.py` | Optimizing from successes, not just failures. Provenance via typed operators. |
-| P1 | **Sandboxed Testing (Auto-Validation)** | S | Extend `autoagent/evals/replay.py` | Sierra's sandboxed testing. Easy extension of replay harness. |
+| P0 | **CX-Friendly Assistant** | M | `web/src/pages/Assistant.tsx`, `agentlab/api/routes/assistant.py` | Biggest gap vs. Sierra. Unlocks CX team adoption. |
+| P0 | **Research-Grade Optimization + NL UX** | L | `agentlab/builder/nl_builder.py`, `agentlab/optimizer/prompt_opt/` | Core differentiator. Sierra has UX, we have algorithms. Combine. |
+| P1 | **Conversation Explorer + Blame Map** | M | `agentlab/observer/explorer.py`, integration with `blame_map.py` | NL queries + impact ranking. Better than Sierra's Explorer. |
+| P1 | **Knowledge Extraction with Typed Mutations** | M | `agentlab/observer/knowledge_extractor.py`, integration with `mutations.py` | Optimizing from successes, not just failures. Provenance via typed operators. |
+| P1 | **Sandboxed Testing (Auto-Validation)** | S | Extend `agentlab/evals/replay.py` | Sierra's sandboxed testing. Easy extension of replay harness. |
 
-**Deliverable:** AutoAgent with conversational Assistant, NL agent builder, conversation Explorer, knowledge extraction, sandboxed testing. CX teams can use AutoAgent without CLI.
+**Deliverable:** AgentLab with conversational Assistant, NL agent builder, conversation Explorer, knowledge extraction, sandboxed testing. CX teams can use AgentLab without CLI.
 
 ---
 
@@ -859,11 +859,11 @@ Sierra's autonomy is "trust the agent." AutoAgent's controls are "trust but veri
 
 | Priority | Feature | Effort | Files | Why Now |
 |----------|---------|--------|-------|---------|
-| P2 | **Voice Sims with Statistical Testing** | L | `autoagent/evals/voice_sim.py`, `autoagent/graders/voice_grader.py` | Voice agents are growing. Sierra has Voice Sims, we'd have Voice Sims + stats. |
-| P2 | **Multi-Modal Deploy (Framework-Agnostic)** | L | `autoagent/deployer/channels.py`, adapters for Twilio, SendGrid, ChatGPT | Deploy to any channel from any framework. Broader than Sierra's platform-locked deploy. |
-| P2 | **Constellation Model Approach (Task Routing)** | M | Extend `autoagent/optimizer/providers.py`, `autoagent/agent/graph.py` | Best-of-breed per task. Sierra's differentiator. Complex but high value. |
+| P2 | **Voice Sims with Statistical Testing** | L | `agentlab/evals/voice_sim.py`, `agentlab/graders/voice_grader.py` | Voice agents are growing. Sierra has Voice Sims, we'd have Voice Sims + stats. |
+| P2 | **Multi-Modal Deploy (Framework-Agnostic)** | L | `agentlab/deployer/channels.py`, adapters for Twilio, SendGrid, ChatGPT | Deploy to any channel from any framework. Broader than Sierra's platform-locked deploy. |
+| P2 | **Constellation Model Approach (Task Routing)** | M | Extend `agentlab/optimizer/providers.py`, `agentlab/agent/graph.py` | Best-of-breed per task. Sierra's differentiator. Complex but high value. |
 
-**Deliverable:** AutoAgent supports voice agents, multi-modal deployment, task-level model routing.
+**Deliverable:** AgentLab supports voice agents, multi-modal deployment, task-level model routing.
 
 ---
 
@@ -873,11 +873,11 @@ Sierra's autonomy is "trust the agent." AutoAgent's controls are "trust but veri
 
 | Priority | Feature | Effort | Files | Why Now |
 |----------|---------|--------|-------|---------|
-| P2 | **Unified Memory Layer + Context Workbench** | M | `autoagent/memory/memory_layer.py`, integration with `autoagent/context/` | Cross-session memory with transparency. Sierra has ADP, we'd have ADP + context optimization. |
-| P2 | **CI/CD Integration (GitHub Actions)** | S | `autoagent-action` repo, `autoagent eval run --fail-on-regression` | Standard CI/CD. Easy win. |
+| P2 | **Unified Memory Layer + Context Workbench** | M | `agentlab/memory/memory_layer.py`, integration with `agentlab/context/` | Cross-session memory with transparency. Sierra has ADP, we'd have ADP + context optimization. |
+| P2 | **CI/CD Integration (GitHub Actions)** | S | `agentlab-action` repo, `agentlab eval run --fail-on-regression` | Standard CI/CD. Easy win. |
 | P1 | **Autonomous Improvement with Human Controls** | S | Existing code, UX emphasis in web console | Sierra's autonomy + our escape hatches. Already implemented, needs marketing. |
 
-**Deliverable:** AutoAgent with unified memory, CI/CD integration, polished human-in-the-loop controls.
+**Deliverable:** AgentLab with unified memory, CI/CD integration, polished human-in-the-loop controls.
 
 ---
 
@@ -885,9 +885,9 @@ Sierra's autonomy is "trust the agent." AutoAgent's controls are "trust but veri
 
 | Phase | Timeline | Key Features | Outcome |
 |-------|----------|--------------|---------|
-| **Phase 1: UX Gap** | 3-4 months | CX Assistant, NL builder, Explorer, knowledge extraction, sandboxed testing | AutoAgent accessible to CX teams. Competitive with Sierra on UX. |
-| **Phase 2: Voice & Multi-Modal** | 2-3 months | Voice Sims + stats, multi-modal deploy, task routing | AutoAgent supports voice, email, SMS. Best-of-breed per task. |
-| **Phase 3: Memory & CI/CD** | 2-3 months | Memory layer, context optimization, GitHub Actions | AutoAgent supports cross-session agents, CI/CD workflows. |
+| **Phase 1: UX Gap** | 3-4 months | CX Assistant, NL builder, Explorer, knowledge extraction, sandboxed testing | AgentLab accessible to CX teams. Competitive with Sierra on UX. |
+| **Phase 2: Voice & Multi-Modal** | 2-3 months | Voice Sims + stats, multi-modal deploy, task routing | AgentLab supports voice, email, SMS. Best-of-breed per task. |
+| **Phase 3: Memory & CI/CD** | 2-3 months | Memory layer, context optimization, GitHub Actions | AgentLab supports cross-session agents, CI/CD workflows. |
 
 **Total:** 7-10 months to full feature parity + leapfrog advantages.
 
@@ -895,7 +895,7 @@ Sierra's autonomy is "trust the agent." AutoAgent's controls are "trust but veri
 
 ## Key Takeaways
 
-### Where AutoAgent Wins Today
+### Where AgentLab Wins Today
 
 1. **Research-grade optimization** — MIPROv2, GEPA, SIMBA, BootstrapFewShot
 2. **Statistical rigor** — bootstrap, sequential testing, multiple-hypothesis correction
@@ -936,7 +936,7 @@ If we execute the roadmap:
 
 **Sierra's moat:** Conversational UX for CX teams. Agent-driven architecture. Voice-first testing. Multi-modal deploy.
 
-**AutoAgent's moat:** Research-grade optimization. Statistical rigor. Framework-agnostic. Developer power tools.
+**AgentLab's moat:** Research-grade optimization. Statistical rigor. Framework-agnostic. Developer power tools.
 
 **Our path to dominance:** Steal Sierra's conversational UX, voice testing, and multi-modal deploy. Keep our research-grade optimization, statistical rigor, and framework-agnostic architecture. Build the only platform that serves both CX teams *and* developers with academic-grade optimization.
 
@@ -944,7 +944,7 @@ If we execute the roadmap:
 
 **Investment:** 3 engineers full-time (1 frontend, 1 backend, 1 ML/optimization) + PM/designer.
 
-**ROI:** AutoAgent becomes the only platform with Sierra's UX *and* research-grade optimization. Serves both CX teams and developers. Broader market reach than Sierra (which is CX-only) or traditional optimization platforms (which are developer-only).
+**ROI:** AgentLab becomes the only platform with Sierra's UX *and* research-grade optimization. Serves both CX teams and developers. Broader market reach than Sierra (which is CX-only) or traditional optimization platforms (which are developer-only).
 
 ---
 
@@ -968,7 +968,7 @@ If we execute the roadmap:
 2. Prioritize Phase 1 features (CX Assistant, NL builder, Explorer)
 3. Allocate team (3 engineers + PM/designer)
 4. Kickoff Phase 1: Close the UX gap (3-4 month sprint)
-5. Ship AutoAgent with conversational UX competitive with Sierra + research-grade optimization they can't match
+5. Ship AgentLab with conversational UX competitive with Sierra + research-grade optimization they can't match
 
 **Competitive positioning:**
-"Sierra builds agents for CX teams. AutoAgent optimizes agents for everyone — CX teams get conversational UX, developers get research-grade algorithms, both get statistical rigor and framework-agnostic architecture."
+"Sierra builds agents for CX teams. AgentLab optimizes agents for everyone — CX teams get conversational UX, developers get research-grade algorithms, both get statistical rigor and framework-agnostic architecture."

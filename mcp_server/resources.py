@@ -39,11 +39,11 @@ class McpResource:
 
 
 class ResourceProvider:
-    """Provides MCP resources for the AutoAgent system."""
+    """Provides MCP resources for the AgentLab system."""
 
-    CONFIGS_DIR = os.environ.get("AUTOAGENT_CONFIGS", "configs")
-    DB_PATH = os.environ.get("AUTOAGENT_DB", "conversations.db")
-    MEMORY_DB = os.environ.get("AUTOAGENT_MEMORY_DB", "optimizer_memory.db")
+    CONFIGS_DIR = os.environ.get("AGENTLAB_CONFIGS", "configs")
+    DB_PATH = os.environ.get("AGENTLAB_DB", "conversations.db")
+    MEMORY_DB = os.environ.get("AGENTLAB_MEMORY_DB", "optimizer_memory.db")
 
     # ------------------------------------------------------------------
     # Resource list methods
@@ -58,7 +58,7 @@ class ResourceProvider:
                 for fname in sorted(os.listdir(configs_dir)):
                     if fname.endswith((".yaml", ".yml", ".json")):
                         resources.append(McpResource(
-                            uri=f"autoagent://configs/{fname}",
+                            uri=f"agentlab://configs/{fname}",
                             name=fname,
                             description=f"Agent configuration file: {fname}",
                             mime_type="application/yaml" if fname.endswith((".yaml", ".yml")) else "application/json",
@@ -67,7 +67,7 @@ class ResourceProvider:
             pass
         if not resources:
             resources.append(McpResource(
-                uri="autoagent://configs/active",
+                uri="agentlab://configs/active",
                 name="active_config",
                 description="Currently active agent configuration",
             ))
@@ -83,7 +83,7 @@ class ResourceProvider:
             for r in records:
                 cid = getattr(r, "conversation_id", "unknown")
                 resources.append(McpResource(
-                    uri=f"autoagent://traces/{cid}",
+                    uri=f"agentlab://traces/{cid}",
                     name=f"trace_{cid}",
                     description=f"Conversation trace {cid} — outcome: {getattr(r, 'outcome', 'unknown')}",
                 ))
@@ -91,7 +91,7 @@ class ResourceProvider:
             pass
         if not resources:
             resources.append(McpResource(
-                uri="autoagent://traces/recent",
+                uri="agentlab://traces/recent",
                 name="recent_traces",
                 description=f"Most recent {limit} conversation traces",
             ))
@@ -109,7 +109,7 @@ class ResourceProvider:
                 if run_id and rid != run_id:
                     continue
                 resources.append(McpResource(
-                    uri=f"autoagent://evals/{rid}",
+                    uri=f"agentlab://evals/{rid}",
                     name=f"eval_{rid}",
                     description=(
                         f"Eval run {rid} — score: {getattr(attempt, 'score_after', 'n/a')}, "
@@ -119,7 +119,7 @@ class ResourceProvider:
         except Exception:
             pass
         if not resources:
-            uri = f"autoagent://evals/{run_id}" if run_id else "autoagent://evals/latest"
+            uri = f"agentlab://evals/{run_id}" if run_id else "agentlab://evals/latest"
             resources.append(McpResource(
                 uri=uri,
                 name="eval_results",
@@ -132,11 +132,11 @@ class ResourceProvider:
         resources: list[McpResource] = []
         try:
             from registry.skill_store import SkillStore
-            store = SkillStore(db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"))
+            store = SkillStore(db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"))
             skills = store.recommend()
             for skill in skills:
                 resources.append(McpResource(
-                    uri=f"autoagent://skills/{skill.name}",
+                    uri=f"agentlab://skills/{skill.name}",
                     name=skill.name,
                     description=getattr(skill, "description", f"Skill: {skill.name}"),
                 ))
@@ -145,7 +145,7 @@ class ResourceProvider:
             pass
         if not resources:
             resources.append(McpResource(
-                uri="autoagent://skills/catalog",
+                uri="agentlab://skills/catalog",
                 name="skill_catalog",
                 description="Full catalog of available agent skills",
             ))
@@ -155,17 +155,17 @@ class ResourceProvider:
         """Return resources for dataset statistics."""
         resources = [
             McpResource(
-                uri="autoagent://datasets/eval_cases",
+                uri="agentlab://datasets/eval_cases",
                 name="eval_cases_stats",
                 description="Statistics for the eval case dataset",
             ),
             McpResource(
-                uri="autoagent://datasets/conversations",
+                uri="agentlab://datasets/conversations",
                 name="conversation_stats",
                 description="Statistics for the conversation/trace dataset",
             ),
             McpResource(
-                uri="autoagent://datasets/failure_clusters",
+                uri="agentlab://datasets/failure_clusters",
                 name="failure_clusters_stats",
                 description="Statistics for failure cluster dataset",
             ),
@@ -178,22 +178,22 @@ class ResourceProvider:
 
     def read_resource(self, uri: str) -> dict[str, Any]:
         """Read the content of a resource by URI."""
-        if uri == "autoagent://configs/active":
+        if uri == "agentlab://configs/active":
             return self._read_active_config()
-        if uri.startswith("autoagent://configs/"):
-            fname = uri.removeprefix("autoagent://configs/")
+        if uri.startswith("agentlab://configs/"):
+            fname = uri.removeprefix("agentlab://configs/")
             return self._read_config_file(fname)
-        if uri.startswith("autoagent://traces/"):
-            trace_id = uri.removeprefix("autoagent://traces/")
+        if uri.startswith("agentlab://traces/"):
+            trace_id = uri.removeprefix("agentlab://traces/")
             return self._read_trace(trace_id)
-        if uri.startswith("autoagent://evals/"):
-            run_id = uri.removeprefix("autoagent://evals/")
+        if uri.startswith("agentlab://evals/"):
+            run_id = uri.removeprefix("agentlab://evals/")
             return self._read_eval(run_id)
-        if uri.startswith("autoagent://skills/"):
-            skill_name = uri.removeprefix("autoagent://skills/")
+        if uri.startswith("agentlab://skills/"):
+            skill_name = uri.removeprefix("agentlab://skills/")
             return self._read_skill(skill_name)
-        if uri.startswith("autoagent://datasets/"):
-            dataset = uri.removeprefix("autoagent://datasets/")
+        if uri.startswith("agentlab://datasets/"):
+            dataset = uri.removeprefix("agentlab://datasets/")
             return self._read_dataset_stats(dataset)
         return {"error": f"Unknown resource URI: {uri}"}
 
@@ -287,7 +287,7 @@ class ResourceProvider:
         if skill_name == "catalog":
             try:
                 from registry.skill_store import SkillStore
-                store = SkillStore(db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"))
+                store = SkillStore(db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"))
                 skills = store.recommend()
                 result = [
                     {

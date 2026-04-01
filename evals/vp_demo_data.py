@@ -893,7 +893,7 @@ def seed_demo_data(db_path: str = "conversations.db", *, force: bool = False) ->
     return len(dataset.conversations)
 
 
-def seed_trace_demo_data(db_path: str = ".autoagent/traces.db", *, force: bool = False) -> int:
+def seed_trace_demo_data(db_path: str = ".agentlab/traces.db", *, force: bool = False) -> int:
     """Persist a small but realistic trace dataset for first-run demos."""
     trace_db = Path(db_path)
     if trace_db.exists() and not force:

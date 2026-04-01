@@ -1,7 +1,7 @@
 # Claude Code Task: Frontend Visual QA + Simplification
 
 ## Mission
-Make AutoAgent VNextCC's web console look like it was shipped by OpenAI or Apple. Run Playwright visual QA, then simplify and polish everything.
+Make AgentLab VNextCC's web console look like it was shipped by OpenAI or Apple. Run Playwright visual QA, then simplify and polish everything.
 
 ## Phase 1: Playwright Visual QA
 1. Install playwright + chromium in `web/`: `npx playwright install chromium`

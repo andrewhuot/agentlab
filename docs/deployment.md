@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers local, Docker, and Google Cloud deployment for AutoAgent VNextCC.
+This guide covers local, Docker, and Google Cloud deployment for AgentLab VNextCC.
 
 ## Deployment Targets
 
@@ -31,7 +31,7 @@ Open:
 - UI: `http://localhost:5173/dashboard`
 - API docs: `http://localhost:8000/docs`
 
-Use `autoagent server` when you want the backend to serve the built web console directly from port `8000`.
+Use `agentlab server` when you want the backend to serve the built web console directly from port `8000`.
 
 ## Install
 
@@ -42,14 +42,14 @@ pip install -e ".[dev]"
 ## Initialize a workspace
 
 ```bash
-autoagent new my-project
+agentlab new my-project
 cd my-project
 ```
 
 ## Start API + web console
 
 ```bash
-autoagent server --host 0.0.0.0 --port 8000
+agentlab server --host 0.0.0.0 --port 8000
 ```
 
 Endpoints:
@@ -62,7 +62,7 @@ Endpoints:
 
 ```bash
 # terminal A
-autoagent server
+agentlab server
 
 # terminal B
 cd web
@@ -101,16 +101,16 @@ docker compose up --build
 
 ## Container storage layout
 
-`docker-compose.yaml` mounts named volume `autoagent-data` to `/app/data`.
+`docker-compose.yaml` mounts named volume `agentlab-data` to `/app/data`.
 
 Env vars in compose:
 
 ```yaml
 environment:
-  - AUTOAGENT_DB=/app/data/conversations.db
-  - AUTOAGENT_CONFIGS=/app/data/configs
-  - AUTOAGENT_MEMORY_DB=/app/data/optimizer_memory.db
-  - AUTOAGENT_EVAL_HISTORY_DB=/app/data/eval_history.db
+  - AGENTLAB_DB=/app/data/conversations.db
+  - AGENTLAB_CONFIGS=/app/data/configs
+  - AGENTLAB_MEMORY_DB=/app/data/optimizer_memory.db
+  - AGENTLAB_EVAL_HISTORY_DB=/app/data/eval_history.db
 ```
 
 Health check:
@@ -127,14 +127,14 @@ Cloud Run is the simplest managed option for this architecture.
 export PROJECT_ID="your-project"
 export REGION="us-central1"
 
-gcloud builds submit --tag "gcr.io/${PROJECT_ID}/autoagent-vnextcc"
+gcloud builds submit --tag "gcr.io/${PROJECT_ID}/agentlab"
 ```
 
 ## Deploy
 
 ```bash
-gcloud run deploy autoagent-vnextcc \
-  --image "gcr.io/${PROJECT_ID}/autoagent-vnextcc" \
+gcloud run deploy agentlab \
+  --image "gcr.io/${PROJECT_ID}/agentlab" \
   --platform managed \
   --region "${REGION}" \
   --port 8000 \
@@ -143,9 +143,9 @@ gcloud run deploy autoagent-vnextcc \
   --min-instances 1 \
   --max-instances 10 \
   --allow-unauthenticated \
-  --set-env-vars "AUTOAGENT_DB=/app/data/conversations.db" \
-  --set-env-vars "AUTOAGENT_CONFIGS=/app/data/configs" \
-  --set-env-vars "AUTOAGENT_MEMORY_DB=/app/data/optimizer_memory.db"
+  --set-env-vars "AGENTLAB_DB=/app/data/conversations.db" \
+  --set-env-vars "AGENTLAB_CONFIGS=/app/data/configs" \
+  --set-env-vars "AGENTLAB_MEMORY_DB=/app/data/optimizer_memory.db"
 ```
 
 ## Important Cloud Run caveat
@@ -165,10 +165,10 @@ Runtime paths:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `AUTOAGENT_DB` | `conversations.db` | Conversation SQLite path |
-| `AUTOAGENT_CONFIGS` | `configs` | Versioned config directory |
-| `AUTOAGENT_MEMORY_DB` | `optimizer_memory.db` | Optimization memory SQLite path |
-| `AUTOAGENT_EVAL_HISTORY_DB` | unset | Optional eval history SQLite path override |
+| `AGENTLAB_DB` | `conversations.db` | Conversation SQLite path |
+| `AGENTLAB_CONFIGS` | `configs` | Versioned config directory |
+| `AGENTLAB_MEMORY_DB` | `optimizer_memory.db` | Optimization memory SQLite path |
+| `AGENTLAB_EVAL_HISTORY_DB` | unset | Optional eval history SQLite path override |
 
 Other useful env:
 
@@ -179,7 +179,7 @@ Other useful env:
 | `ANTHROPIC_API_KEY` | secret | Anthropic proposer/judge provider key |
 | `GOOGLE_API_KEY` | secret | Gemini proposer/judge provider key |
 
-`autoagent.yaml` controls provider selection, retries, scheduling mode, checkpoint path, DLQ DB path, and structured log settings.
+`agentlab.yaml` controls provider selection, retries, scheduling mode, checkpoint path, DLQ DB path, and structured log settings.
 
 ## 5) Reverse Proxy and Networking Notes
 

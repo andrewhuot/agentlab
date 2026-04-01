@@ -22,7 +22,7 @@ Each grader produces a grade (pass/fail/partial) with a reason string and confid
 
 ```bash
 # Grade all spans in a trace
-autoagent trace grade trace_abc123
+agentlab trace grade trace_abc123
 ```
 
 Output:
@@ -55,7 +55,7 @@ Each cluster includes:
 
 ```bash
 # Build a blame map over the last 24 hours
-autoagent trace blame --window 24h --top 10
+agentlab trace blame --window 24h --top 10
 ```
 
 Output:
@@ -78,15 +78,15 @@ Top failure clusters (last 24h):
 Visualize a trace as a span dependency graph:
 
 ```bash
-autoagent trace graph trace_abc123
+agentlab trace graph trace_abc123
 ```
 
 ## CLI commands
 
 ```bash
-autoagent trace grade <trace_id> [--db PATH]
-autoagent trace blame [--window 24h] [--top N] [--db PATH]
-autoagent trace graph <trace_id> [--db PATH]
+agentlab trace grade <trace_id> [--db PATH]
+agentlab trace blame [--window 24h] [--top N] [--db PATH]
+agentlab trace graph <trace_id> [--db PATH]
 ```
 
 ## API endpoints

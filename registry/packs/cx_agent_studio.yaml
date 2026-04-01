@@ -39,7 +39,7 @@ skills:
         metric_name: playbook_completion_rate
         threshold: 0.80
         operator: lt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [quality, cx-agent-studio, playbook, instructions]
 
   - name: cx_flow_route_optimization
@@ -87,7 +87,7 @@ skills:
         metric_name: fallback_to_live_agent_rate
         threshold: 0.20
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [routing, cx-agent-studio, flows, intents]
 
   - name: cx_generator_prompt_tuning
@@ -135,7 +135,7 @@ skills:
         metric_name: hallucination_rate
         threshold: 0.08
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [quality, cx-agent-studio, generator, grounding]
 
   - name: cx_entity_extraction_improvement
@@ -192,7 +192,7 @@ skills:
         metric_name: entity_extraction_accuracy
         threshold: 0.80
         operator: lt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [quality, cx-agent-studio, entities, nlu]
 
   - name: cx_webhook_latency_reduction
@@ -250,5 +250,5 @@ skills:
         metric_name: webhook_p95_latency_ms
         threshold: 5000
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [latency, cx-agent-studio, webhook, caching]

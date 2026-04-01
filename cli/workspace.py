@@ -1,4 +1,4 @@
-"""Workspace discovery and metadata helpers for the AutoAgent CLI."""
+"""Workspace discovery and metadata helpers for the AgentLab CLI."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any
 import yaml
 
 
-WORKSPACE_DIRNAME = ".autoagent"
+WORKSPACE_DIRNAME = ".agentlab"
 WORKSPACE_METADATA_FILENAME = "workspace.json"
 DEFAULT_LIFECYCLE_SKILL_DB = Path(WORKSPACE_DIRNAME) / "core_skills.db"
 SETTINGS_FILENAME = "settings.json"
@@ -37,7 +37,7 @@ class WorkspaceMetadata:
     def from_dict(cls, data: dict[str, Any]) -> WorkspaceMetadata:
         """Build metadata from a plain dict."""
         return cls(
-            name=str(data.get("name") or "autoagent-workspace"),
+            name=str(data.get("name") or "agentlab-workspace"),
             active_config_version=data.get("active_config_version"),
             active_config_file=data.get("active_config_file"),
             schema_version=int(data.get("schema_version", 1)),
@@ -49,7 +49,7 @@ class WorkspaceMetadata:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize metadata for storage in `.autoagent/workspace.json`."""
+        """Serialize metadata for storage in `.agentlab/workspace.json`."""
         return {
             "schema_version": self.schema_version,
             "name": self.name,
@@ -73,19 +73,19 @@ class ResolvedConfig:
 
 
 @dataclass
-class AutoAgentWorkspace:
+class AgentLabWorkspace:
     """Resolved workspace paths and metadata."""
 
     root: Path
     metadata: WorkspaceMetadata
 
     @property
-    def autoagent_dir(self) -> Path:
+    def agentlab_dir(self) -> Path:
         return self.root / WORKSPACE_DIRNAME
 
     @property
     def metadata_path(self) -> Path:
-        return self.autoagent_dir / WORKSPACE_METADATA_FILENAME
+        return self.agentlab_dir / WORKSPACE_METADATA_FILENAME
 
     @property
     def configs_dir(self) -> Path:
@@ -101,11 +101,11 @@ class AutoAgentWorkspace:
 
     @property
     def runtime_config_path(self) -> Path:
-        return self.root / "autoagent.yaml"
+        return self.root / "agentlab.yaml"
 
     @property
     def settings_path(self) -> Path:
-        return self.autoagent_dir / SETTINGS_FILENAME
+        return self.agentlab_dir / SETTINGS_FILENAME
 
     @property
     def conversation_db(self) -> Path:
@@ -125,11 +125,11 @@ class AutoAgentWorkspace:
 
     @property
     def trace_db(self) -> Path:
-        return self.autoagent_dir / "traces.db"
+        return self.agentlab_dir / "traces.db"
 
     @property
     def eval_cache_db(self) -> Path:
-        return self.autoagent_dir / "eval_cache.db"
+        return self.agentlab_dir / "eval_cache.db"
 
     @property
     def skill_db(self) -> Path:
@@ -137,15 +137,15 @@ class AutoAgentWorkspace:
 
     @property
     def rules_dir(self) -> Path:
-        return self.autoagent_dir / "rules"
+        return self.agentlab_dir / "rules"
 
     @property
     def memory_dir(self) -> Path:
-        return self.autoagent_dir / "memory"
+        return self.agentlab_dir / "memory"
 
     @property
     def local_memory_path(self) -> Path:
-        return self.root / "AUTOAGENT.local.md"
+        return self.root / "AGENTLAB.local.md"
 
     @property
     def mcp_config_path(self) -> Path:
@@ -153,27 +153,27 @@ class AutoAgentWorkspace:
 
     @property
     def best_score_file(self) -> Path:
-        return self.autoagent_dir / "best_score.txt"
+        return self.agentlab_dir / "best_score.txt"
 
     @property
     def scorer_specs_dir(self) -> Path:
-        return self.autoagent_dir / "scorers"
+        return self.agentlab_dir / "scorers"
 
     @property
     def change_cards_db(self) -> Path:
-        return self.autoagent_dir / "change_cards.db"
+        return self.agentlab_dir / "change_cards.db"
 
     @property
     def autofix_db(self) -> Path:
-        return self.autoagent_dir / "autofix.db"
+        return self.agentlab_dir / "autofix.db"
 
     @property
     def grader_versions_db(self) -> Path:
-        return self.autoagent_dir / "grader_versions.db"
+        return self.agentlab_dir / "grader_versions.db"
 
     @property
     def human_feedback_db(self) -> Path:
-        return self.autoagent_dir / "human_feedback.db"
+        return self.agentlab_dir / "human_feedback.db"
 
     @property
     def workspace_label(self) -> str:
@@ -190,7 +190,7 @@ class AutoAgentWorkspace:
         agent_name: str,
         platform: str,
         demo_seeded: bool = False,
-    ) -> AutoAgentWorkspace:
+    ) -> AgentLabWorkspace:
         """Create a new workspace model with default metadata."""
         metadata = WorkspaceMetadata(
             name=name,
@@ -204,14 +204,14 @@ class AutoAgentWorkspace:
 
     def ensure_structure(self) -> None:
         """Create the on-disk directory structure required for a workspace."""
-        self.autoagent_dir.mkdir(parents=True, exist_ok=True)
+        self.agentlab_dir.mkdir(parents=True, exist_ok=True)
         self.configs_dir.mkdir(parents=True, exist_ok=True)
         self.cases_dir.mkdir(parents=True, exist_ok=True)
         (self.root / "agent" / "config").mkdir(parents=True, exist_ok=True)
         self.scorer_specs_dir.mkdir(parents=True, exist_ok=True)
         self.rules_dir.mkdir(parents=True, exist_ok=True)
         self.memory_dir.mkdir(parents=True, exist_ok=True)
-        (self.autoagent_dir / "logs").mkdir(parents=True, exist_ok=True)
+        (self.agentlab_dir / "logs").mkdir(parents=True, exist_ok=True)
         self.best_score_file.touch(exist_ok=True)
 
     def save_metadata(self) -> None:
@@ -322,7 +322,7 @@ def infer_workspace_metadata(root: Path) -> WorkspaceMetadata:
             json.loads(metadata_path.read_text(encoding="utf-8"))
         )
 
-    workspace = AutoAgentWorkspace(root=root.resolve(), metadata=WorkspaceMetadata(name=root.name))
+    workspace = AgentLabWorkspace(root=root.resolve(), metadata=WorkspaceMetadata(name=root.name))
     manifest = workspace.manifest()
     active_version = manifest.get("active_version")
     if active_version is None:
@@ -336,13 +336,13 @@ def infer_workspace_metadata(root: Path) -> WorkspaceMetadata:
     )
 
 
-def discover_workspace(start: Path | None = None) -> AutoAgentWorkspace | None:
-    """Walk up from `start` and return the nearest AutoAgent workspace, if any."""
+def discover_workspace(start: Path | None = None) -> AgentLabWorkspace | None:
+    """Walk up from `start` and return the nearest AgentLab workspace, if any."""
     current = (start or Path.cwd()).resolve()
     for candidate in (current, *current.parents):
-        autoagent_dir = candidate / WORKSPACE_DIRNAME
-        if not autoagent_dir.exists():
+        agentlab_dir = candidate / WORKSPACE_DIRNAME
+        if not agentlab_dir.exists():
             continue
         metadata = infer_workspace_metadata(candidate)
-        return AutoAgentWorkspace(root=candidate, metadata=metadata)
+        return AgentLabWorkspace(root=candidate, metadata=metadata)
     return None

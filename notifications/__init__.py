@@ -1,4 +1,4 @@
-"""Notifications system for AutoAgent — webhooks, Slack, email alerts."""
+"""Notifications system for AgentLab — webhooks, Slack, email alerts."""
 
 from __future__ import annotations
 

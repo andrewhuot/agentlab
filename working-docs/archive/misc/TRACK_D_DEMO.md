@@ -31,7 +31,7 @@ Successfully implemented Track D from IMPLEMENTATION_PLAN.md:
 ### 2. Backend (CLI): `/runner.py`
 
 **Changes:**
-- Added all-time best score tracking using `.autoagent/best_score.txt`
+- Added all-time best score tracking using `.agentlab/best_score.txt`
 - Modified `_stream_cycle_output()` function to accept `all_time_best` parameter
 - Added sparkle (✨) to output when score exceeds all-time best
 - Changed output format: `composite={score:.4f} (+{improvement:.4f})✨`
@@ -113,7 +113,7 @@ Actions
 ✓ Tested improvement scenarios:
   - Shows ✨ when score exceeds all-time best
   - Shows "New personal best!" message in yellow
-  - Persists best score to `.autoagent/best_score.txt`
+  - Persists best score to `.agentlab/best_score.txt`
   - No sparkle when improvement but not a personal best
   - No sparkle when no improvement (shows ✗)
 
@@ -128,8 +128,8 @@ Actions
 - Prepends ✨ to smart result labels
 
 ### Best Score Tracking
-- File: `.autoagent/best_score.txt`
-- Created in `.autoagent/` directory (already exists for other features)
+- File: `.agentlab/best_score.txt`
+- Created in `.agentlab/` directory (already exists for other features)
 - Stores single float value as string
 - Read at start of optimize/quickstart/demo commands
 - Updated when score_after > all_time_best
@@ -152,7 +152,7 @@ Actions
 5. Regular results appear below for fallback
 
 ### CLI Sparkles
-1. User runs: `autoagent optimize --cycles 3`
+1. User runs: `agentlab optimize --cycles 3`
 2. Each cycle shows evaluation output
 3. When score improves AND beats all-time best:
    - Sparkle (✨) appears next to score

@@ -1,4 +1,4 @@
-"""Canonical domain objects for the AutoAgent experimentation system.
+"""Canonical domain objects for the AgentLab experimentation system.
 
 These are framework-neutral internal representations that form the backbone
 of the CI/CD-for-agents architecture.  Every object is versioned, immutable

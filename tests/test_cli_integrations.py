@@ -105,10 +105,10 @@ class TestMCPSetupCLI:
     @pytest.mark.parametrize(
         ("client_name", "relative_path", "expected_fragment"),
         [
-            ("claude-code", Path(".claude") / "mcp.json", '"command": "autoagent"'),
-            ("codex", Path(".codex") / "config.toml", 'command = "autoagent"'),
-            ("cursor", Path(".cursor") / "mcp.json", '"command": "autoagent"'),
-            ("windsurf", Path(".codeium") / "windsurf" / "mcp_config.json", '"command": "autoagent"'),
+            ("claude-code", Path(".claude") / "mcp.json", '"command": "agentlab"'),
+            ("codex", Path(".codex") / "config.toml", 'command = "agentlab"'),
+            ("cursor", Path(".cursor") / "mcp.json", '"command": "agentlab"'),
+            ("windsurf", Path(".codeium") / "windsurf" / "mcp_config.json", '"command": "agentlab"'),
         ],
     )
     def test_mcp_init_writes_expected_config(
@@ -221,7 +221,7 @@ class TestModeCLI:
         assert set_result.exit_code == 0, set_result.output
         assert "Running in MOCK mode" in set_result.output
 
-        workspace_payload = json.loads((tmp_path / ".autoagent" / "workspace.json").read_text(encoding="utf-8"))
+        workspace_payload = json.loads((tmp_path / ".agentlab" / "workspace.json").read_text(encoding="utf-8"))
         assert workspace_payload["mode"] == "mock"
 
         show_result = runner.invoke(cli, ["mode", "show"])
@@ -273,7 +273,7 @@ class TestModeCLI:
     ) -> None:
         runner = CliRunner()
         monkeypatch.chdir(tmp_path)
-        config_path = tmp_path / "autoagent.yaml"
+        config_path = tmp_path / "agentlab.yaml"
         config_path.write_text("optimizer:\n  use_mock: false\n", encoding="utf-8")
 
         set_result = runner.invoke(cli, ["mode", "set", "mock"])

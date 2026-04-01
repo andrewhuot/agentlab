@@ -29,7 +29,7 @@ class OtelConfig:
     headers: dict[str, str] = field(default_factory=dict)
 
     # Service identity stamped on every resource.
-    service_name: str = "autoagent"
+    service_name: str = "agentlab"
     service_version: str = "1.0.0"
 
     # Google Cloud Trace project ID (used when exporter_type == "cloud_trace").
@@ -65,7 +65,7 @@ class OtelConfig:
             exporter_type=str(data.get("exporter_type", "otlp_http")),
             endpoint=str(data.get("endpoint", "")),
             headers=dict(data.get("headers", {})),
-            service_name=str(data.get("service_name", "autoagent")),
+            service_name=str(data.get("service_name", "agentlab")),
             service_version=str(data.get("service_version", "1.0.0")),
             cloud_trace_project_id=str(data.get("cloud_trace_project_id", "")),
             export_interval_seconds=int(data.get("export_interval_seconds", 30)),
@@ -112,7 +112,7 @@ class OtelConfig:
             exporter_type=os.environ.get("OTEL_EXPORTER_TYPE", "otlp_http"),
             endpoint=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
             headers=headers,
-            service_name=os.environ.get("OTEL_SERVICE_NAME", "autoagent"),
+            service_name=os.environ.get("OTEL_SERVICE_NAME", "agentlab"),
             service_version=os.environ.get("OTEL_SERVICE_VERSION", "1.0.0"),
             cloud_trace_project_id=os.environ.get("CLOUD_TRACE_PROJECT_ID", ""),
             export_interval_seconds=int(
@@ -127,7 +127,7 @@ class OtelConfig:
 # ---------------------------------------------------------------------------
 
 def load_otel_config(yaml_config: dict[str, Any]) -> OtelConfig:
-    """Build an OtelConfig from the ``observability`` section of ``autoagent.yaml``.
+    """Build an OtelConfig from the ``observability`` section of ``agentlab.yaml``.
 
     The expected structure is::
 
@@ -135,7 +135,7 @@ def load_otel_config(yaml_config: dict[str, Any]) -> OtelConfig:
           otel_enabled: false
           otel_exporter: otlp_http
           otel_endpoint: ""
-          otel_service_name: autoagent
+          otel_service_name: agentlab
           cloud_trace_project_id: ""
 
     Any keys not present fall back to :class:`OtelConfig` defaults.
@@ -147,7 +147,7 @@ def load_otel_config(yaml_config: dict[str, Any]) -> OtelConfig:
         exporter_type=str(obs.get("otel_exporter", "otlp_http")),
         endpoint=str(obs.get("otel_endpoint", "")),
         headers=dict(obs.get("otel_headers", {})),
-        service_name=str(obs.get("otel_service_name", "autoagent")),
+        service_name=str(obs.get("otel_service_name", "agentlab")),
         service_version=str(obs.get("otel_service_version", "1.0.0")),
         cloud_trace_project_id=str(obs.get("cloud_trace_project_id", "")),
         export_interval_seconds=int(obs.get("export_interval_seconds", 30)),

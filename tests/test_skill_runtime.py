@@ -601,7 +601,7 @@ class TestSkillRuntimeYAMLIntegration:
                 ]
             },
             "prompts": {
-                "root": "You are AutoAgent, a helpful customer service assistant.",
+                "root": "You are AgentLab, a helpful customer service assistant.",
                 "support": "You are a customer support specialist.",
             },
             "tools": {

@@ -2,25 +2,25 @@
 
 ## Track 1: Codex7 CLI/Backend Enhancements
 
-Port the uncommitted changes from `~/Desktop/AutoAgent-VNextCC-Codex7/` into this repo. The diff touches 6 files (+404 lines):
+Port the uncommitted changes from `~/Desktop/AgentLab-VNextCC-Codex7/` into this repo. The diff touches 6 files (+404 lines):
 
 1. **`runner.py`**: Add `--json` flag to `eval run`, `optimize`, `status`, `deploy list`, and other key CLI commands. When `--json` is set, suppress human-readable output and emit structured JSON instead.
-2. **`core/project_memory.py`**: Add `_build_intelligence_section()` method that auto-generates a health/issues/changes/skill-gaps markdown block inside AUTOAGENT.md between `<!-- BEGIN AUTOAGENT INTELLIGENCE -->` and `<!-- END AUTOAGENT INTELLIGENCE -->` sentinel comments.
+2. **`core/project_memory.py`**: Add `_build_intelligence_section()` method that auto-generates a health/issues/changes/skill-gaps markdown block inside AGENTLAB.md between `<!-- BEGIN AGENTLAB INTELLIGENCE -->` and `<!-- END AGENTLAB INTELLIGENCE -->` sentinel comments.
 3. **`api/server.py`**: Any new route registrations from the diff.
 4. **`web/src/lib/api.ts`** and **`web/src/lib/types.ts`**: New API hooks/types.
 5. **`web/src/pages/Dashboard.tsx`**: Minor additions.
 
-**How to port**: Read the diff at `~/Desktop/AutoAgent-VNextCC-Codex7/` (use `git diff HEAD` there), then apply equivalent changes here. Don't blindly copy — VNextCC master may have evolved past Codex7's base. Merge intelligently.
+**How to port**: Read the diff at `~/Desktop/AgentLab-VNextCC-Codex7/` (use `git diff HEAD` there), then apply equivalent changes here. Don't blindly copy — VNextCC master may have evolved past Codex7's base. Merge intelligently.
 
 ## Track 2: AgentStudio Page from v3
 
-Port the AgentStudio feature from `~/Desktop/AutoAgent-v3/frontend/src/` into VNextCC's web app:
+Port the AgentStudio feature from `~/Desktop/AgentLab-v3/frontend/src/` into VNextCC's web app:
 
 Source files:
-- `~/Desktop/AutoAgent-v3/frontend/src/lib/agentStudio.ts` (264 lines) — NL prompt parser, changeset builder, metric projections
-- `~/Desktop/AutoAgent-v3/frontend/src/pages/AgentStudio.tsx` (438 lines) — Full page with chat input, change cards with before/after diffs, metric projections, review checklist
-- `~/Desktop/AutoAgent-v3/frontend/src/lib/agentStudio.test.ts` (16 lines)
-- `~/Desktop/AutoAgent-v3/frontend/src/pages/AgentStudio.test.tsx` (31 lines)
+- `~/Desktop/AgentLab-v3/frontend/src/lib/agentStudio.ts` (264 lines) — NL prompt parser, changeset builder, metric projections
+- `~/Desktop/AgentLab-v3/frontend/src/pages/AgentStudio.tsx` (438 lines) — Full page with chat input, change cards with before/after diffs, metric projections, review checklist
+- `~/Desktop/AgentLab-v3/frontend/src/lib/agentStudio.test.ts` (16 lines)
+- `~/Desktop/AgentLab-v3/frontend/src/pages/AgentStudio.test.tsx` (31 lines)
 
 **Adaptation needed**:
 - VNextCC uses TypeScript with its own type system in `web/src/lib/types.ts` — adapt imports

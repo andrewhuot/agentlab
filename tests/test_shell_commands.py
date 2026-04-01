@@ -14,9 +14,9 @@ def _make_workspace(tmp_path: Path) -> Path:
     """Scaffold a minimal workspace for CLI tests."""
     workspace = tmp_path / "ws"
     workspace.mkdir()
-    autoagent_dir = workspace / ".autoagent"
-    autoagent_dir.mkdir()
-    (autoagent_dir / "workspace.json").write_text(
+    agentlab_dir = workspace / ".agentlab"
+    agentlab_dir.mkdir()
+    (agentlab_dir / "workspace.json").write_text(
         json.dumps(
             {
                 "name": "test-ws",
@@ -29,7 +29,7 @@ def _make_workspace(tmp_path: Path) -> Path:
     configs = workspace / "configs"
     configs.mkdir()
     (configs / "v001.yaml").write_text("model: mock\n", encoding="utf-8")
-    (autoagent_dir / "best_score.txt").touch()
+    (agentlab_dir / "best_score.txt").touch()
     return workspace
 
 
@@ -100,9 +100,9 @@ def test_memory_edit_no_workspace(tmp_path: Path, monkeypatch) -> None:
 def test_memory_edit_no_file(tmp_path: Path, monkeypatch) -> None:
     workspace = _make_workspace(tmp_path)
     monkeypatch.chdir(workspace)
-    autoagent_md = workspace / "AUTOAGENT.md"
-    if autoagent_md.exists():
-        autoagent_md.unlink()
+    agentlab_md = workspace / "AGENTLAB.md"
+    if agentlab_md.exists():
+        agentlab_md.unlink()
     runner = CliRunner()
     result = runner.invoke(cli, ["memory", "edit"])
     assert result.exit_code != 0
@@ -110,7 +110,7 @@ def test_memory_edit_no_file(tmp_path: Path, monkeypatch) -> None:
 
 def test_memory_edit_with_file(tmp_path: Path, monkeypatch) -> None:
     workspace = _make_workspace(tmp_path)
-    (workspace / "AUTOAGENT.md").write_text("# Memory\n", encoding="utf-8")
+    (workspace / "AGENTLAB.md").write_text("# Memory\n", encoding="utf-8")
     monkeypatch.chdir(workspace)
     import runner as runner_mod
 
@@ -149,7 +149,7 @@ def test_shell_status_slash_command_runs_embedded_cli(tmp_path: Path, monkeypatc
     result = runner.invoke(cli, ["shell"], input="/status\n/exit\n")
 
     assert result.exit_code == 0, result.output
-    assert "AutoAgent Status" in result.output
+    assert "AgentLab Status" in result.output
     assert "unexpected keyword argument 'mix_stderr'" not in result.output
 
 
@@ -168,7 +168,7 @@ def test_shell_free_text_build_routes_to_build_command(tmp_path: Path, monkeypat
     )
 
     assert result.exit_code == 0, result.output
-    assert "AutoAgent Build" in result.output
+    assert "AgentLab Build" in result.output
     assert "Prompt: build a customer support agent for refunds and cancellations" in result.output
     assert "unexpected keyword argument 'mix_stderr'" not in result.output
 

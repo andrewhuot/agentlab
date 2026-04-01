@@ -91,7 +91,7 @@ interface InstructionValidationResult {
   form: InstructionFormState;
 }
 
-const BUILD_ARTIFACT_STORAGE_KEY = 'autoagent.build-artifacts.v1';
+const BUILD_ARTIFACT_STORAGE_KEY = 'agentlab.build-artifacts.v1';
 
 const PROMPT_EXAMPLES = [
   'Build a customer service agent for order tracking, cancellations, and refunds.',

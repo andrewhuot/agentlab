@@ -75,7 +75,7 @@ export function Dashboard() {
   const [demoStatus, setDemoStatus] = useState<{ has_demo_data: boolean } | null>(null);
   const [showWelcome, setShowWelcome] = useState(() => {
     try {
-      return localStorage.getItem('autoagent_welcome_dismissed') !== 'true';
+      return localStorage.getItem('agentlab_welcome_dismissed') !== 'true';
     } catch {
       return true;
     }
@@ -83,7 +83,7 @@ export function Dashboard() {
 
   const dismissWelcome = useCallback(() => {
     try {
-      localStorage.setItem('autoagent_welcome_dismissed', 'true');
+      localStorage.setItem('agentlab_welcome_dismissed', 'true');
     } catch {
       // ignore
     }
@@ -177,7 +177,7 @@ export function Dashboard() {
           icon={LayoutDashboard}
           title="No data yet"
           description="Run the quickstart command to seed data, evaluate your agent, and run your first optimization cycle."
-          cliHint="autoagent quickstart"
+          cliHint="agentlab quickstart"
         />
       </div>
     );
@@ -214,7 +214,7 @@ export function Dashboard() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-base font-semibold text-gray-900">Welcome to AutoAgent!</h3>
+              <h3 className="text-base font-semibold text-gray-900">Welcome to AgentLab!</h3>
               <p className="mt-0.5 text-sm text-gray-600">
                 Your dashboard is pre-loaded with demo data. Explore how the platform traces, diagnoses, and fixes agent failures automatically.
               </p>

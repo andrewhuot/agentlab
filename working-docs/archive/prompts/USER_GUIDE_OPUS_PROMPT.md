@@ -1,13 +1,13 @@
 # Task: Build a Comprehensive Beginner User Guide
 
-You are building the definitive beginner user guide for AutoAgent — a continuous optimization platform for AI agents. This guide must be approachable enough for someone who's never optimized an agent before, but comprehensive enough to cover every feature.
+You are building the definitive beginner user guide for AgentLab — a continuous optimization platform for AI agents. This guide must be approachable enough for someone who's never optimized an agent before, but comprehensive enough to cover every feature.
 
 ## Your Role: OPUS PLANNER + WRITER
 
 You are the planning and quality lead. Your job:
 
 1. **Research phase** (read everything first):
-   - `docs/AUTOAGENT_USER_GUIDE.md` (existing guide — build on this, don't duplicate)
+   - `docs/AGENTLAB_USER_GUIDE.md` (existing guide — build on this, don't duplicate)
    - `docs/app-guide.md` (web UI docs)
    - `docs/cli-reference.md` (CLI docs)
    - `docs/getting-started.md`
@@ -26,17 +26,17 @@ You are the planning and quality lead. Your job:
 ## Structure Required
 
 ```markdown
-# AutoAgent — Beginner User Guide
+# AgentLab — Beginner User Guide
 
 ## Welcome
-- What is AutoAgent? (2 paragraphs, no jargon)
+- What is AgentLab? (2 paragraphs, no jargon)
 - Who is this guide for?
 - What you'll learn
 
 ## Chapter 1: Getting Started
 - Prerequisites (Python, Node)
 - Installation (./setup.sh)
-- Starting AutoAgent (./start.sh)
+- Starting AgentLab (./start.sh)
 - Your first look at the dashboard
 - Understanding the navigation
 
@@ -50,11 +50,11 @@ You are the planning and quality lead. Your job:
 
 ## Chapter 3: Your First Optimization (CLI)
 - Step-by-step walkthrough
-- `autoagent init` — creating a project
-- `autoagent trace` — collecting data
-- `autoagent diagnose` — finding problems
-- `autoagent optimize` — running a cycle
-- `autoagent loop` — letting it run autonomously
+- `agentlab init` — creating a project
+- `agentlab trace` — collecting data
+- `agentlab diagnose` — finding problems
+- `agentlab optimize` — running a cycle
+- `agentlab loop` — letting it run autonomously
 - Reading the results
 - Every CLI command with examples
 
@@ -114,7 +114,7 @@ You are the planning and quality lead. Your job:
 - Show actual CLI output and screenshots descriptions (describe what the user sees)
 - Use callout boxes: 💡 Tip, ⚠️ Warning, 📝 Note
 - Every section should answer "what does this do?" and "when would I use it?"
-- Assume the reader is a developer but has never used AutoAgent
+- Assume the reader is a developer but has never used AgentLab
 - Target length: 3000-5000 lines (comprehensive but not bloated)
 - Use tables for reference material, prose for tutorials
 

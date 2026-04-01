@@ -19,9 +19,9 @@ def runner() -> CliRunner:
 
 
 def test_eval_results_show_and_annotate_latest_run(runner: CliRunner) -> None:
-    """`autoagent eval results` should show structured runs and persist annotations."""
+    """`agentlab eval results` should show structured runs and persist annotations."""
     with runner.isolated_filesystem():
-        store = EvalResultsStore(db_path=".autoagent/eval_results.db")
+        store = EvalResultsStore(db_path=".agentlab/eval_results.db")
         store.save(_make_result_set("run-results-1"))
 
         show_result = runner.invoke(cli, ["eval", "results", "--failures"])
@@ -51,9 +51,9 @@ def test_eval_results_show_and_annotate_latest_run(runner: CliRunner) -> None:
 
 
 def test_eval_results_export_and_diff_commands(runner: CliRunner) -> None:
-    """`autoagent eval results export/diff` should surface explorer-friendly artifacts."""
+    """`agentlab eval results export/diff` should surface explorer-friendly artifacts."""
     with runner.isolated_filesystem():
-        store = EvalResultsStore(db_path=".autoagent/eval_results.db")
+        store = EvalResultsStore(db_path=".agentlab/eval_results.db")
         baseline = _make_result_set("run-baseline")
         candidate = _make_result_set("run-candidate")
         candidate.examples[0].passed = False

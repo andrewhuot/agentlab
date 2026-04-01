@@ -1,7 +1,7 @@
 # ADK (Agent Development Kit) Integration Brief
 
 ## Mission
-Build a bidirectional integration between AutoAgent and Google Agent Development Kit (ADK), mirroring the CX Agent Studio integration. Users should import ADK agents, optimize them, and export back — same UX pattern as `autoagent cx`.
+Build a bidirectional integration between AgentLab and Google Agent Development Kit (ADK), mirroring the CX Agent Studio integration. Users should import ADK agents, optimize them, and export back — same UX pattern as `agentlab cx`.
 
 ## What is ADK?
 Google's Agent Development Kit is a Python framework for building AI agents. Key characteristics:
@@ -58,8 +58,8 @@ adk/
 ├── __init__.py
 ├── parser.py            # Parse ADK Python source → structured config
 ├── types.py             # ADK-specific type definitions
-├── mapper.py            # Bidirectional mapping: ADK ↔ AutoAgent schema
-├── importer.py          # Import ADK agent directory → AutoAgent config
+├── mapper.py            # Bidirectional mapping: ADK ↔ AgentLab schema
+├── importer.py          # Import ADK agent directory → AgentLab config
 ├── exporter.py          # Export optimized config → ADK Python source
 ├── deployer.py          # Deploy via adk CLI or Cloud Run API
 └── errors.py            # ADK-specific errors
@@ -76,7 +76,7 @@ Unlike CX (JSON REST API), ADK agents are defined in Python source code. The int
    - Sub-agent hierarchy
    - Generate config (temperature, max tokens, etc.)
    - Before/after callbacks (just names, not implementation)
-2. **Map** extracted data to AutoAgent config surfaces:
+2. **Map** extracted data to AgentLab config surfaces:
    - `instruction` → `instructions` surface
    - `tools` docstrings → `tool_descriptions` surface
    - `sub_agents` routing → `routing` surface
@@ -99,16 +99,16 @@ The exporter should NEVER rewrite Python from scratch — always patch the origi
 ## CLI Commands — Same Pattern as CX
 
 ```
-autoagent adk import <path>                  # Import from local ADK agent directory
-autoagent adk export <path> [--output DIR]   # Export optimized config back to ADK source
-autoagent adk deploy <path> [--target cloud-run|vertex-ai] [--project PROJECT] [--region REGION]
-autoagent adk status <path>                  # Show agent structure and config summary
-autoagent adk diff <path>                    # Show what would change on export
+agentlab adk import <path>                  # Import from local ADK agent directory
+agentlab adk export <path> [--output DIR]   # Export optimized config back to ADK source
+agentlab adk deploy <path> [--target cloud-run|vertex-ai] [--project PROJECT] [--region REGION]
+agentlab adk status <path>                  # Show agent structure and config summary
+agentlab adk diff <path>                    # Show what would change on export
 ```
 
 ## Config Mapping
 
-| ADK Source | AutoAgent Surface |
+| ADK Source | AgentLab Surface |
 |---|---|
 | `Agent.instruction` | `instructions.{agent_name}` |
 | `Agent.tools` (docstrings) | `tool_descriptions.{tool_name}` |

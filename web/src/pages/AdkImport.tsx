@@ -44,7 +44,7 @@ export function AdkImport() {
     <div className="space-y-6">
       <PageHeader
         title="Import ADK Agent"
-        description="Import an agent from Google's Agent Developer Kit into AutoAgent"
+        description="Import an agent from Google's Agent Developer Kit into AgentLab"
       />
 
       {/* Step indicators */}
@@ -149,7 +149,7 @@ export function AdkImport() {
                 </div>
               )}
               <p className="text-xs text-gray-600 mt-3">
-                This will map the ADK agent structure to AutoAgent config format.
+                This will map the ADK agent structure to AgentLab config format.
               </p>
               <div className="flex gap-2 mt-3">
                 <button

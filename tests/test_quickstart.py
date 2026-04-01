@@ -44,13 +44,13 @@ class TestImprovedInit:
         result = runner.invoke(cli, ["init", "--dir", tmp_dir, "--agent-name", "Test Bot"])
         assert result.exit_code == 0
         assert "Test Bot" in result.output
-        md = (Path(tmp_dir) / "AUTOAGENT.md").read_text()
+        md = (Path(tmp_dir) / "AGENTLAB.md").read_text()
         assert "Test Bot" in md
 
     def test_init_with_platform(self, runner, tmp_dir):
         result = runner.invoke(cli, ["init", "--dir", tmp_dir, "--platform", "LangChain"])
         assert result.exit_code == 0
-        md = (Path(tmp_dir) / "AUTOAGENT.md").read_text()
+        md = (Path(tmp_dir) / "AGENTLAB.md").read_text()
         assert "LangChain" in md
 
     def test_init_with_synthetic_data(self, runner, tmp_dir):
@@ -72,9 +72,9 @@ class TestImprovedInit:
     def test_init_shows_quickstart_hint(self, runner, tmp_dir):
         result = runner.invoke(cli, ["init", "--dir", tmp_dir])
         assert result.exit_code == 0
-        # init now shows autoagent status and eval run as the recommended next steps
-        assert "autoagent status" in result.output
-        assert "autoagent eval run" in result.output
+        # init now shows agentlab status and eval run as the recommended next steps
+        assert "agentlab status" in result.output
+        assert "agentlab eval run" in result.output
 
     def test_init_creates_all_directories(self, runner, tmp_dir):
         runner.invoke(cli, ["init", "--dir", tmp_dir])
@@ -130,7 +130,7 @@ class TestQuickstartCommand:
 
     def test_quickstart_shows_server_hint(self, runner, tmp_dir):
         result = runner.invoke(cli, ["quickstart", "--dir", tmp_dir])
-        assert "autoagent server" in result.output
+        assert "agentlab server" in result.output
 
     def test_quickstart_with_agent_name(self, runner, tmp_dir):
         result = runner.invoke(cli, ["quickstart", "--dir", tmp_dir, "--agent-name", "Test Bot"])
@@ -146,11 +146,11 @@ class TestQuickstartCommand:
         assert result.exit_code == 0
         assert (target / "optimizer_memory.db").exists()
         assert (target / "eval_history.db").exists()
-        assert (target / ".autoagent" / "best_score.txt").exists()
-        assert (target / ".autoagent" / "eval_cache.db").exists()
-        assert (target / ".autoagent" / "traces.db").exists()
+        assert (target / ".agentlab" / "best_score.txt").exists()
+        assert (target / ".agentlab" / "eval_cache.db").exists()
+        assert (target / ".agentlab" / "traces.db").exists()
         assert not (tmp_path / "optimizer_memory.db").exists()
-        assert not (tmp_path / ".autoagent" / "best_score.txt").exists()
+        assert not (tmp_path / ".agentlab" / "best_score.txt").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -180,11 +180,11 @@ class TestDemoCommand:
 
     def test_demo_quickstart_shows_server_hint(self, runner, tmp_dir):
         result = runner.invoke(cli, ["demo", "quickstart", "--dir", tmp_dir])
-        assert "autoagent server" in result.output
+        assert "agentlab server" in result.output
 
     def test_demo_quickstart_shows_quickstart_hint(self, runner, tmp_dir):
         result = runner.invoke(cli, ["demo", "quickstart", "--dir", tmp_dir])
-        assert "autoagent quickstart" in result.output
+        assert "agentlab quickstart" in result.output
 
     def test_demo_quickstart_forces_mock_mode_even_if_api_keys_exist(self, runner, tmp_dir, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
@@ -204,11 +204,11 @@ class TestDemoCommand:
         assert result.exit_code == 0
         assert (target / "optimizer_memory.db").exists()
         assert (target / "eval_history.db").exists()
-        assert (target / ".autoagent" / "best_score.txt").exists()
-        assert (target / ".autoagent" / "eval_cache.db").exists()
-        assert (target / ".autoagent" / "traces.db").exists()
+        assert (target / ".agentlab" / "best_score.txt").exists()
+        assert (target / ".agentlab" / "eval_cache.db").exists()
+        assert (target / ".agentlab" / "traces.db").exists()
         assert not (tmp_path / "optimizer_memory.db").exists()
-        assert not (tmp_path / ".autoagent" / "best_score.txt").exists()
+        assert not (tmp_path / ".agentlab" / "best_score.txt").exists()
 
     def test_demo_vp_exists(self, runner):
         result = runner.invoke(cli, ["demo", "vp", "--help"])

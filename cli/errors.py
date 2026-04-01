@@ -7,7 +7,7 @@ from typing import Any
 import click
 
 
-DOCTOR_COMMAND = "autoagent doctor"
+DOCTOR_COMMAND = "agentlab doctor"
 
 
 def with_doctor_hint(message: str, *, doctor_command: str = DOCTOR_COMMAND) -> str:

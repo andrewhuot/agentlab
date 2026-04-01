@@ -1,7 +1,7 @@
 - generic [ref=e3]:
   - complementary [ref=e4]:
     - generic [ref=e5]:
-      - generic [ref=e6]: AutoAgent
+      - generic [ref=e6]: AgentLab
       - generic [ref=e7]: VNextCC
     - navigation [ref=e8]:
       - generic [ref=e9]:
@@ -188,7 +188,7 @@
       - generic [ref=e250]:
         - generic [ref=e252]:
           - heading "Settings" [level=2] [ref=e253]
-          - paragraph [ref=e254]: Reference paths, quick links, and operator shortcuts for the AutoAgent control plane.
+          - paragraph [ref=e254]: Reference paths, quick links, and operator shortcuts for the AgentLab control plane.
         - generic [ref=e255]:
           - generic [ref=e256]:
             - heading "Agent Configuration" [level=3] [ref=e257]
@@ -259,7 +259,7 @@
                 - text: ReDoc Reference
                 - img [ref=e323]
               - link "Repository" [ref=e327] [cursor=pointer]:
-                - /url: https://github.com/andrewhuot/autoagent-vnextcc
+                - /url: https://github.com/andrewhuot/agentlab
                 - text: Repository
                 - img [ref=e328]
-            - paragraph [ref=e332]: "Runtime values can be overridden with environment variables like `AUTOAGENT_DB`, `AUTOAGENT_CONFIGS`, and `AUTOAGENT_MEMORY_DB`."
+            - paragraph [ref=e332]: "Runtime values can be overridden with environment variables like `AGENTLAB_DB`, `AGENTLAB_CONFIGS`, and `AGENTLAB_MEMORY_DB`."

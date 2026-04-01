@@ -1,4 +1,4 @@
-"""AutoAgent Policy Optimization — Reward Registry and schemas."""
+"""AgentLab Policy Optimization — Reward Registry and schemas."""
 
 from rewards.types import (
     RewardKind,

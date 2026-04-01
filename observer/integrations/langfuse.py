@@ -12,7 +12,7 @@ class LangfuseExporter:
     """Exports traces and eval results to Langfuse, and imports eval results from it.
 
     Langfuse is an open-source LLM observability platform. This exporter
-    serialises AutoAgent trace dicts into Langfuse's trace/observation schema
+    serialises AgentLab trace dicts into Langfuse's trace/observation schema
     and pushes them via its REST API (or the langfuse Python SDK when available).
     """
 
@@ -55,17 +55,17 @@ class LangfuseExporter:
             logger.debug("langfuse SDK not installed; using HTTP fallback")
 
     def _format_for_langfuse(self, trace: dict) -> dict:
-        """Convert an AutoAgent trace dict into Langfuse's trace schema.
+        """Convert an AgentLab trace dict into Langfuse's trace schema.
 
         Args:
-            trace: AutoAgent trace dictionary.
+            trace: AgentLab trace dictionary.
 
         Returns:
             Dictionary conforming to the Langfuse Trace object schema.
         """
         return {
             "id": trace.get("trace_id") or trace.get("id", ""),
-            "name": trace.get("name") or trace.get("agent_name", "autoagent"),
+            "name": trace.get("name") or trace.get("agent_name", "agentlab"),
             "input": trace.get("input") or trace.get("messages", []),
             "output": trace.get("output") or trace.get("response", ""),
             "metadata": {
@@ -88,7 +88,7 @@ class LangfuseExporter:
         """Export a single trace to Langfuse.
 
         Args:
-            trace: AutoAgent trace dictionary.
+            trace: AgentLab trace dictionary.
 
         Returns:
             True on success, False on failure.

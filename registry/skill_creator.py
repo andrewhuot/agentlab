@@ -349,7 +349,7 @@ class SkillCreator:
             "required_approvals": [],
             "eval_contract": {},
             "rollout_policy": "gradual",
-            "provenance": "autoagent",
+            "provenance": "agentlab",
             "trust_level": "unverified",
             "runtime_effectiveness": 0.0,
             "buildtime_effectiveness": 0.0,

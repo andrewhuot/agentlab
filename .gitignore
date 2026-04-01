@@ -18,7 +18,7 @@ web/screenshots/
 
 # Data
 *.db
-.autoagent/
+.agentlab/
 configs/manifest.json
 configs/v[0-9]*.yaml
 !configs/v001_base.yaml
@@ -38,7 +38,7 @@ progress.md
 Thumbs.db
 
 # Runtime artifacts
-autoagent.lock
+agentlab.lock
 test-agent/
 
 # Environment

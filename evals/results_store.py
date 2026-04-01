@@ -15,7 +15,7 @@ from evals.results_model import Annotation, EvalResultSet, ExampleResult, Grader
 class EvalResultsStore:
     """Persist structured eval results with query and export helpers."""
 
-    def __init__(self, db_path: str = ".autoagent/eval_results.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/eval_results.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

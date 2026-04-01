@@ -86,7 +86,7 @@ class VertexEngineDeployer:
         """Deploy an agent to Vertex AI Agent Engine.
 
         Args:
-            config: AutoAgent configuration dict for the agent to deploy.
+            config: AgentLab configuration dict for the agent to deploy.
             engine_config: :class:`VertexEngineConfig` describing the target
                 Vertex AI project, location, and scaling parameters.
 
@@ -97,7 +97,7 @@ class VertexEngineDeployer:
         Raises:
             AdkDeployError: If the deployment command fails.
         """
-        agent_name = engine_config.agent_name or config.get("name", "autoagent")
+        agent_name = engine_config.agent_name or config.get("name", "agentlab")
         agent_id = str(uuid.uuid4())
 
         try:

@@ -1,4 +1,4 @@
-# AutoAgent VNextCC Backend Review + Hardening Report
+# AgentLab VNextCC Backend Review + Hardening Report
 
 ## Scope
 This report documents completion of all phases in `CODEX_BACKEND_PROMPT.md`:
@@ -45,7 +45,7 @@ Completed full repository-wide Python backend audit and captured findings.
 ### Implemented
 
 #### Provider abstraction layer
-- Added [`optimizer/providers.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/providers.py)
+- Added [`optimizer/providers.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/providers.py)
   - `LLMRequest`, `LLMResponse`
   - `ModelConfig`, `RetryPolicy`
   - `LLMRouter` strategies:
@@ -63,19 +63,19 @@ Completed full repository-wide Python backend audit and captured findings.
   - Per-provider/model token cost accounting
 
 #### Runtime config-driven model selection
-- Added [`autoagent.yaml`](/Users/andrew/Desktop/AutoAgent-VNextCC/autoagent.yaml)
-- Added runtime schema loader [`agent/config/runtime.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/agent/config/runtime.py)
+- Added [`agentlab.yaml`](/Users/andrew/Desktop/AgentLab-VNextCC/agentlab.yaml)
+- Added runtime schema loader [`agent/config/runtime.py`](/Users/andrew/Desktop/AgentLab-VNextCC/agent/config/runtime.py)
 - Added `build_router_from_runtime_config(...)` to instantiate routers from config
 
 #### Proposer integration
-- Updated [`optimizer/proposer.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/proposer.py)
+- Updated [`optimizer/proposer.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/proposer.py)
   - Uses `LLMRouter` when enabled
   - Parses structured JSON proposals
   - Applies patch-style config updates
   - Falls back to deterministic mock behavior on provider/parsing errors
 
 ### Tests added
-- [`tests/test_llm_providers.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_llm_providers.py)
+- [`tests/test_llm_providers.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_llm_providers.py)
   - provider switching
   - round-robin rotation
   - ensemble best-proposal selection
@@ -89,7 +89,7 @@ Completed full repository-wide Python backend audit and captured findings.
 ### Implemented
 
 #### Reliability primitives
-- Added [`optimizer/reliability.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/reliability.py)
+- Added [`optimizer/reliability.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/reliability.py)
   - `LoopCheckpointStore`
   - `DeadLetterQueue`
   - `LoopWatchdog`
@@ -98,12 +98,12 @@ Completed full repository-wide Python backend audit and captured findings.
   - `GracefulShutdown` (SIGINT/SIGTERM)
 
 #### Structured logging
-- Added [`logger/structured.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/logger/structured.py)
+- Added [`logger/structured.py`](/Users/andrew/Desktop/AgentLab-VNextCC/logger/structured.py)
   - JSON log formatter
   - rotating file handler
 
 #### CLI loop hardening
-- Updated [`runner.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/runner.py)
+- Updated [`runner.py`](/Users/andrew/Desktop/AgentLab-VNextCC/runner.py)
   - signal-aware graceful shutdown
   - checkpoint/resume support
   - schedule options
@@ -113,7 +113,7 @@ Completed full repository-wide Python backend audit and captured findings.
   - runtime-configured structured logs
 
 #### API loop hardening
-- Updated [`api/routes/loop.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/loop.py)
+- Updated [`api/routes/loop.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/loop.py)
   - scheduler mode support in request
   - checkpoint resume on loop start
   - DLQ capture
@@ -122,11 +122,11 @@ Completed full repository-wide Python backend audit and captured findings.
   - enriched loop status response
 
 #### API health operational endpoint
-- Updated [`api/routes/health.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/health.py)
+- Updated [`api/routes/health.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/health.py)
   - added `GET /api/health/system`
 
 ### Tests added
-- [`tests/test_reliability.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_reliability.py)
+- [`tests/test_reliability.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_reliability.py)
   - checkpoint persistence
   - dead-letter persistence
   - watchdog stall detection
@@ -140,13 +140,13 @@ Completed full repository-wide Python backend audit and captured findings.
 ### Implemented
 
 #### Dataset support + split handling
-- Updated [`evals/runner.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/runner.py)
+- Updated [`evals/runner.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/runner.py)
   - JSONL + CSV dataset loading
   - train/test/all split support
   - deterministic split fallback
 
 #### Built-in metric expansion
-- Updated [`evals/scorer.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/scorer.py)
+- Updated [`evals/scorer.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/scorer.py)
   - added `tool_use_accuracy` tracking
   - added custom metric aggregation (`custom_metrics`)
 
@@ -154,25 +154,25 @@ Completed full repository-wide Python backend audit and captured findings.
 - `EvalRunner.register_evaluator(name, fn)` implemented
 
 #### Statistical significance gate
-- Added [`evals/statistics.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/statistics.py)
+- Added [`evals/statistics.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/statistics.py)
   - paired sign-flip significance test
-- Updated [`optimizer/loop.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/loop.py)
+- Updated [`optimizer/loop.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/loop.py)
   - rejects improvements that are not statistically significant (`rejected_not_significant`)
 
 #### Eval provenance + history
-- Added [`evals/history.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/history.py)
+- Added [`evals/history.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/history.py)
   - persists eval run summaries + case payloads + provenance metadata
 - Updated API eval routes:
-  - [`api/routes/eval.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/eval.py)
+  - [`api/routes/eval.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/eval.py)
   - new endpoints: `/api/eval/history`, `/api/eval/history/{run_id}`
 
 ### Tests added
-- [`tests/test_eval_pipeline.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_eval_pipeline.py)
+- [`tests/test_eval_pipeline.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_eval_pipeline.py)
   - JSONL split loading
   - CSV dataset loading
   - custom evaluator aggregation
   - significance behavior
-- Updated [`tests/test_optimizer.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_optimizer.py)
+- Updated [`tests/test_optimizer.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_optimizer.py)
   - non-significant improvement rejection test
 
 ---
@@ -184,10 +184,10 @@ Completed full repository-wide Python backend audit and captured findings.
 - Added new targeted tests for providers/reliability/eval pipeline/significance.
 
 ### Docs updated
-- [`docs/architecture.md`](/Users/andrew/Desktop/AutoAgent-VNextCC/docs/architecture.md)
-- [`docs/api-reference.md`](/Users/andrew/Desktop/AutoAgent-VNextCC/docs/api-reference.md)
-- [`docs/cli-reference.md`](/Users/andrew/Desktop/AutoAgent-VNextCC/docs/cli-reference.md)
-- [`docs/deployment.md`](/Users/andrew/Desktop/AutoAgent-VNextCC/docs/deployment.md)
+- [`docs/architecture.md`](/Users/andrew/Desktop/AgentLab-VNextCC/docs/architecture.md)
+- [`docs/api-reference.md`](/Users/andrew/Desktop/AgentLab-VNextCC/docs/api-reference.md)
+- [`docs/cli-reference.md`](/Users/andrew/Desktop/AgentLab-VNextCC/docs/cli-reference.md)
+- [`docs/deployment.md`](/Users/andrew/Desktop/AgentLab-VNextCC/docs/deployment.md)
 
 ---
 
@@ -222,35 +222,35 @@ Result:
 ## Added/Updated Critical Files
 
 ### New
-- [`optimizer/providers.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/providers.py)
-- [`optimizer/reliability.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/reliability.py)
-- [`evals/statistics.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/statistics.py)
-- [`evals/history.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/history.py)
-- [`agent/config/runtime.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/agent/config/runtime.py)
-- [`logger/structured.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/logger/structured.py)
-- [`api/main.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/main.py)
-- [`autoagent.yaml`](/Users/andrew/Desktop/AutoAgent-VNextCC/autoagent.yaml)
-- [`tests/test_llm_providers.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_llm_providers.py)
-- [`tests/test_reliability.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_reliability.py)
-- [`tests/test_eval_pipeline.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_eval_pipeline.py)
+- [`optimizer/providers.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/providers.py)
+- [`optimizer/reliability.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/reliability.py)
+- [`evals/statistics.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/statistics.py)
+- [`evals/history.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/history.py)
+- [`agent/config/runtime.py`](/Users/andrew/Desktop/AgentLab-VNextCC/agent/config/runtime.py)
+- [`logger/structured.py`](/Users/andrew/Desktop/AgentLab-VNextCC/logger/structured.py)
+- [`api/main.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/main.py)
+- [`agentlab.yaml`](/Users/andrew/Desktop/AgentLab-VNextCC/agentlab.yaml)
+- [`tests/test_llm_providers.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_llm_providers.py)
+- [`tests/test_reliability.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_reliability.py)
+- [`tests/test_eval_pipeline.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_eval_pipeline.py)
 
 ### Updated
-- [`runner.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/runner.py)
-- [`optimizer/proposer.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/proposer.py)
-- [`optimizer/loop.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/loop.py)
-- [`optimizer/memory.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/memory.py)
-- [`evals/runner.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/runner.py)
-- [`evals/scorer.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/evals/scorer.py)
-- [`api/server.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/server.py)
-- [`api/models.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/models.py)
-- [`api/routes/eval.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/eval.py)
-- [`api/routes/loop.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/loop.py)
-- [`api/routes/health.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/health.py)
-- [`api/routes/optimize.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/optimize.py)
-- [`optimizer/__init__.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/optimizer/__init__.py)
-- [`agent/config/__init__.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/agent/config/__init__.py)
-- [`logger/__init__.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/logger/__init__.py)
-- [`tests/test_optimizer.py`](/Users/andrew/Desktop/AutoAgent-VNextCC/tests/test_optimizer.py)
+- [`runner.py`](/Users/andrew/Desktop/AgentLab-VNextCC/runner.py)
+- [`optimizer/proposer.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/proposer.py)
+- [`optimizer/loop.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/loop.py)
+- [`optimizer/memory.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/memory.py)
+- [`evals/runner.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/runner.py)
+- [`evals/scorer.py`](/Users/andrew/Desktop/AgentLab-VNextCC/evals/scorer.py)
+- [`api/server.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/server.py)
+- [`api/models.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/models.py)
+- [`api/routes/eval.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/eval.py)
+- [`api/routes/loop.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/loop.py)
+- [`api/routes/health.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/health.py)
+- [`api/routes/optimize.py`](/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/optimize.py)
+- [`optimizer/__init__.py`](/Users/andrew/Desktop/AgentLab-VNextCC/optimizer/__init__.py)
+- [`agent/config/__init__.py`](/Users/andrew/Desktop/AgentLab-VNextCC/agent/config/__init__.py)
+- [`logger/__init__.py`](/Users/andrew/Desktop/AgentLab-VNextCC/logger/__init__.py)
+- [`tests/test_optimizer.py`](/Users/andrew/Desktop/AgentLab-VNextCC/tests/test_optimizer.py)
 
 ---
 

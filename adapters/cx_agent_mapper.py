@@ -1,4 +1,4 @@
-"""Bidirectional mapping between Dialogflow CX snapshots and AutoAgent workspaces."""
+"""Bidirectional mapping between Dialogflow CX snapshots and AgentLab workspaces."""
 
 from __future__ import annotations
 
@@ -27,12 +27,12 @@ def _slug(value: str) -> str:
 
 
 class CxAgentMapper:
-    """Pure mapping logic for CX snapshots and AutoAgent workspace configs."""
+    """Pure mapping logic for CX snapshots and AgentLab workspace configs."""
 
     def cx_to_workspace(self, snapshot: CxAgentSnapshot) -> ImportedAgentSpec:
-        """Convert a CX snapshot into an imported AutoAgent workspace spec."""
+        """Convert a CX snapshot into an imported AgentLab workspace spec."""
 
-        config = self.to_autoagent(snapshot)
+        config = self.to_agentlab(snapshot)
         root_prompt = config.get("prompts", {}).get("root", snapshot.agent.description)
         tools = [
             {
@@ -73,8 +73,8 @@ class CxAgentMapper:
             metadata={"model": self._extract_model(snapshot.agent.generative_settings)},
         )
 
-    def to_autoagent(self, snapshot: CxAgentSnapshot) -> dict[str, Any]:
-        """Convert a CX snapshot to an AutoAgent-compatible config dictionary."""
+    def to_agentlab(self, snapshot: CxAgentSnapshot) -> dict[str, Any]:
+        """Convert a CX snapshot to an AgentLab-compatible config dictionary."""
 
         try:
             prompts = self._map_prompts(snapshot)
@@ -107,7 +107,7 @@ class CxAgentMapper:
 
             return config
         except Exception as exc:  # pragma: no cover - guarded by tests
-            raise CxMappingError(f"Failed to map CX snapshot to AutoAgent config: {exc}") from exc
+            raise CxMappingError(f"Failed to map CX snapshot to AgentLab config: {exc}") from exc
 
     def workspace_to_cx(
         self,
@@ -131,7 +131,7 @@ class CxAgentMapper:
 
             return result
         except Exception as exc:  # pragma: no cover - guarded by tests
-            raise CxMappingError(f"Failed to map AutoAgent workspace back to CX: {exc}") from exc
+            raise CxMappingError(f"Failed to map AgentLab workspace back to CX: {exc}") from exc
 
     def to_cx(self, config: dict[str, Any], base_snapshot: CxAgentSnapshot) -> CxAgentSnapshot:
         """Compatibility alias for existing importer/exporter code."""
@@ -139,7 +139,7 @@ class CxAgentMapper:
         return self.workspace_to_cx(config, base_snapshot)
 
     def extract_test_cases(self, snapshot: CxAgentSnapshot) -> list[dict[str, Any]]:
-        """Convert CX test cases into AutoAgent starter eval cases."""
+        """Convert CX test cases into AgentLab starter eval cases."""
 
         cases: list[dict[str, Any]] = []
         for index, test_case in enumerate(snapshot.test_cases, start=1):
@@ -181,7 +181,7 @@ class CxAgentMapper:
         return prompts
 
     def _map_tools(self, webhooks: list[CxWebhook], tools: list[CxTool]) -> dict[str, Any]:
-        """Map Dialogflow CX webhooks and tools into AutoAgent tool entries."""
+        """Map Dialogflow CX webhooks and tools into AgentLab tool entries."""
 
         config_tools: dict[str, Any] = {}
         for webhook in webhooks:

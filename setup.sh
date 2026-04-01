@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AutoAgent - First-time setup
+# AgentLab - First-time setup
 # Usage: ./setup.sh
 
 set -euo pipefail
@@ -33,7 +33,7 @@ banner() {
   echo ""
   echo -e "${BOLD_WHITE}  ┌─────────────────────────────────────────────────────────┐${RESET}"
   echo -e "${BOLD_WHITE}  │                                                         │${RESET}"
-  echo -e "${BOLD_WHITE}  │   ${BOLD_CYAN}AutoAgent${RESET}${BOLD_WHITE}  -  Agent Optimization Platform             │${RESET}"
+  echo -e "${BOLD_WHITE}  │   ${BOLD_CYAN}AgentLab${RESET}${BOLD_WHITE}  -  Agent Optimization Platform             │${RESET}"
   echo -e "${BOLD_WHITE}  │   ${DIM}First-time setup${RESET}${BOLD_WHITE}                                        │${RESET}"
   echo -e "${BOLD_WHITE}  │                                                         │${RESET}"
   echo -e "${BOLD_WHITE}  └─────────────────────────────────────────────────────────┘${RESET}"
@@ -287,7 +287,7 @@ main() {
   if "$VENV_PYTHON" -c "
 import sys, os
 sys.path.insert(0, '.')
-os.environ.setdefault('AUTOAGENT_USE_MOCK', 'true')
+os.environ.setdefault('AGENTLAB_USE_MOCK', 'true')
 vp_seeded = False
 builder_seeded = False
 
@@ -332,7 +332,7 @@ if not (vp_seeded and builder_seeded):
   echo ""
   echo -e "  ${BOLD_WHITE}What's next:${RESET}"
   echo ""
-  echo -e "  ${BOLD_CYAN}  ./start.sh${RESET}          Start AutoAgent (backend + frontend)"
+  echo -e "  ${BOLD_CYAN}  ./start.sh${RESET}          Start AgentLab (backend + frontend)"
   echo -e "  ${DIM}  make start${RESET}           Same thing, via Make"
   echo ""
   echo -e "  ${DIM}  Edit .env to add API keys for live optimization${RESET}"
@@ -344,6 +344,6 @@ if not (vp_seeded and builder_seeded):
 
 # Keep the script sourceable for tests so interpreter selection can be exercised
 # without running the full setup flow.
-if [[ "${AUTOAGENT_SETUP_SOURCE_ONLY:-0}" != "1" ]]; then
+if [[ "${AGENTLAB_SETUP_SOURCE_ONLY:-0}" != "1" ]]; then
   main "$@"
 fi

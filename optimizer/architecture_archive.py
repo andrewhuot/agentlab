@@ -12,7 +12,7 @@ from optimizer.adas import ArchitectureCandidate
 class ArchitectureArchive:
     """Store and retrieve architecture candidates with similarity search."""
 
-    def __init__(self, db_path: str = ".autoagent/arch_archive.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/arch_archive.db") -> None:
         self.db_path = db_path
         self._init_db()
 

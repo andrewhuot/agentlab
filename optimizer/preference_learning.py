@@ -110,8 +110,8 @@ class PreferenceLearningPipeline:
 
     def export_dpo_dataset(self, pairs: list[PreferencePair], format: str = "vertex") -> str:
         """Write DPO pairs to disk and return the output file path."""
-        os.makedirs(".autoagent", exist_ok=True)
-        out_path = f".autoagent/dpo_{format}_{uuid.uuid4().hex[:8]}.jsonl"
+        os.makedirs(".agentlab", exist_ok=True)
+        out_path = f".agentlab/dpo_{format}_{uuid.uuid4().hex[:8]}.jsonl"
         with open(out_path, "w") as fh:
             for pair in pairs:
                 if format == "vertex":
@@ -128,8 +128,8 @@ class PreferenceLearningPipeline:
 
     def export_openai_format(self, pairs: list[PreferencePair]) -> str:
         """Write pairs in OpenAI DPO JSONL format and return the file path."""
-        os.makedirs(".autoagent", exist_ok=True)
-        out_path = f".autoagent/dpo_openai_{uuid.uuid4().hex[:8]}.jsonl"
+        os.makedirs(".agentlab", exist_ok=True)
+        out_path = f".agentlab/dpo_openai_{uuid.uuid4().hex[:8]}.jsonl"
         with open(out_path, "w") as fh:
             for pair in pairs:
                 record = {

@@ -151,9 +151,9 @@ def intelligence_group() -> None:
     """Run transcript intelligence workflows directly from the CLI.
 
     Examples:
-      autoagent intelligence upload support-archive.zip
-      autoagent intelligence report list
-      autoagent intelligence generate-agent <report-id> --output configs/v003_transcript.yaml
+      agentlab intelligence upload support-archive.zip
+      agentlab intelligence report list
+      agentlab intelligence generate-agent <report-id> --output configs/v003_transcript.yaml
     """
 
 
@@ -203,8 +203,8 @@ def import_archive(archive: Path, json_output: bool) -> None:
 @click.argument("archive", type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--json", "json_output", is_flag=True, help="Output the full imported report as JSON.")
 def upload_archive_alias(archive: Path, json_output: bool) -> None:
-    """Deprecated alias for `autoagent intelligence import`."""
-    _echo_deprecation("autoagent intelligence upload", "autoagent intelligence import")
+    """Deprecated alias for `agentlab intelligence import`."""
+    _echo_deprecation("agentlab intelligence upload", "agentlab intelligence import")
     _import_archive_impl(archive, json_output=json_output)
 
 

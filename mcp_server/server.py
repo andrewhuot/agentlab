@@ -1,7 +1,7 @@
 """MCP Server — JSON-RPC 2.0 over stdio.
 
 Implements the Model Context Protocol for AI coding tool integration.
-Start with: autoagent mcp-server
+Start with: agentlab mcp-server
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def handle_request(request: dict[str, Any]) -> dict[str, Any]:
                 "resources": {"listChanged": False, "subscribe": False},
                 "prompts": {"listChanged": False},
             },
-            "serverInfo": {"name": "autoagent", "version": "1.0.0"},
+            "serverInfo": {"name": "agentlab", "version": "1.0.0"},
         })
 
     if method == "tools/list":

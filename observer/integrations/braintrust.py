@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class BraintrustExporter:
     """Exports traces and eval results to Braintrust, and imports scores from experiments.
 
-    Braintrust is an AI evaluation platform. This exporter pushes AutoAgent
+    Braintrust is an AI evaluation platform. This exporter pushes AgentLab
     trace dicts as Braintrust spans/experiments and retrieves scored results.
     """
 
@@ -63,7 +63,7 @@ class BraintrustExporter:
         """Export a single trace to Braintrust as a logged span.
 
         Args:
-            trace: AutoAgent trace dictionary.
+            trace: AgentLab trace dictionary.
 
         Returns:
             True on success, False on failure.
@@ -72,11 +72,11 @@ class BraintrustExporter:
             try:
                 experiment = self._client.init(
                     project=self.project,
-                    experiment=trace.get("session_id") or "autoagent-traces",
+                    experiment=trace.get("session_id") or "agentlab-traces",
                     open=True,
                 )
                 with experiment.start_span(
-                    name=trace.get("name") or trace.get("agent_name", "autoagent"),
+                    name=trace.get("name") or trace.get("agent_name", "agentlab"),
                     input=trace.get("input") or trace.get("messages", []),
                     output=trace.get("output") or trace.get("response", ""),
                     metadata={
@@ -135,7 +135,7 @@ class BraintrustExporter:
             try:
                 experiment = self._client.init(
                     project=self.project,
-                    experiment=result.get("experiment_name", "autoagent-evals"),
+                    experiment=result.get("experiment_name", "agentlab-evals"),
                 )
                 experiment.log(
                     input=result.get("input", ""),
@@ -154,7 +154,7 @@ class BraintrustExporter:
             import json
             import urllib.request
 
-            experiment_name = result.get("experiment_name", "autoagent-evals")
+            experiment_name = result.get("experiment_name", "agentlab-evals")
             payload = json.dumps({
                 "project_name": self.project,
                 "experiment_name": experiment_name,

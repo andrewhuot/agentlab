@@ -43,17 +43,17 @@ def _write_eval_result(path: Path, *, total_tokens: int, estimated_cost_usd: flo
 
 
 def test_usage_reports_eval_and_budget_surfaces(runner: CliRunner) -> None:
-    """`autoagent usage` should summarize eval cost, optimize spend, and budget remaining."""
+    """`agentlab usage` should summarize eval cost, optimize spend, and budget remaining."""
     with runner.isolated_filesystem():
         init_result = runner.invoke(cli, ["init", "--dir", "."])
         assert init_result.exit_code == 0, init_result.output
 
-        runtime = yaml.safe_load(Path("autoagent.yaml").read_text(encoding="utf-8"))
+        runtime = yaml.safe_load(Path("agentlab.yaml").read_text(encoding="utf-8"))
         runtime["budget"]["daily_dollars"] = 5.0
-        Path("autoagent.yaml").write_text(yaml.safe_dump(runtime, sort_keys=False), encoding="utf-8")
+        Path("agentlab.yaml").write_text(yaml.safe_dump(runtime, sort_keys=False), encoding="utf-8")
 
-        _write_eval_result(Path(".autoagent") / "eval_results_latest.json", total_tokens=321, estimated_cost_usd=0.12)
-        tracker = CostTracker(db_path=".autoagent/cost_tracker.db", daily_budget_dollars=5.0)
+        _write_eval_result(Path(".agentlab") / "eval_results_latest.json", total_tokens=321, estimated_cost_usd=0.12)
+        tracker = CostTracker(db_path=".agentlab/cost_tracker.db", daily_budget_dollars=5.0)
         tracker.record_cycle("cycle-001", spent_dollars=0.5, improvement_delta=0.1)
 
         result = runner.invoke(cli, ["usage", "--json"])
@@ -102,7 +102,7 @@ def test_usage_reads_eval_run_style_scores_payload(runner: CliRunner) -> None:
         init_result = runner.invoke(cli, ["init", "--dir", "."])
         assert init_result.exit_code == 0, init_result.output
 
-        Path(".autoagent/eval_results_latest.json").write_text(
+        Path(".agentlab/eval_results_latest.json").write_text(
             json.dumps(
                 {
                     "timestamp": "2026-03-30T00:00:00Z",

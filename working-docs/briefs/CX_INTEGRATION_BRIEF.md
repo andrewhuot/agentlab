@@ -1,9 +1,9 @@
 # CX Agent Studio Integration Brief
 
 ## Mission
-Build a bidirectional integration between AutoAgent and Google Cloud CX Agent Studio (Conversational Agents). Users should be able to:
-1. **Import** an existing CX agent's config, playbooks, tools, and conversation history into AutoAgent
-2. **Optimize** the agent using AutoAgent's loop
+Build a bidirectional integration between AgentLab and Google Cloud CX Agent Studio (Conversational Agents). Users should be able to:
+1. **Import** an existing CX agent's config, playbooks, tools, and conversation history into AgentLab
+2. **Optimize** the agent using AgentLab's loop
 3. **Export** the optimized config back to CX Agent Studio
 4. **Deploy** the optimized agent as a web widget or via REST API
 
@@ -55,30 +55,30 @@ Before implementing, the architect (Opus) should:
    ├── __init__.py
    ├── auth.py           # Google Cloud auth (ADC, service account JSON)
    ├── client.py          # REST API client for CX Agent Studio
-   ├── importer.py        # Import agent → AutoAgent config format
+   ├── importer.py        # Import agent → AgentLab config format
    ├── exporter.py        # Export optimized config → CX Agent Studio format
    ├── deployer.py        # Deploy to web widget + environments
-   ├── mapper.py          # Bidirectional mapping: CX schema ↔ AutoAgent schema
+   ├── mapper.py          # Bidirectional mapping: CX schema ↔ AgentLab schema
    ├── types.py           # CX-specific type definitions
    └── mcp.py             # MCP server integration (optional)
    ```
 3. **Design the CLI commands**:
    ```
-   autoagent cx import --project PROJECT --location LOCATION --agent AGENT_ID
-   autoagent cx export --project PROJECT --location LOCATION --agent AGENT_ID
-   autoagent cx deploy --project PROJECT --location LOCATION --agent AGENT_ID [--environment production]
-   autoagent cx widget --project PROJECT --location LOCATION --agent AGENT_ID [--output widget.html]
-   autoagent cx status --project PROJECT --location LOCATION --agent AGENT_ID
-   autoagent cx list --project PROJECT --location LOCATION
+   agentlab cx import --project PROJECT --location LOCATION --agent AGENT_ID
+   agentlab cx export --project PROJECT --location LOCATION --agent AGENT_ID
+   agentlab cx deploy --project PROJECT --location LOCATION --agent AGENT_ID [--environment production]
+   agentlab cx widget --project PROJECT --location LOCATION --agent AGENT_ID [--output widget.html]
+   agentlab cx status --project PROJECT --location LOCATION --agent AGENT_ID
+   agentlab cx list --project PROJECT --location LOCATION
    ```
 4. **Design the config mapping**:
-   - CX Agent's `generativeSettings` → AutoAgent's `generation_settings` config surface
-   - CX Playbook instructions → AutoAgent's `instructions` surface
-   - CX Tools → AutoAgent's `tool_descriptions` surface
-   - CX Examples → AutoAgent's `examples` surface
-   - CX Flows/Pages/Routes → AutoAgent's `routing` surface
-   - CX Test Cases → AutoAgent eval cases
-   - CX Conversations → AutoAgent conversation store (for observer)
+   - CX Agent's `generativeSettings` → AgentLab's `generation_settings` config surface
+   - CX Playbook instructions → AgentLab's `instructions` surface
+   - CX Tools → AgentLab's `tool_descriptions` surface
+   - CX Examples → AgentLab's `examples` surface
+   - CX Flows/Pages/Routes → AgentLab's `routing` surface
+   - CX Test Cases → AgentLab eval cases
+   - CX Conversations → AgentLab conversation store (for observer)
 5. **Design the web console pages**:
    - Import wizard page (select project → select agent → preview → import)
    - Deploy page (select environment → deploy → get widget embed code)

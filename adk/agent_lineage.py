@@ -54,7 +54,7 @@ class LineageNode:
 class AgentLineageTracker:
     """Persist and query agent lineage nodes using SQLite."""
 
-    def __init__(self, db_path: str = ".autoagent/agent_lineage.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/agent_lineage.db") -> None:
         self.db_path = db_path
         self._init_db()
 

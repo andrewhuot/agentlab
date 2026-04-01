@@ -24,13 +24,13 @@ class WebhookChannel:
         data = {
             "event_type": event_type,
             "payload": payload,
-            "source": "autoagent",
+            "source": "agentlab",
         }
 
         response = requests.post(
             url,
             json=data,
-            headers={"Content-Type": "application/json", "User-Agent": "AutoAgent/1.0"},
+            headers={"Content-Type": "application/json", "User-Agent": "AgentLab/1.0"},
             timeout=10,
         )
         response.raise_for_status()
@@ -75,7 +75,7 @@ class SlackChannel:
         blocks = [
             {
                 "type": "header",
-                "text": {"type": "plain_text", "text": f"{icon} AutoAgent: {title}"},
+                "text": {"type": "plain_text", "text": f"{icon} AgentLab: {title}"},
             },
             {"type": "divider"},
         ]
@@ -108,7 +108,7 @@ class EmailChannel:
     def send(self, config: dict[str, Any], event_type: str, payload: dict[str, Any]) -> None:
         """Send email notification."""
         to_address = config["address"]
-        subject = f"AutoAgent Alert: {event_type.replace('_', ' ').title()}"
+        subject = f"AgentLab Alert: {event_type.replace('_', ' ').title()}"
         body = self._format_email_body(event_type, payload)
 
         # SMTP configuration (defaults to localhost for testing)
@@ -116,7 +116,7 @@ class EmailChannel:
         smtp_port = config.get("smtp_port", 25)
         smtp_user = config.get("smtp_user")
         smtp_password = config.get("smtp_password")
-        from_address = config.get("from_address", "autoagent@localhost")
+        from_address = config.get("from_address", "agentlab@localhost")
 
         msg = EmailMessage()
         msg["Subject"] = subject
@@ -133,7 +133,7 @@ class EmailChannel:
     def _format_email_body(self, event_type: str, payload: dict[str, Any]) -> str:
         """Format payload as email body."""
         lines = [
-            f"AutoAgent Alert: {event_type.replace('_', ' ').title()}",
+            f"AgentLab Alert: {event_type.replace('_', ' ').title()}",
             "=" * 60,
             "",
         ]
@@ -149,6 +149,6 @@ class EmailChannel:
 
         lines.append("")
         lines.append("--")
-        lines.append("Sent by AutoAgent")
+        lines.append("Sent by AgentLab")
 
         return "\n".join(lines)

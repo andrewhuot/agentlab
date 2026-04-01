@@ -163,7 +163,7 @@ class OtelSpan:
     links: list[OtelLink] = field(default_factory=list)
     status: OtelStatus = field(default_factory=lambda: OtelStatus(OtelStatusCode.UNSET))
     resource: OtelResource | None = None
-    instrumentation_scope: str = "autoagent"
+    instrumentation_scope: str = "agentlab"
 
     @property
     def duration_ms(self) -> float:
@@ -206,7 +206,7 @@ class OtelSpan:
             links=[OtelLink.from_dict(lnk) for lnk in data.get("links", [])],
             status=OtelStatus.from_dict(data["status"]) if "status" in data else OtelStatus(OtelStatusCode.UNSET),
             resource=OtelResource.from_dict(resource_data) if resource_data else None,
-            instrumentation_scope=data.get("instrumentation_scope", "autoagent"),
+            instrumentation_scope=data.get("instrumentation_scope", "agentlab"),
         )
 
 

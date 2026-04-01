@@ -95,7 +95,7 @@ class AuthToken:
 class AuthProvider:
     """SQLite-backed authentication provider."""
 
-    def __init__(self, db_path: str = ".autoagent/auth.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/auth.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

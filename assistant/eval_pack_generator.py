@@ -236,7 +236,7 @@ class EvalPackGenerator:
             "metadata": {
                 "archetype": pack.archetype,
                 "total_cases": pack.total_cases,
-                "generator": "autoagent_eval_pack_generator",
+                "generator": "agentlab_eval_pack_generator",
             },
         }
         with open(output_path, "w") as f:

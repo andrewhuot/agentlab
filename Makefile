@@ -39,10 +39,10 @@ loop: ## Start optimization loop (5 cycles)
 	python runner.py loop --max-cycles 5
 
 docker-build: ## Build Docker image
-	docker build -t autoagent-vnextcc .
+	docker build -t agentlab .
 
 docker-run: ## Run Docker container locally
-	docker run --rm -p 8000:8000 --env-file .env autoagent-vnextcc
+	docker run --rm -p 8000:8000 --env-file .env agentlab
 
 compose-up: ## Start with docker-compose
 	docker compose up --build -d
@@ -56,12 +56,12 @@ deploy-gcp: ## Deploy to Google Cloud Run (requires gcloud CLI)
 deploy-fly: ## Deploy to fly.io (requires flyctl)
 	cd deploy && fly deploy --config fly.toml --dockerfile ../Dockerfile ..
 
-clean: ## Remove .venv, node_modules, .autoagent/, build artifacts, and caches
+clean: ## Remove .venv, node_modules, .agentlab/, build artifacts, and caches
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
 	rm -rf dist/ build/
 	rm -rf .venv
 	rm -rf web/node_modules
-	rm -rf .autoagent/
+	rm -rf .agentlab/
 	@echo "Clean complete. Run 'make setup' to start fresh."

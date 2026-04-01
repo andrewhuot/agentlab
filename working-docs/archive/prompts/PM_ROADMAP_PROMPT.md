@@ -1,6 +1,6 @@
 # Technical PM Review — Competitive Analysis + Roadmap Backlog
 
-You are a Technical Product Manager reviewing AutoAgent VNextCC. Your job is three-fold:
+You are a Technical Product Manager reviewing AgentLab VNextCC. Your job is three-fold:
 
 ## Part 1: Product Assessment (Internal)
 

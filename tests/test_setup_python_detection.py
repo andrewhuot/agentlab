@@ -32,7 +32,7 @@ def _write_fake_python(bindir: Path, name: str, version: str) -> None:
 
 def _run_setup_command(command: str, bindir: Path) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
-    env["AUTOAGENT_SETUP_SOURCE_ONLY"] = "1"
+    env["AGENTLAB_SETUP_SOURCE_ONLY"] = "1"
     env["PATH"] = f"{bindir}:{SYSTEM_PATH}"
     return subprocess.run(
         ["/bin/bash", "-c", f'source "{REPO_ROOT / "setup.sh"}"; {command}'],

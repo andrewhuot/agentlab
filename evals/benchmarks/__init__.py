@@ -1,4 +1,4 @@
-"""Standard benchmark integrations for AutoAgent evals."""
+"""Standard benchmark integrations for AgentLab evals."""
 
 from .adapter import BenchmarkAdapter, BenchmarkResult
 from .tau2 import Tau2BenchAdapter

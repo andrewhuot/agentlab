@@ -1,6 +1,6 @@
-# Product Manager UX Audit — AutoAgent VNextCC
+# Product Manager UX Audit — AgentLab VNextCC
 
-You are a senior product manager conducting a comprehensive UX audit of AutoAgent. Your job is to analyze every user journey end-to-end, identify friction, confusion, delight gaps, and missed opportunities, then write a detailed report with prioritized recommendations.
+You are a senior product manager conducting a comprehensive UX audit of AgentLab. Your job is to analyze every user journey end-to-end, identify friction, confusion, delight gaps, and missed opportunities, then write a detailed report with prioritized recommendations.
 
 ## Your Audit Process
 
@@ -8,7 +8,7 @@ You are a senior product manager conducting a comprehensive UX audit of AutoAgen
 Read ALL of these files to understand the full product surface:
 
 **CLI (runner.py)** — Read the entire file. Map every command, subcommand, flag, and output format. Note:
-- First-run experience: what happens when a new user types `autoagent` with no args?
+- First-run experience: what happens when a new user types `agentlab` with no args?
 - Error messages: are they helpful or cryptic?
 - Command discoverability: can users find what they need?
 - Output formatting: is it consistent, scannable, delightful?
@@ -28,7 +28,7 @@ Read ALL of these files to understand the full product surface:
 - Missing endpoints that the web console needs
 - Documentation/OpenAPI spec
 
-**Config & Setup** — Read `agent/config/`, `AUTOAGENT.md`, config files. Note:
+**Config & Setup** — Read `agent/config/`, `AGENTLAB.md`, config files. Note:
 - How many config files does a user need to understand?
 - Is the config schema documented inline?
 - Are defaults sensible?
@@ -84,7 +84,7 @@ For each issue, propose a specific fix with:
 Save as `PM_UX_AUDIT_REPORT.md` in the project root. Structure:
 
 ```
-# AutoAgent UX Audit Report
+# AgentLab UX Audit Report
 ## Executive Summary (1 page)
 ## Product Surface Inventory (what exists today)
 ## User Journey Analysis (journey-by-journey)

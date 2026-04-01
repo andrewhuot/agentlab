@@ -28,7 +28,7 @@ class BuilderExecutionEngine:
         orchestrator: BuilderOrchestrator,
         permissions: PermissionManager,
         events: EventBroker,
-        worktree_root: str = ".autoagent/builder/worktrees",
+        worktree_root: str = ".agentlab/builder/worktrees",
     ) -> None:
         self._store = store
         self._orchestrator = orchestrator

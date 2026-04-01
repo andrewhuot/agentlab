@@ -46,8 +46,8 @@ def _load_surface_state(workspace: Path) -> tuple[dict, dict]:
     app = fastapi.FastAPI()
     app.include_router(changes_router)
     app.include_router(experiments_router)
-    app.state.change_card_store = ChangeCardStore(db_path=str(workspace / ".autoagent" / "change_cards.db"))
-    app.state.experiment_store = ExperimentStore(db_path=str(workspace / ".autoagent" / "experiments.db"))
+    app.state.change_card_store = ChangeCardStore(db_path=str(workspace / ".agentlab" / "change_cards.db"))
+    app.state.experiment_store = ExperimentStore(db_path=str(workspace / ".agentlab" / "experiments.db"))
 
     client = TestClient(app)
     changes_response = client.get("/api/changes?status=all")
@@ -72,7 +72,7 @@ def test_eval_run_defaults_to_workspace_eval_suite(
     result = runner.invoke(cli, ["eval", "run"])
 
     assert result.exit_code == 0, result.output
-    latest = _read_json(workspace / ".autoagent" / "eval_results_latest.json")
+    latest = _read_json(workspace / ".agentlab" / "eval_results_latest.json")
     assert latest["total"] == 3
     assert {item["case_id"] for item in latest["results"]} == {
         "cs_happy_001",
@@ -97,7 +97,7 @@ def test_full_loop_creates_reviewable_candidate_and_improves_after_apply(
 
     eval_result = runner.invoke(cli, ["eval", "run"])
     assert eval_result.exit_code == 0, eval_result.output
-    baseline_payload = _read_json(workspace / ".autoagent" / "eval_results_latest.json")
+    baseline_payload = _read_json(workspace / ".agentlab" / "eval_results_latest.json")
     baseline_composite = baseline_payload["scores"]["composite"]
     assert baseline_payload["config_path"].endswith("configs/v001.yaml")
 
@@ -108,7 +108,7 @@ def test_full_loop_creates_reviewable_candidate_and_improves_after_apply(
     assert optimized or skipped, optimize_result.output
 
     if optimized:
-        store = ChangeCardStore(db_path=str(workspace / ".autoagent" / "change_cards.db"))
+        store = ChangeCardStore(db_path=str(workspace / ".agentlab" / "change_cards.db"))
         pending_cards = store.list_pending(limit=10)
         assert len(pending_cards) == 1
         card = pending_cards[0]
@@ -125,7 +125,7 @@ def test_full_loop_creates_reviewable_candidate_and_improves_after_apply(
         version_two = next(entry for entry in manifest_after_optimize["versions"] if entry["version"] == 2)
         assert version_two["status"] == "candidate"
 
-    latest_after_optimize = _read_json(workspace / ".autoagent" / "eval_results_latest.json")
+    latest_after_optimize = _read_json(workspace / ".agentlab" / "eval_results_latest.json")
     assert latest_after_optimize["scores"]["composite"] == baseline_composite
     assert latest_after_optimize["config_path"].endswith("configs/v001.yaml")
 
@@ -134,12 +134,12 @@ def test_full_loop_creates_reviewable_candidate_and_improves_after_apply(
         apply_result = runner.invoke(cli, ["review", "apply", "pending"])
         assert apply_result.exit_code == 0, apply_result.output
 
-        workspace_meta = _read_json(workspace / ".autoagent" / "workspace.json")
+        workspace_meta = _read_json(workspace / ".agentlab" / "workspace.json")
         assert workspace_meta["active_config_version"] == 2
 
         reeval_result = runner.invoke(cli, ["eval", "run"])
         assert reeval_result.exit_code == 0, reeval_result.output
-        improved_payload = _read_json(workspace / ".autoagent" / "eval_results_latest.json")
+        improved_payload = _read_json(workspace / ".agentlab" / "eval_results_latest.json")
         assert improved_payload["config_path"].endswith("configs/v002.yaml")
         assert improved_payload["scores"]["composite"] > baseline_composite
         assert improved_payload["passed"] == 3
@@ -205,8 +205,8 @@ def test_cli_and_api_review_surfaces_share_pending_and_applied_candidate_state(
     if optimized:
         assert len(review_cards) == 1
 
-        pending_card = ChangeCardStore(db_path=str(workspace / ".autoagent" / "change_cards.db")).list_pending(limit=10)[0]
-        pending_experiments = ExperimentStore(db_path=str(workspace / ".autoagent" / "experiments.db")).list_by_status("pending")
+        pending_card = ChangeCardStore(db_path=str(workspace / ".agentlab" / "change_cards.db")).list_pending(limit=10)[0]
+        pending_experiments = ExperimentStore(db_path=str(workspace / ".agentlab" / "experiments.db")).list_by_status("pending")
         assert len(pending_experiments) == 1
         assert pending_card.experiment_card_id == pending_experiments[0].experiment_id
         assert review_cards[0]["card_id"] == pending_card.card_id
@@ -224,7 +224,7 @@ def test_cli_and_api_review_surfaces_share_pending_and_applied_candidate_state(
         assert apply_result.exit_code == 0, apply_result.output
 
         accepted_experiment = ExperimentStore(
-            db_path=str(workspace / ".autoagent" / "experiments.db")
+            db_path=str(workspace / ".agentlab" / "experiments.db")
         ).get(pending_card.experiment_card_id)
         assert accepted_experiment is not None
         assert accepted_experiment.status == "accepted"
@@ -246,8 +246,8 @@ def test_optimize_without_eval_data_guides_user_and_deploy_rejects_active_only_w
 
     optimize_result = runner.invoke(cli, ["optimize", "--cycles", "1"])
     assert optimize_result.exit_code == 0, optimize_result.output
-    assert "autoagent eval run" in optimize_result.output
-    assert ChangeCardStore(db_path=str(workspace / ".autoagent" / "change_cards.db")).list_pending() == []
+    assert "agentlab eval run" in optimize_result.output
+    assert ChangeCardStore(db_path=str(workspace / ".agentlab" / "change_cards.db")).list_pending() == []
 
     deploy_result = runner.invoke(cli, ["deploy", "canary", "--yes"])
     assert deploy_result.exit_code != 0

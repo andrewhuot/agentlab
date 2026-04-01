@@ -1,7 +1,7 @@
 # Natural Language Intelligence Layer Brief
 
 ## Mission
-Build 6 features that make AutoAgent conversational, composable, and accessible from any AI coding tool. This is the "intelligence API" layer — every feature below is a different interface to the same underlying optimization engine.
+Build 6 features that make AgentLab conversational, composable, and accessible from any AI coding tool. This is the "intelligence API" layer — every feature below is a different interface to the same underlying optimization engine.
 
 ## Current State
 - 1,705 tests, master at commit `2bf902e`
@@ -10,14 +10,14 @@ Build 6 features that make AutoAgent conversational, composable, and accessible 
 
 ---
 
-## Feature 1: `autoagent edit "..."` — Natural Language Config Editing
+## Feature 1: `agentlab edit "..."` — Natural Language Config Editing
 
 ### CLI
 ```bash
-autoagent edit "Make the billing agent more empathetic when handling refund requests"
-autoagent edit "Add a step to confirm refund amount before processing"
-autoagent edit "Reduce response verbosity for simple FAQ questions"
-autoagent edit --interactive    # Multi-turn REPL
+agentlab edit "Make the billing agent more empathetic when handling refund requests"
+agentlab edit "Add a step to confirm refund amount before processing"
+agentlab edit "Reduce response verbosity for simple FAQ questions"
+agentlab edit --interactive    # Multi-turn REPL
 ```
 
 ### Implementation
@@ -79,7 +79,7 @@ class NLEditor:
 
 **Interactive mode**: A REPL loop using `click.prompt()`:
 ```
-AutoAgent Edit (type 'quit' to exit)
+AgentLab Edit (type 'quit' to exit)
 > Make billing responses shorter
   Identified surfaces: instructions.billing_agent, examples.refund_flow
   [shows diff]
@@ -110,28 +110,28 @@ POST /api/edit    { "description": "...", "dry_run": false }
 Add `--json` / `-j` flag to these existing commands that outputs structured JSON to stdout:
 
 ```bash
-autoagent status --json
-autoagent explain --json
-autoagent replay --json
-autoagent eval run --json
-autoagent optimize --json
-autoagent cx status --json
-autoagent adk status --json
-autoagent skill list --json
-autoagent skill recommend --json
-autoagent agent-skills analyze --json
+agentlab status --json
+agentlab explain --json
+agentlab replay --json
+agentlab eval run --json
+agentlab optimize --json
+agentlab cx status --json
+agentlab adk status --json
+agentlab skill list --json
+agentlab skill recommend --json
+agentlab agent-skills analyze --json
 ```
 
 Implementation:
 - Each command checks `if json_output:` early and prints `json.dumps(data, indent=2)` instead of formatted text
 - The data dict should match the API response schema where possible
-- This enables piping: `autoagent status --json | jq '.score'`
+- This enables piping: `agentlab status --json | jq '.score'`
 
 This is straightforward — just add the flag and a JSON serialization path to each command. Modify runner.py throughout.
 
 ---
 
-## Feature 3: `autoagent diagnose --interactive` — Conversational Diagnosis
+## Feature 3: `agentlab diagnose --interactive` — Conversational Diagnosis
 
 ### Create `optimizer/diagnose_session.py` (~300 lines):
 
@@ -185,14 +185,14 @@ Interactive mode: REPL with the DiagnoseSession.
 
 ---
 
-## Feature 4: Enhanced AUTOAGENT.md Auto-Update
+## Feature 4: Enhanced AGENTLAB.md Auto-Update
 
-Modify the existing `core/project_memory.py` to auto-update AUTOAGENT.md with live intelligence:
+Modify the existing `core/project_memory.py` to auto-update AGENTLAB.md with live intelligence:
 
 ### Add `update_with_intelligence()` method to ProjectMemory:
 ```python
 def update_with_intelligence(self, report, eval_score, recent_changes, skill_gaps):
-    """Update AUTOAGENT.md with current agent intelligence."""
+    """Update AGENTLAB.md with current agent intelligence."""
     # Appends/updates these sections:
     # ## Current Health (auto-updated)
     # ## Active Issues (auto-updated)
@@ -202,14 +202,14 @@ def update_with_intelligence(self, report, eval_score, recent_changes, skill_gap
 ```
 
 ### Call this from:
-- End of every `autoagent optimize` cycle
-- End of `autoagent quickstart`
-- End of `autoagent edit`
-- When `autoagent diagnose` applies a fix
+- End of every `agentlab optimize` cycle
+- End of `agentlab quickstart`
+- End of `agentlab edit`
+- When `agentlab diagnose` applies a fix
 
 ### The auto-updated sections should be clearly marked:
 ```markdown
-<!-- BEGIN AUTOAGENT INTELLIGENCE — auto-updated, do not edit -->
+<!-- BEGIN AGENTLAB INTELLIGENCE — auto-updated, do not edit -->
 ## Current Health
 Score: 0.87 | Safety: 1.00 | Routing: 94% | Latency: 2.1s
 Last updated: 2025-03-25 02:15 UTC
@@ -226,14 +226,14 @@ Last updated: 2025-03-25 02:15 UTC
 ## Skill Gaps
 - No warranty lookup tool (8 user requests, 0 handled)
 - No Spanish support sub-agent (5 user requests, 0 handled)
-<!-- END AUTOAGENT INTELLIGENCE -->
+<!-- END AGENTLAB INTELLIGENCE -->
 ```
 
 The markers ensure auto-update only touches the intelligence section, preserving user-written content above.
 
 ---
 
-## Feature 5: MCP Server (`autoagent mcp-server`)
+## Feature 5: MCP Server (`agentlab mcp-server`)
 
 ### Create `mcp_server/` module:
 
@@ -250,56 +250,56 @@ mcp_server/
 ```python
 # 1. Status & Health
 @tool
-def autoagent_status() -> dict:
+def agentlab_status() -> dict:
     """Get current agent health, scores, and failure summary."""
 
 @tool  
-def autoagent_explain() -> str:
+def agentlab_explain() -> str:
     """Get a plain-English summary of the agent's current state."""
 
 # 2. Diagnosis
 @tool
-def autoagent_diagnose() -> dict:
+def agentlab_diagnose() -> dict:
     """Run failure analysis and return clustered issues with root causes."""
 
 @tool
-def autoagent_get_failures(failure_family: str, limit: int = 5) -> list[dict]:
+def agentlab_get_failures(failure_family: str, limit: int = 5) -> list[dict]:
     """Get sample conversations for a specific failure type."""
 
 # 3. Editing
 @tool
-def autoagent_suggest_fix(description: str) -> dict:
+def agentlab_suggest_fix(description: str) -> dict:
     """Suggest a config fix based on natural language description. Returns diff and expected impact."""
 
 @tool
-def autoagent_edit(description: str, auto_apply: bool = False) -> dict:
+def agentlab_edit(description: str, auto_apply: bool = False) -> dict:
     """Apply a natural language edit to the agent config. Returns change card with eval results."""
 
 # 4. Evaluation
 @tool
-def autoagent_eval(config_path: str | None = None) -> dict:
+def agentlab_eval(config_path: str | None = None) -> dict:
     """Run eval suite and return scores."""
 
 @tool
-def autoagent_eval_compare(config_a: str, config_b: str) -> dict:
+def agentlab_eval_compare(config_a: str, config_b: str) -> dict:
     """Compare two configs via eval and return winner."""
 
 # 5. Skills & Gaps
 @tool
-def autoagent_skill_gaps() -> list[dict]:
+def agentlab_skill_gaps() -> list[dict]:
     """Identify capabilities the agent is missing based on failure analysis."""
 
 @tool
-def autoagent_skill_recommend() -> list[dict]:
+def agentlab_skill_recommend() -> list[dict]:
     """Recommend optimization skills based on current failure patterns."""
 
 # 6. History
 @tool  
-def autoagent_replay(limit: int = 10) -> list[dict]:
+def agentlab_replay(limit: int = 10) -> list[dict]:
     """Get optimization history showing config evolution."""
 
 @tool
-def autoagent_diff(version_a: int, version_b: int) -> str:
+def agentlab_diff(version_a: int, version_b: int) -> str:
     """Get unified diff between two config versions."""
 ```
 
@@ -311,17 +311,17 @@ Use the MCP Python SDK (`mcp` package). The server runs as a stdio process:
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 
-app = Server("autoagent")
+app = Server("agentlab")
 
 @app.tool()
-async def autoagent_status() -> dict:
+async def agentlab_status() -> dict:
     ...
 ```
 
 ### CLI Command:
 ```bash
-autoagent mcp-server                    # Start MCP server (stdio mode)
-autoagent mcp-server --port 8081        # Start in HTTP/SSE mode
+agentlab mcp-server                    # Start MCP server (stdio mode)
+agentlab mcp-server --port 8081        # Start in HTTP/SSE mode
 ```
 
 ### Claude Code Integration:
@@ -329,8 +329,8 @@ Users add to their `.claude/config.json` or project's `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "autoagent": {
-      "command": "autoagent",
+    "agentlab": {
+      "command": "agentlab",
       "args": ["mcp-server"]
     }
   }
@@ -340,8 +340,8 @@ Users add to their `.claude/config.json` or project's `.mcp.json`:
 ### Codex Integration:
 Users add to `.codex/config.toml`:
 ```toml
-[mcp_servers.autoagent]
-command = "autoagent"
+[mcp_servers.agentlab]
+command = "agentlab"
 args = ["mcp-server"]
 ```
 
@@ -359,8 +359,8 @@ A chat-style panel that connects to the diagnose API:
 
 - Fixed to the bottom-right of the Dashboard (like an intercom widget)
 - Click to expand into a chat panel
-- Messages alternate between user and AutoAgent
-- AutoAgent messages can contain: text, code blocks (diffs), metric cards, action buttons
+- Messages alternate between user and AgentLab
+- AgentLab messages can contain: text, code blocks (diffs), metric cards, action buttons
 - Action buttons: "Apply Fix", "Show Examples", "Next Issue", "Skip"
 - When a fix is applied, show a success toast with score improvement
 
@@ -396,7 +396,7 @@ interface ChatMessage {
 **Track A — NL Editor**: `optimizer/nl_editor.py`, edit CLI command, `/api/edit` endpoint, tests (~400 lines)
 **Track B — JSON Flags**: Add `--json` to 10+ existing commands in runner.py, tests (~300 lines modified)  
 **Track C — Diagnose Session**: `optimizer/diagnose_session.py`, diagnose CLI command, `/api/diagnose/chat`, tests (~400 lines)
-**Track D — AUTOAGENT.md Intelligence**: Modify `core/project_memory.py`, hook into optimize/edit/quickstart, tests (~200 lines)
+**Track D — AGENTLAB.md Intelligence**: Modify `core/project_memory.py`, hook into optimize/edit/quickstart, tests (~200 lines)
 **Track E — MCP Server**: `mcp_server/server.py`, `mcp_server/tools.py`, CLI command, tests (~500 lines)
 **Track F — Web Chat Panel**: `web/src/components/DiagnosisChat.tsx`, Dashboard integration, types/api, tests (~300 lines)
 
@@ -410,11 +410,11 @@ interface ChatMessage {
 - `python3 -m pytest tests/ -x -q` — must pass with more tests than 1,705
 - `cd web && npx tsc --noEmit` — must pass
 - `python3 -m pytest tests/test_dependency_layers.py -v` — must pass
-- `autoagent edit "fix routing" --dry-run` must work end-to-end
-- `autoagent diagnose` (non-interactive) must print cluster analysis
+- `agentlab edit "fix routing" --dry-run` must work end-to-end
+- `agentlab diagnose` (non-interactive) must print cluster analysis
 - MCP server must start and expose tools
 
 ## When Done
-Commit: `feat: NL intelligence layer — edit, diagnose, MCP server, JSON output, AUTOAGENT.md, chat panel`
+Commit: `feat: NL intelligence layer — edit, diagnose, MCP server, JSON output, AGENTLAB.md, chat panel`
 Push to master.
 Run: `openclaw system event --text "Done: NL intelligence layer — 6 features, MCP server, conversational diagnosis" --mode now`

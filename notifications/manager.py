@@ -40,7 +40,7 @@ class Subscription:
 class NotificationManager:
     """Manages notification subscriptions and dispatches events to channels."""
 
-    def __init__(self, db_path: str | Path = ".autoagent/notifications.db"):
+    def __init__(self, db_path: str | Path = ".agentlab/notifications.db"):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
@@ -315,7 +315,7 @@ class NotificationManager:
             return False, "Subscription not found"
 
         test_payload = {
-            "message": "This is a test notification from AutoAgent",
+            "message": "This is a test notification from AgentLab",
             "timestamp": time.time(),
             "test": True,
         }

@@ -1,7 +1,7 @@
 # UX Overhaul — Three Features
 
 ## CRITICAL CONTEXT
-These three features are a UX maturity leap. They transform AutoAgent from a research tool that exposes internals into a product that feels intuitive. Every decision should ask: "Would a PM or team lead understand this without reading the source code?"
+These three features are a UX maturity leap. They transform AgentLab from a research tool that exposes internals into a product that feels intuitive. Every decision should ask: "Would a PM or team lead understand this without reading the source code?"
 
 Read the ENTIRE codebase before planning. Understand what exists so you can reshape it, not just bolt things on.
 
@@ -63,15 +63,15 @@ optimization:
 - This is an internal optimization — users don't configure it directly, but Advanced/Research modes can override
 
 **CLI changes:**
-- `autoagent optimize` defaults to Standard mode
-- `autoagent optimize --mode advanced`
-- `autoagent optimize --mode research` (exposes algorithm selection for power users)
+- `agentlab optimize` defaults to Standard mode
+- `agentlab optimize --mode advanced`
+- `agentlab optimize --mode research` (exposes algorithm selection for power users)
 - Old `--strategy` flag still works but is deprecated with a warning
 
 **Config migration:**
 - Old `search_strategy: simple/adaptive/full/pro` configs still work (mapped internally)
 - New `optimization.mode` is the preferred path
-- Write a `autoagent config migrate` command that converts old → new format
+- Write a `agentlab config migrate` command that converts old → new format
 
 **Web changes:**
 - Optimize page shows mode selector (Standard/Advanced/Research) instead of strategy dropdown
@@ -89,11 +89,11 @@ optimization:
 - `optimizer/mode_router.py` — maps (mode, objective, guardrails) → internal strategy + algorithm selection
 - `optimizer/model_routing.py` — phase-aware model selection with pinned versions for eval
 - Old configs must keep working (backwards compat is mandatory)
-- Update `autoagent.yaml` schema to support both old and new formats
+- Update `agentlab.yaml` schema to support both old and new formats
 
 ---
 
-## FEATURE 2: Uplevel Skills Registry → Playbooks + AUTOAGENT.md
+## FEATURE 2: Uplevel Skills Registry → Playbooks + AGENTLAB.md
 
 ### The Problem
 The registry exposes four separate registries (skills, policies, tool contracts, handoff schemas). Users don't think in those categories. They think in playbooks: "fix retrieval grounding," "reduce tool latency," "tighten refusal policy." Also, the system has no persistent project memory — it optimizes generic metrics without knowing the team's goals, constraints, and preferences.
@@ -136,18 +136,18 @@ surfaces:
 - `registry/playbooks.py` — Playbook model + store (SQLite-backed)
 - Playbooks are the primary user-facing unit; raw registry items still exist underneath
 - Built-in starter playbooks for common patterns (5-8 included out of the box)
-- CLI: `autoagent playbook list`, `autoagent playbook show <name>`, `autoagent playbook apply <name>`, `autoagent playbook create`
+- CLI: `agentlab playbook list`, `agentlab playbook show <name>`, `agentlab playbook apply <name>`, `agentlab playbook create`
 - API: `/api/playbooks/` CRUD
 - Web: Playbook browser (replaces raw registry browser as default view)
 - Progressive disclosure: playbook view by default, click "View components" to see underlying skills/policies/contracts
 - AutoFix Copilot should suggest relevant playbooks when proposing fixes
 
-**AUTOAGENT.md** — persistent project memory (like CLAUDE.md):
+**AGENTLAB.md** — persistent project memory (like CLAUDE.md):
 
-Create a first-class `AUTOAGENT.md` file that lives in the project root and carries across sessions:
+Create a first-class `AGENTLAB.md` file that lives in the project root and carries across sessions:
 
 ```markdown
-# AUTOAGENT.md — Project Memory
+# AGENTLAB.md — Project Memory
 
 ## Agent Identity
 - Name: Customer Support Agent v4
@@ -182,21 +182,21 @@ Create a first-class `AUTOAGENT.md` file that lives in the project root and carr
 ```
 
 Implementation:
-- `core/project_memory.py` — Load/save/update AUTOAGENT.md
-- Auto-generated on `autoagent init` with sensible template
+- `core/project_memory.py` — Load/save/update AGENTLAB.md
+- Auto-generated on `agentlab init` with sensible template
 - Read at start of every optimization cycle — informs mutation selection, surface targeting, constraint enforcement
 - Auto-updated after successful optimizations (append to history section)
 - Optimizer reads "Known Bad Patterns" to avoid repeating mistakes
 - Optimizer reads "Team Preferences" to respect deployment constraints
 - Optimizer reads "Business Constraints" to set guardrails automatically
-- CLI: `autoagent memory show`, `autoagent memory edit`, `autoagent memory add "Returns flow is highest impact"`
-- The optimizer/loop.py should load AUTOAGENT.md at cycle start and pass relevant context to proposers
-- AutoFix proposals should reference AUTOAGENT.md context in their reasoning
+- CLI: `agentlab memory show`, `agentlab memory edit`, `agentlab memory add "Returns flow is highest impact"`
+- The optimizer/loop.py should load AGENTLAB.md at cycle start and pass relevant context to proposers
+- AutoFix proposals should reference AGENTLAB.md context in their reasoning
 
 **Registry simplification:**
 - Keep the 4 underlying registries (skills, policies, tool_contracts, handoff_schemas) as implementation
 - But the primary CLI/API/Web interface is playbooks
-- `autoagent registry` commands still work but are documented as "advanced"
+- `agentlab registry` commands still work but are documented as "advanced"
 - Web sidebar: "Playbooks" replaces "Registry" as the nav item
 
 ---
@@ -216,7 +216,7 @@ Changes feel like "mutating YAML in a black box." ExperimentCards have 34 fields
 ├─────────────────────────────────────────────────────┤
 │ WHY: Blame map shows 62% of quality regressions     │
 │      trace to returns flow instruction ambiguity.    │
-│      AUTOAGENT.md notes returns is highest-impact.   │
+│      AGENTLAB.md notes returns is highest-impact.   │
 │                                                      │
 │ WHAT CHANGES:                                        │
 │  instructions.returns_agent                          │
@@ -277,12 +277,12 @@ Implementation:
   - Color-coded terminal output
 
 **CLI experience:**
-- `autoagent review` — show pending change cards in terminal (rich formatting)
-- `autoagent review <id>` — show specific change card with full diff
-- `autoagent review <id> --apply` — apply the change
-- `autoagent review <id> --reject --reason "..."` — reject with reason
-- `autoagent review <id> --edit` — open diff in editor for hunk-level modifications
-- `autoagent review --export <id>` — export as markdown (for sharing in PRs/docs)
+- `agentlab review` — show pending change cards in terminal (rich formatting)
+- `agentlab review <id>` — show specific change card with full diff
+- `agentlab review <id> --apply` — apply the change
+- `agentlab review <id> --reject --reason "..."` — reject with reason
+- `agentlab review <id> --edit` — open diff in editor for hunk-level modifications
+- `agentlab review --export <id>` — export as markdown (for sharing in PRs/docs)
 
 **API:**
 - `GET /api/changes` — list pending change cards
@@ -306,7 +306,7 @@ Implementation:
 **Integration:**
 - AutoFix Copilot generates ProposedChangeCards (not raw ExperimentCards)
 - The optimization loop produces change cards for every accepted candidate
-- `autoagent review` is the new primary human interaction point
+- `agentlab review` is the new primary human interaction point
 - ExperimentCard still exists underneath (change card wraps it)
 
 ---
@@ -316,7 +316,7 @@ Implementation:
 Use `claude --model claude-sonnet-4-5 --dangerously-skip-permissions -p '...'` sub-agents for parallel implementation:
 
 - Agent 1: Feature 1 backend — mode router, model routing, config migration, metric relabeling
-- Agent 2: Feature 2 backend — playbooks, AUTOAGENT.md, project memory, registry simplification  
+- Agent 2: Feature 2 backend — playbooks, AGENTLAB.md, project memory, registry simplification  
 - Agent 3: Feature 3 backend — change cards, sandbox, diff engine
 - Agent 4: CLI + API for all three features
 - Agent 5: Web pages for all three features
@@ -328,6 +328,6 @@ Run `python3 -m pytest tests/ --tb=short -q` after each agent completes.
 - All new code has tests (target: 80+ new tests, total 1200+)
 - Full test suite passes
 - Old configs still work (backwards compat)
-- AUTOAGENT.md template generated on `autoagent init`
-- `autoagent review` shows beautiful terminal output
+- AGENTLAB.md template generated on `agentlab init`
+- `agentlab review` shows beautiful terminal output
 - Git commit + push to origin master

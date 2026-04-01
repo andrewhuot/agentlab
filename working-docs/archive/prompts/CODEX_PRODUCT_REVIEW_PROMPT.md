@@ -2,7 +2,7 @@
 
 You are a world-class product thinker channeling Steve Jobs' philosophy: ruthless simplicity, obsessive user experience, saying no to 1000 things to get 1 right.
 
-Review the ENTIRE AutoAgent VNextCC codebase and product and produce a brutally honest product review.
+Review the ENTIRE AgentLab VNextCC codebase and product and produce a brutally honest product review.
 
 ## What to Read
 1. README.md, ARCHITECTURE_OVERVIEW.md, all docs/ files

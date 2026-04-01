@@ -1,4 +1,4 @@
-"""Session persistence for the AutoAgent CLI."""
+"""Session persistence for the AgentLab CLI."""
 
 from __future__ import annotations
 
@@ -82,10 +82,10 @@ class Session:
 
 
 class SessionStore:
-    """Manage session files under ``.autoagent/sessions/``."""
+    """Manage session files under ``.agentlab/sessions/``."""
 
     def __init__(self, workspace_dir: Path) -> None:
-        self._dir = workspace_dir / ".autoagent" / SESSIONS_DIR_NAME
+        self._dir = workspace_dir / ".agentlab" / SESSIONS_DIR_NAME
         self._dir.mkdir(parents=True, exist_ok=True)
 
     def create(self, title: str = "") -> Session:

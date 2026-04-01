@@ -1,7 +1,7 @@
-"""Bidirectional mapping between ADK and AutoAgent config schemas.
+"""Bidirectional mapping between ADK and AgentLab config schemas.
 
 The mapper is the translation layer between ADK's Python-based agent model and
-AutoAgent's AgentConfig-compatible dict. It is intentionally stateless —
+AgentLab's AgentConfig-compatible dict. It is intentionally stateless —
 all state lives in the agent tree and config objects passed as arguments.
 
 Layer: Layer 1 (Advanced). May import from Layer 0 / stdlib / PyPI only.
@@ -17,16 +17,16 @@ from .types import AdkAgentTree
 
 
 class AdkMapper:
-    """Bidirectional mapper between ADK and AutoAgent configs.
+    """Bidirectional mapper between ADK and AgentLab configs.
 
     All methods are pure functions over their arguments — no I/O, no state.
     """
 
     # ------------------------------------------------------------------
-    # ADK → AutoAgent
+    # ADK → AgentLab
     # ------------------------------------------------------------------
 
-    def to_autoagent(self, agent_tree: AdkAgentTree) -> dict[str, Any]:
+    def to_agentlab(self, agent_tree: AdkAgentTree) -> dict[str, Any]:
         """Convert an AdkAgentTree to an AgentConfig-compatible dict.
 
         Mapping rules:
@@ -71,12 +71,12 @@ class AdkMapper:
                 config["generation"] = generation_settings
 
         except Exception as exc:
-            raise AdkImportError(f"Failed to map ADK tree to AutoAgent config: {exc}") from exc
+            raise AdkImportError(f"Failed to map ADK tree to AgentLab config: {exc}") from exc
 
         return config
 
     # ------------------------------------------------------------------
-    # AutoAgent → ADK
+    # AgentLab → ADK
     # ------------------------------------------------------------------
 
     def to_adk(
@@ -84,7 +84,7 @@ class AdkMapper:
         config: dict[str, Any],
         base_tree: AdkAgentTree,
     ) -> AdkAgentTree:
-        """Overlay an optimized AutoAgent config onto a base ADK tree.
+        """Overlay an optimized AgentLab config onto a base ADK tree.
 
         The returned tree can be used to generate updated Python source files.
 
@@ -96,7 +96,7 @@ class AdkMapper:
         - model → model
 
         Args:
-            config: AutoAgent config dict (may be a partial optimized patch).
+            config: AgentLab config dict (may be a partial optimized patch).
             base_tree: Original tree used as the base for unchanged fields.
 
         Returns:
@@ -129,12 +129,12 @@ class AdkMapper:
                 result.config["model"] = config["model"]
 
         except Exception as exc:
-            raise AdkImportError(f"Failed to map AutoAgent config to ADK tree: {exc}") from exc
+            raise AdkImportError(f"Failed to map AgentLab config to ADK tree: {exc}") from exc
 
         return result
 
     # ------------------------------------------------------------------
-    # Private helpers — ADK → AutoAgent direction
+    # Private helpers — ADK → AgentLab direction
     # ------------------------------------------------------------------
 
     def _map_agents_to_prompts(self, agent_tree: AdkAgentTree) -> dict[str, str]:
@@ -231,7 +231,7 @@ class AdkMapper:
         return settings
 
     # ------------------------------------------------------------------
-    # Private helpers — AutoAgent → ADK direction
+    # Private helpers — AgentLab → ADK direction
     # ------------------------------------------------------------------
 
     def _apply_prompts_to_agents(
@@ -239,7 +239,7 @@ class AdkMapper:
         agent_tree: AdkAgentTree,
         prompts: dict[str, Any],
     ) -> None:
-        """Write AutoAgent prompts back into agent tree in-place."""
+        """Write AgentLab prompts back into agent tree in-place."""
         if not prompts:
             return
 
@@ -263,7 +263,7 @@ class AdkMapper:
         Note: Tool descriptions are read-only in this direction (they live in
         docstrings which we don't modify). This method exists for symmetry.
         """
-        # Tool configs in AutoAgent don't directly map back to ADK source
+        # Tool configs in AgentLab don't directly map back to ADK source
         # because tool implementations are code, not config.
         # We only track enabled/disabled state in metadata.
         pass

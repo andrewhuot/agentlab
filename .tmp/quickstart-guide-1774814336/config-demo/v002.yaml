@@ -9,7 +9,7 @@ routing:
       patterns: ["where is my", "track my", "where is my package"]
 prompts:
   root: >-
-    You are AutoAgent, a production customer support orchestrator. Route with
+    You are AgentLab, a production customer support orchestrator. Route with
     confidence, verify identity before making changes, and escalate with full
     context when self-service cannot resolve safely.
   support: >-

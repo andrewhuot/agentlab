@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-DEFAULT_DB_PATH = Path(".autoagent/experiments.db")
+DEFAULT_DB_PATH = Path(".agentlab/experiments.db")
 
 _DDL = """
 CREATE TABLE IF NOT EXISTS experiments (

@@ -718,7 +718,7 @@ function smartSearch(query: string): SmartSearchResult[] {
 1. **Track all-time best score:**
 ```python
 # At the top of optimize command
-best_score_file = Path(".autoagent/best_score.txt")
+best_score_file = Path(".agentlab/best_score.txt")
 all_time_best = 0.0
 if best_score_file.exists():
     all_time_best = float(best_score_file.read_text().strip())

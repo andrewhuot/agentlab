@@ -112,12 +112,12 @@ class LoopRuntimeConfig(BaseModel):
     schedule_mode: Literal["continuous", "interval", "cron"] = "continuous"
     interval_minutes: float = Field(5.0, ge=0.0, le=1440.0)
     cron: str = "*/5 * * * *"
-    checkpoint_path: str = ".autoagent/loop_checkpoint.json"
-    dead_letter_db: str = ".autoagent/dead_letters.db"
+    checkpoint_path: str = ".agentlab/loop_checkpoint.json"
+    dead_letter_db: str = ".agentlab/dead_letters.db"
     watchdog_timeout_seconds: float = Field(300.0, ge=1.0, le=86400.0)
     resource_warn_memory_mb: float = Field(2048.0, ge=1.0)
     resource_warn_cpu_percent: float = Field(90.0, ge=1.0, le=1000.0)
-    structured_log_path: str = ".autoagent/logs/backend.jsonl"
+    structured_log_path: str = ".agentlab/logs/backend.jsonl"
     log_max_bytes: int = Field(5_000_000, ge=10_000)
     log_backup_count: int = Field(5, ge=1, le=100)
 
@@ -127,7 +127,7 @@ class EvalRuntimeConfig(BaseModel):
 
     history_db_path: str = "eval_history.db"
     cache_enabled: bool = True
-    cache_db_path: str = ".autoagent/eval_cache.db"
+    cache_db_path: str = ".agentlab/eval_cache.db"
     dataset_path: str | None = None
     dataset_split: Literal["train", "test", "all"] = "test"
     dataset_strict_integrity: bool = False
@@ -145,7 +145,7 @@ class BudgetRuntimeConfig(BaseModel):
     per_cycle_dollars: float = Field(1.0, ge=0.0, le=10000.0)
     daily_dollars: float = Field(10.0, ge=0.0, le=100000.0)
     stall_threshold_cycles: int = Field(5, ge=1, le=1000)
-    tracker_db_path: str = ".autoagent/cost_tracker.db"
+    tracker_db_path: str = ".agentlab/cost_tracker.db"
 
 
 class OptimizationConfig(BaseModel):
@@ -169,7 +169,7 @@ class OptimizationConfig(BaseModel):
 
 
 class RuntimeConfig(BaseModel):
-    """Top-level runtime settings loaded from `autoagent.yaml`."""
+    """Top-level runtime settings loaded from `agentlab.yaml`."""
 
     optimizer: OptimizerRuntimeConfig = Field(default_factory=OptimizerRuntimeConfig)
     loop: LoopRuntimeConfig = Field(default_factory=LoopRuntimeConfig)
@@ -228,7 +228,7 @@ def migrate_legacy_runtime_config(data: dict) -> dict:
     return migrated
 
 
-def load_runtime_config(path: str = "autoagent.yaml") -> RuntimeConfig:
+def load_runtime_config(path: str = "agentlab.yaml") -> RuntimeConfig:
     """Load runtime settings from YAML, returning defaults when file is absent."""
     config_path = Path(path)
     if not config_path.exists():

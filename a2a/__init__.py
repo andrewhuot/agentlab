@@ -1,4 +1,4 @@
-"""A2A (Agent-to-Agent) protocol support for AutoAgent VNextCC.
+"""A2A (Agent-to-Agent) protocol support for AgentLab VNextCC.
 
 This package implements the A2A protocol for interoperable agent discovery,
 task submission, and lifecycle management.

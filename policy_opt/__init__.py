@@ -1,1 +1,1 @@
-"""AutoAgent Policy Optimization — offline training orchestration."""
+"""AgentLab Policy Optimization — offline training orchestration."""

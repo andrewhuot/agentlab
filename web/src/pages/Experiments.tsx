@@ -132,7 +132,7 @@ export function Experiments({
             icon={FlaskConical}
             title="No experiments yet"
             description="Experiments appear after optimization cycles propose and evaluate config changes."
-            cliHint="autoagent optimize --cycles 3"
+            cliHint="agentlab optimize --cycles 3"
           />
         )
       )}

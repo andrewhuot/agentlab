@@ -38,7 +38,7 @@ def _seed_config_version(
 
 
 def _seed_change_card() -> ProposedChangeCard:
-    Path(".autoagent").mkdir(parents=True, exist_ok=True)
+    Path(".agentlab").mkdir(parents=True, exist_ok=True)
     store = ChangeCardStore()
     card = ProposedChangeCard(
         card_id="card001",
@@ -58,7 +58,7 @@ def _seed_change_card() -> ProposedChangeCard:
 
 
 def _seed_autofix_proposal() -> AutoFixProposal:
-    Path(".autoagent").mkdir(parents=True, exist_ok=True)
+    Path(".agentlab").mkdir(parents=True, exist_ok=True)
     store = AutoFixStore()
     proposal = AutoFixProposal(
         proposal_id="fix001",
@@ -120,20 +120,20 @@ def test_help_exposes_task_oriented_groups() -> None:
 @pytest.mark.parametrize(
     ("argv", "example_snippet"),
     [
-        (["review", "--help"], "autoagent review show pending"),
-        (["eval", "--help"], "autoagent eval run"),
-        (["config", "--help"], "autoagent config list"),
-        (["intelligence", "--help"], "autoagent intelligence upload"),
-        (["mcp", "--help"], "autoagent mcp init codex"),
-        (["judges", "--help"], "autoagent judges list"),
-        (["mode", "--help"], "autoagent mode show"),
-        (["context", "--help"], "autoagent context analyze --trace"),
-        (["release", "--help"], "autoagent release create --experiment-id"),
-        (["trace", "--help"], "autoagent trace show latest"),
-        (["autofix", "--help"], "autoagent autofix suggest"),
-        (["registry", "--help"], "autoagent registry list"),
-        (["skill", "--help"], "autoagent skill list"),
-        (["scorer", "--help"], "autoagent scorer create"),
+        (["review", "--help"], "agentlab review show pending"),
+        (["eval", "--help"], "agentlab eval run"),
+        (["config", "--help"], "agentlab config list"),
+        (["intelligence", "--help"], "agentlab intelligence upload"),
+        (["mcp", "--help"], "agentlab mcp init codex"),
+        (["judges", "--help"], "agentlab judges list"),
+        (["mode", "--help"], "agentlab mode show"),
+        (["context", "--help"], "agentlab context analyze --trace"),
+        (["release", "--help"], "agentlab release create --experiment-id"),
+        (["trace", "--help"], "agentlab trace show latest"),
+        (["autofix", "--help"], "agentlab autofix suggest"),
+        (["registry", "--help"], "agentlab registry list"),
+        (["skill", "--help"], "agentlab skill list"),
+        (["scorer", "--help"], "agentlab scorer create"),
     ],
 )
 def test_guide_relevant_group_help_includes_examples(argv: list[str], example_snippet: str) -> None:

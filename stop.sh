@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AutoAgent - Stop backend + frontend
+# AgentLab - Stop backend + frontend
 # Usage: ./stop.sh
 
 set -euo pipefail
@@ -12,13 +12,13 @@ BOLD_CYAN='\033[1;36m'
 YELLOW='\033[0;33m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_PID_FILE="$SCRIPT_DIR/.autoagent/backend.pid"
-FRONTEND_PID_FILE="$SCRIPT_DIR/.autoagent/frontend.pid"
+BACKEND_PID_FILE="$SCRIPT_DIR/.agentlab/backend.pid"
+FRONTEND_PID_FILE="$SCRIPT_DIR/.agentlab/frontend.pid"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 
 echo ""
-echo -e "${BOLD_CYAN}  Stopping AutoAgent...${RESET}"
+echo -e "${BOLD_CYAN}  Stopping AgentLab...${RESET}"
 echo ""
 
 stopped=0
@@ -51,13 +51,13 @@ stop_pid_file() {
 stop_pid_file "$BACKEND_PID_FILE"  "Backend"
 stop_pid_file "$FRONTEND_PID_FILE" "Frontend"
 
-# Fallback: only stop processes that look like AutoAgent services.
-is_autoagent_backend_process() {
+# Fallback: only stop processes that look like AgentLab services.
+is_agentlab_backend_process() {
   local command_line="${1-}"
   [[ "$command_line" == *"api.server:app"* ]]
 }
 
-is_autoagent_frontend_process() {
+is_agentlab_frontend_process() {
   local command_line="${1-}"
   [[ "$command_line" == *"vite"* ]] || [[ "$command_line" == *"npm run dev"* ]]
 }
@@ -76,7 +76,7 @@ kill_port() {
     local command_line
     command_line=$(ps -p "$pid" -o command= 2>/dev/null || true)
 
-    if [[ "$kind" == "backend" ]] && is_autoagent_backend_process "$command_line"; then
+    if [[ "$kind" == "backend" ]] && is_agentlab_backend_process "$command_line"; then
       if kill "$pid" 2>/dev/null; then
         echo -e "  ${BOLD_GREEN}✓${RESET}  Stopped ${label} on port ${port} (pid ${pid})"
         stopped=$(( stopped + 1 ))
@@ -84,7 +84,7 @@ kill_port() {
       return
     fi
 
-    if [[ "$kind" == "frontend" ]] && is_autoagent_frontend_process "$command_line"; then
+    if [[ "$kind" == "frontend" ]] && is_agentlab_frontend_process "$command_line"; then
       if kill "$pid" 2>/dev/null; then
         echo -e "  ${BOLD_GREEN}✓${RESET}  Stopped ${label} on port ${port} (pid ${pid})"
         stopped=$(( stopped + 1 ))
@@ -92,7 +92,7 @@ kill_port() {
       return
     fi
 
-    echo -e "  ${DIM}ℹ  Leaving ${label} port ${port} alone (pid ${pid} does not look like AutoAgent)${RESET}"
+    echo -e "  ${DIM}ℹ  Leaving ${label} port ${port} alone (pid ${pid} does not look like AgentLab)${RESET}"
   fi
 }
 

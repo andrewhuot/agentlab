@@ -1,6 +1,6 @@
 """Unified SQLite-backed skill store for both build-time and run-time skills.
 
-This is the single source of truth for all skills in AutoAgent, providing:
+This is the single source of truth for all skills in AgentLab, providing:
 - CRUD operations with versioning support
 - Thread-safe concurrent access
 - Full-text search across skill metadata

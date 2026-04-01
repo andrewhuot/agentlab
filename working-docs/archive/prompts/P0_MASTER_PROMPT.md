@@ -1,8 +1,8 @@
-# AutoAgent VNextCC — P0 Architectural Overhaul
+# AgentLab VNextCC — P0 Architectural Overhaul
 
 ## Your Mission
 
-You are rebuilding AutoAgent VNextCC's core architecture based on 12 P0 feature requests in `P0_FEATURE_REQUESTS.md`. This is a heavy refactor of backend, frontend, and architecture. Read that file first.
+You are rebuilding AgentLab VNextCC's core architecture based on 12 P0 feature requests in `P0_FEATURE_REQUESTS.md`. This is a heavy refactor of backend, frontend, and architecture. Read that file first.
 
 ## Phase 1: Planning (do this FIRST before any code)
 
@@ -10,7 +10,7 @@ You are rebuilding AutoAgent VNextCC's core architecture based on 12 P0 feature 
    - `src/` (Python backend — optimizer, evals, agent, logger, API)
    - `web/` (React frontend — 9 pages, 20 components)
    - `ARCHITECTURE_OVERVIEW.md`
-   - `autoagent.yaml` (config)
+   - `agentlab.yaml` (config)
    - All test files
 
 2. Create `P0_IMPLEMENTATION_PLAN.md` with:
@@ -26,7 +26,7 @@ You are rebuilding AutoAgent VNextCC's core architecture based on 12 P0 feature 
    - **Single-process**: No Celery/Redis/Kafka — SQLite for persistence
    - **Headless-first**: CLI + API primary, web console for insight
    - **Karpathy-simple where possible**: Don't over-engineer what can be kept simple
-   - **User journey simplicity**: A user should still be able to `autoagent init` → `autoagent run` → see results
+   - **User journey simplicity**: A user should still be able to `agentlab init` → `agentlab run` → see results
 
 ## Phase 2: Execution
 
@@ -43,7 +43,7 @@ After the plan is written and reviewed (by you), execute it. Use sub-agents for 
 - Update/add tests (pytest for backend, Vitest for frontend)
 - Update API endpoints as needed
 - Update CLI commands as needed
-- Update `autoagent.yaml` schema
+- Update `agentlab.yaml` schema
 - Update docs
 
 ## Phase 3: Integration & Verification
@@ -57,7 +57,7 @@ After the plan is written and reviewed (by you), execute it. Use sub-agents for 
 
 ## Constraints
 
-- Do NOT break the existing `autoagent optimize` → `autoagent deploy` flow
+- Do NOT break the existing `agentlab optimize` → `agentlab deploy` flow
 - Do NOT add Celery, Redis, Kafka, or any external service dependencies
 - Do NOT switch away from Gemini as default model
 - SQLite remains the persistence layer (Postgres as upgrade path only)
@@ -67,4 +67,4 @@ After the plan is written and reviewed (by you), execute it. Use sub-agents for 
 
 ## When Done
 
-Run: `openclaw system event --text "Done: AutoAgent VNextCC P0 overhaul — [summary of what changed, file counts, test counts]" --mode now`
+Run: `openclaw system event --text "Done: AgentLab VNextCC P0 overhaul — [summary of what changed, file counts, test counts]" --mode now`

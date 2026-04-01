@@ -1,6 +1,6 @@
 # NL Scorer Generation
 
-Create eval scorers from natural language descriptions. No code required -- describe what you want to measure, and AutoAgent generates a structured scorer with weighted dimensions.
+Create eval scorers from natural language descriptions. No code required -- describe what you want to measure, and AgentLab generates a structured scorer with weighted dimensions.
 
 ## How it works
 
@@ -48,20 +48,20 @@ Each dimension has a name, weight (summing to 1.0), and a description that guide
 From an inline description:
 
 ```bash
-autoagent scorer create "Score customer support responses on empathy, accuracy, and actionability" --name support_quality
+agentlab scorer create "Score customer support responses on empathy, accuracy, and actionability" --name support_quality
 ```
 
 From a file with detailed criteria:
 
 ```bash
-autoagent scorer create --from-file criteria.txt --name support_quality
+agentlab scorer create --from-file criteria.txt --name support_quality
 ```
 
 ### List and inspect
 
 ```bash
-autoagent scorer list
-autoagent scorer show support_quality
+agentlab scorer list
+agentlab scorer show support_quality
 ```
 
 ### Refine iteratively
@@ -69,7 +69,7 @@ autoagent scorer show support_quality
 Add criteria to an existing scorer:
 
 ```bash
-autoagent scorer refine support_quality "Also penalize responses longer than 3 paragraphs"
+agentlab scorer refine support_quality "Also penalize responses longer than 3 paragraphs"
 ```
 
 Each refinement creates a new version of the scorer spec.
@@ -77,7 +77,7 @@ Each refinement creates a new version of the scorer spec.
 ### Test against traces
 
 ```bash
-autoagent scorer test support_quality --trace trace_abc123
+agentlab scorer test support_quality --trace trace_abc123
 ```
 
 Output shows per-dimension scores and an aggregate:
@@ -128,20 +128,20 @@ curl -X POST http://localhost:8000/api/scorers/support_quality/refine \
 
 ```bash
 # 1. Create a scorer for your use case
-autoagent scorer create "Evaluate order support responses: correct order info, empathetic tone, clear resolution steps" --name order_support
+agentlab scorer create "Evaluate order support responses: correct order info, empathetic tone, clear resolution steps" --name order_support
 
 # 2. Check what was generated
-autoagent scorer show order_support
+agentlab scorer show order_support
 
 # 3. Refine based on what you see
-autoagent scorer refine order_support "Add a dimension for response time appropriateness"
+agentlab scorer refine order_support "Add a dimension for response time appropriateness"
 
 # 4. Test against a real trace
-autoagent scorer test order_support --trace trace_abc123
+agentlab scorer test order_support --trace trace_abc123
 
 # 5. Iterate until satisfied
-autoagent scorer refine order_support "Increase weight of correct order info to 0.5"
-autoagent scorer test order_support --trace trace_def456
+agentlab scorer refine order_support "Increase weight of correct order info to 0.5"
+agentlab scorer test order_support --trace trace_def456
 ```
 
 NL Scorers integrate with the eval runner. Once created, they can be referenced in your eval config to score cases alongside the built-in judge stack.

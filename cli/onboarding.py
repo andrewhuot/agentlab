@@ -1,6 +1,6 @@
-"""Guided onboarding flow for bare ``autoagent`` outside a workspace.
+"""Guided onboarding flow for bare ``agentlab`` outside a workspace.
 
-When a user runs ``autoagent`` with no subcommand and no workspace is
+When a user runs ``agentlab`` with no subcommand and no workspace is
 detected, this module presents a friendly guided choice:
 
 1. Create demo workspace (scaffolds with synthetic data + demo traces)
@@ -14,7 +14,7 @@ import click
 
 def run_onboarding() -> str | None:
     """Return the onboarding action the user selected."""
-    click.echo(click.style("\n  Welcome to AutoAgent", fg="cyan", bold=True))
+    click.echo(click.style("\n  Welcome to AgentLab", fg="cyan", bold=True))
     click.echo("  No workspace detected in the current directory.\n")
     click.echo("  What would you like to do?\n")
     click.echo("    1) Create demo workspace   (starter data + review cards)")

@@ -29,7 +29,7 @@ FAQ_ENTRIES: list[dict] = [
     },
     {
         "question": "How do I contact customer support?",
-        "answer": "You can reach us via this chat, email at support@autoagent.example.com, or call 1-800-555-0199 Mon-Fri 9am-6pm EST.",
+        "answer": "You can reach us via this chat, email at support@agentlab.example.com, or call 1-800-555-0199 Mon-Fri 9am-6pm EST.",
     },
     {
         "question": "Do you offer warranty on products?",

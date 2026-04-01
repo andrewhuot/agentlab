@@ -25,7 +25,7 @@ def test_progress_renderer_stream_json_emits_standard_event_shapes() -> None:
     renderer.phase_started("build", message="Starting build")
     renderer.artifact_written("config", path="configs/v001.yaml")
     renderer.phase_completed("build", message="Build complete")
-    renderer.next_action("autoagent eval run")
+    renderer.next_action("agentlab eval run")
 
     assert len(lines) == 4
     payloads = [json.loads(line) for line in lines]
@@ -34,7 +34,7 @@ def test_progress_renderer_stream_json_emits_standard_event_shapes() -> None:
     assert payloads[1]["event"] == "artifact_written"
     assert payloads[1]["artifact"] == "config"
     assert payloads[-1]["event"] == "next_action"
-    assert payloads[-1]["message"] == "autoagent eval run"
+    assert payloads[-1]["message"] == "agentlab eval run"
 
 
 def test_build_stream_json_emits_progress_events(runner: CliRunner) -> None:

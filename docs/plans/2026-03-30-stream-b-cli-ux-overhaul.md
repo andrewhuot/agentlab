@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement Stream B of the AutoAgent CLI UX overhaul: permissions, memory v2, progress/events, MCP runtime management, usage/budget surfaces, model controls, and the six quick wins in a way that fits the existing V2 command structure.
+**Goal:** Implement Stream B of the AgentLab CLI UX overhaul: permissions, memory v2, progress/events, MCP runtime management, usage/budget surfaces, model controls, and the six quick wins in a way that fits the existing V2 command structure.
 
-**Architecture:** Add new focused CLI/core modules for settings-backed behavior and keep `runner.py` as the integration layer. Reuse existing runtime config, workspace discovery, JSON envelope helpers, and cost/memory stores, while introducing `.autoagent/settings.json`, `.mcp.json`, and layered project memory as first-class workspace state.
+**Architecture:** Add new focused CLI/core modules for settings-backed behavior and keep `runner.py` as the integration layer. Reuse existing runtime config, workspace discovery, JSON envelope helpers, and cost/memory stores, while introducing `.agentlab/settings.json`, `.mcp.json`, and layered project memory as first-class workspace state.
 
 **Tech Stack:** Python, Click CLI, Pydantic runtime config, SQLite-backed cost/memory stores, pytest, JSON/YAML workspace artifacts.
 
@@ -34,7 +34,7 @@ Expected: FAIL because `cli/permissions.py` and settings-backed rule evaluation 
 **Step 3: Write failing tests for layered memory**
 
 Cover:
-- loader merges `AUTOAGENT.md`, `AUTOAGENT.local.md`, `.autoagent/rules/*.md`, and `.autoagent/memory/*.md`
+- loader merges `AGENTLAB.md`, `AGENTLAB.local.md`, `.agentlab/rules/*.md`, and `.agentlab/memory/*.md`
 - memory commands expose `list`, `where`, `edit`, and `summarize-session`
 - status/doctor-facing snapshot contains active file metadata
 
@@ -72,14 +72,14 @@ Cover:
 Cover:
 - `usage` reports last eval/optimize, cumulative spend, configured budget, and remaining budget
 - `optimize` and `loop` accept `--max-budget-usd`
-- `model list/show/set proposer/set evaluator` read and write `.autoagent/settings.json`
+- `model list/show/set proposer/set evaluator` read and write `.agentlab/settings.json`
 
 **Step 4: Write failing tests for quick wins**
 
 Cover:
 - `doctor --json` returns `{status, data, next}`
 - `status`, `eval run`, `explain`, `diagnose`, and `replay` all use the standard envelope
-- missing workspace/config import/credentials routes mention `autoagent doctor`
+- missing workspace/config import/credentials routes mention `agentlab doctor`
 - interactive `edit` and `diagnose` help text shows workspace and quit hints
 
 **Step 5: Run targeted UX tests to verify they fail**
@@ -100,7 +100,7 @@ Expected: FAIL on the newly asserted behaviors
 **Step 1: Implement workspace settings helpers and permission evaluation**
 
 Add:
-- settings loader/writer around `.autoagent/settings.json`
+- settings loader/writer around `.agentlab/settings.json`
 - mode defaults for `plan`, `default`, `acceptEdits`, `dontAsk`, `bypass`
 - action classifiers for `config.write`, `memory.write`, `deploy.canary`, `deploy.immediate`, `review.apply`, `mcp.install`, `mcp.write`
 

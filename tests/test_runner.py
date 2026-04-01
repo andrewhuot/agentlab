@@ -196,12 +196,12 @@ def test_build_runtime_components_honor_workspace_mock_preference(tmp_path, monk
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
 
-    (tmp_path / ".autoagent").mkdir()
-    (tmp_path / ".autoagent" / "workspace.json").write_text(
+    (tmp_path / ".agentlab").mkdir()
+    (tmp_path / ".agentlab" / "workspace.json").write_text(
         '{"mode": "mock", "updated_by": "test"}\n',
         encoding="utf-8",
     )
-    (tmp_path / "autoagent.yaml").write_text(
+    (tmp_path / "agentlab.yaml").write_text(
         yaml.safe_dump(
             {
                 "optimizer": {
@@ -228,7 +228,7 @@ def test_build_runtime_components_honor_workspace_mock_preference(tmp_path, monk
 
 def test_context_analyze_command_reads_trace_events_from_store(tmp_path, monkeypatch) -> None:
     """`context analyze` should read events from the trace store and summarize them."""
-    trace_dir = tmp_path / ".autoagent"
+    trace_dir = tmp_path / ".agentlab"
     trace_dir.mkdir()
     store = TraceStore(db_path=str(trace_dir / "traces.db"))
     store.log_event(
@@ -258,7 +258,7 @@ def test_context_analyze_command_reads_trace_events_from_store(tmp_path, monkeyp
 
 def test_scorer_test_command_scores_a_trace_from_persisted_spec(tmp_path, monkeypatch) -> None:
     """`scorer test` should load the persisted scorer spec and evaluate the requested trace."""
-    trace_dir = tmp_path / ".autoagent"
+    trace_dir = tmp_path / ".agentlab"
     trace_dir.mkdir()
     store = TraceStore(db_path=str(trace_dir / "traces.db"))
     store.log_event(
@@ -294,7 +294,7 @@ def test_scorer_test_command_scores_a_trace_from_persisted_spec(tmp_path, monkey
 
     test_result = runner.invoke(
         cli,
-        ["scorer", "test", "trace_scorer", "--trace", "trace-score-1", "--db", ".autoagent/traces.db"],
+        ["scorer", "test", "trace_scorer", "--trace", "trace-score-1", "--db", ".agentlab/traces.db"],
     )
 
     assert test_result.exit_code == 0
@@ -381,7 +381,7 @@ def test_curriculum_generate_uses_conversation_failures(tmp_path, monkeypatch) -
             "--prompts-per-cluster",
             "2",
             "--output-dir",
-            ".autoagent/curriculum",
+            ".agentlab/curriculum",
         ],
     )
 
@@ -390,7 +390,7 @@ def test_curriculum_generate_uses_conversation_failures(tmp_path, monkeypatch) -
 
     list_result = runner.invoke(
         cli,
-        ["curriculum", "list", "--limit", "5", "--output-dir", ".autoagent/curriculum"],
+        ["curriculum", "list", "--limit", "5", "--output-dir", ".agentlab/curriculum"],
     )
 
     assert list_result.exit_code == 0

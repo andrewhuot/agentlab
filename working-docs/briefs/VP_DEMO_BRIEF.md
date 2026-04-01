@@ -1,12 +1,12 @@
-# VP-Ready Demo Brief — Make AutoAgent Unforgettable in 5 Minutes
+# VP-Ready Demo Brief — Make AgentLab Unforgettable in 5 Minutes
 
 ## Mission
-Create a polished, rehearsed, VP-ready demo flow that showcases AutoAgent's full power in under 5 minutes. The demo should tell a STORY — not just show features. A VP should walk away thinking "we need this."
+Create a polished, rehearsed, VP-ready demo flow that showcases AgentLab's full power in under 5 minutes. The demo should tell a STORY — not just show features. A VP should walk away thinking "we need this."
 
 ## The Story Arc
 ```
 Act 1: "Here's your broken agent" (30s)
-Act 2: "Watch AutoAgent diagnose the problems" (60s)  
+Act 2: "Watch AgentLab diagnose the problems" (60s)  
 Act 3: "Watch it fix itself" (90s)
 Act 4: "Here's what changed — you approve it" (60s)
 Act 5: "Deploy with one click" (30s)
@@ -14,11 +14,11 @@ Act 5: "Deploy with one click" (30s)
 
 ## What to Build
 
-### 1. `autoagent demo vp` Command
+### 1. `agentlab demo vp` Command
 A new demo subcommand specifically designed for VP presentations:
 
 ```bash
-autoagent demo vp [--agent-name "Acme Support Bot"] [--company "Acme Corp"]
+agentlab demo vp [--agent-name "Acme Support Bot"] [--company "Acme Corp"]
 ```
 
 This should:
@@ -172,9 +172,9 @@ This should:
   🎯 All 3 critical issues resolved in 3 optimization cycles.
   
   Next steps:
-    autoagent server    → Open web console to explore details
-    autoagent cx deploy → Deploy to CX Agent Studio
-    autoagent replay    → See full optimization history
+    agentlab server    → Open web console to explore details
+    agentlab cx deploy → Deploy to CX Agent Studio
+    agentlab replay    → See full optimization history
   ```
 
 ### 2. Curated Synthetic Data for VP Demo
@@ -199,7 +199,7 @@ Add a "VP Demo" section to the README with:
 - How to transition to the web console
 - FAQ / objection handling
 
-### 4. `autoagent demo vp --web` Flag
+### 4. `agentlab demo vp --web` Flag
 When `--web` is passed:
 - After the CLI demo completes, auto-start the server
 - Auto-open the web console
@@ -221,7 +221,7 @@ When `--web` is passed:
 
 ## Quality Bar
 - `python3 -m pytest tests/ -x -q` must pass
-- The VP demo must run cleanly end-to-end: `autoagent demo vp --no-pause`
+- The VP demo must run cleanly end-to-end: `agentlab demo vp --no-pause`
 - README demo section must be clear and actionable
 - Commit and push to master
 

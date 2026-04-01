@@ -1,7 +1,7 @@
 # NL Intelligence Layer — Implementation Plan
 
 ## Overview
-6 features that make AutoAgent conversational, composable, and accessible from any AI coding tool.
+6 features that make AgentLab conversational, composable, and accessible from any AI coding tool.
 
 ---
 
@@ -168,25 +168,25 @@ POST /api/diagnose/chat  { "message": "...", "session_id": "..." }
 
 ---
 
-## Feature 4: AUTOAGENT.md Auto-Update (`core/project_memory.py`)
+## Feature 4: AGENTLAB.md Auto-Update (`core/project_memory.py`)
 
 ### New method on `ProjectMemory`:
 ```python
 def update_with_intelligence(self, report: dict, eval_score: float,
                              recent_changes: list[dict], skill_gaps: list[dict]) -> None:
-    """Update AUTOAGENT.md with current agent intelligence.
+    """Update AGENTLAB.md with current agent intelligence.
 
     Manages content between sentinel markers:
-    <!-- BEGIN AUTOAGENT INTELLIGENCE — auto-updated, do not edit -->
+    <!-- BEGIN AGENTLAB INTELLIGENCE — auto-updated, do not edit -->
     ...
-    <!-- END AUTOAGENT INTELLIGENCE -->
+    <!-- END AGENTLAB INTELLIGENCE -->
     """
 ```
 
 ### Integration points:
-- End of `autoagent optimize` cycle (runner.py optimize command)
-- End of `autoagent edit` (runner.py edit command)
-- When `autoagent diagnose` applies a fix
+- End of `agentlab optimize` cycle (runner.py optimize command)
+- End of `agentlab edit` (runner.py edit command)
+- When `agentlab diagnose` applies a fix
 
 ---
 
@@ -204,28 +204,28 @@ mcp_server/
 ### Tool Schemas:
 ```python
 # Status & Health
-autoagent_status() -> dict          # health, scores, failures
-autoagent_explain() -> str          # plain-English summary
+agentlab_status() -> dict          # health, scores, failures
+agentlab_explain() -> str          # plain-English summary
 
 # Diagnosis
-autoagent_diagnose() -> dict        # clustered issues with root causes
-autoagent_get_failures(failure_family: str, limit: int = 5) -> list[dict]
+agentlab_diagnose() -> dict        # clustered issues with root causes
+agentlab_get_failures(failure_family: str, limit: int = 5) -> list[dict]
 
 # Editing
-autoagent_suggest_fix(description: str) -> dict    # diff + expected impact
-autoagent_edit(description: str, auto_apply: bool = False) -> dict
+agentlab_suggest_fix(description: str) -> dict    # diff + expected impact
+agentlab_edit(description: str, auto_apply: bool = False) -> dict
 
 # Evaluation
-autoagent_eval(config_path: str | None = None) -> dict
-autoagent_eval_compare(config_a: str, config_b: str) -> dict
+agentlab_eval(config_path: str | None = None) -> dict
+agentlab_eval_compare(config_a: str, config_b: str) -> dict
 
 # Skills & Gaps
-autoagent_skill_gaps() -> list[dict]
-autoagent_skill_recommend() -> list[dict]
+agentlab_skill_gaps() -> list[dict]
+agentlab_skill_recommend() -> list[dict]
 
 # History
-autoagent_replay(limit: int = 10) -> list[dict]
-autoagent_diff(version_a: int, version_b: int) -> str
+agentlab_replay(limit: int = 10) -> list[dict]
+agentlab_diff(version_a: int, version_b: int) -> str
 ```
 
 ### CLI:
@@ -289,5 +289,5 @@ Add to `tests/test_dependency_layers.py`:
 - `python3 -m pytest tests/ -x -q` — must pass with >1,705 tests
 - `cd web && npx tsc --noEmit` — must pass
 - `python3 -m pytest tests/test_dependency_layers.py -v` — must pass
-- `autoagent edit "fix routing" --dry-run` must work end-to-end
-- `autoagent diagnose` must print cluster analysis
+- `agentlab edit "fix routing" --dry-run` must work end-to-end
+- `agentlab diagnose` must print cluster analysis

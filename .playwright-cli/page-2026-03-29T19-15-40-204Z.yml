@@ -1,7 +1,7 @@
 - main [ref=e5]:
   - generic [ref=e7]:
     - generic [ref=e9]:
-      - heading "AutoAgent Assistant" [level=1] [ref=e10]
+      - heading "AgentLab Assistant" [level=1] [ref=e10]
       - paragraph [ref=e11]: Preview conversational workflows for building, optimizing, and debugging AI agents.
       - generic [ref=e13]:
         - img [ref=e14]

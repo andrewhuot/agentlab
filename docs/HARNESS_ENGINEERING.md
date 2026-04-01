@@ -1,4 +1,4 @@
-# Harness Engineering for AutoAgent
+# Harness Engineering for AgentLab
 
 Last updated: 2026-03-27
 
@@ -7,7 +7,7 @@ Last updated: 2026-03-27
 "Harness engineering" is the discipline of building the infrastructure around model calls so evaluations are trustworthy, reproducible, cost-aware, and fast enough to use continuously. This document captures:
 
 - The external best practices we benchmarked against
-- How AutoAgent’s eval stack maps to those practices
+- How AgentLab’s eval stack maps to those practices
 - What was improved in this implementation pass
 - How to design high-signal evals in this codebase
 
@@ -44,7 +44,7 @@ We used the following checklist for audit and implementation prioritization:
 10. Debuggability (case-level traces/reasons)
 11. Continuous evaluation and drift signals
 
-## AutoAgent eval architecture
+## AgentLab eval architecture
 
 ### Core modules
 
@@ -176,7 +176,7 @@ Impact:
 
 Files:
 - `agent/config/runtime.py`
-- `autoagent.yaml`
+- `agentlab.yaml`
 - `runner.py`
 - `api/server.py`
 - `api/routes/eval.py`
@@ -193,7 +193,7 @@ Behavior:
 - CLI/API/MCP instantiate `EvalRunner` with these controls.
 - Eval responses now include CIs, token totals, estimated cost, and warnings.
 
-## How to write high-signal evals in AutoAgent
+## How to write high-signal evals in AgentLab
 
 ### 1) Use real task slices and explicit categories
 
@@ -212,7 +212,7 @@ Why:
 
 Guidelines:
 - Prefer explicit `split` labels in source datasets.
-- If missing, AutoAgent uses deterministic split assignment from case ID hash.
+- If missing, AgentLab uses deterministic split assignment from case ID hash.
 - Avoid duplicate prompts crossing train/test boundaries.
 - Use strict integrity mode for critical CI gates.
 
@@ -228,7 +228,7 @@ Recommended policy:
 
 ### 4) Log enough detail to debug failures quickly
 
-AutoAgent already stores case-level payloads and details. Keep detail strings informative:
+AgentLab already stores case-level payloads and details. Keep detail strings informative:
 - What was expected
 - What was observed
 - Which dimension failed (routing, tool use, safety, etc.)
@@ -255,7 +255,7 @@ Use this policy for eval data lifecycle:
 
 ## Scoring and grading patterns
 
-### Recommended stack in AutoAgent
+### Recommended stack in AgentLab
 
 1. Deterministic graders first
 2. Similarity/heuristic graders second
@@ -291,16 +291,16 @@ Add human review when:
 ### CLI eval run
 
 ```bash
-autoagent eval run --dataset path/to/eval.jsonl --split test --output results.json
+agentlab eval run --dataset path/to/eval.jsonl --split test --output results.json
 ```
 
-### Runtime eval controls (`autoagent.yaml`)
+### Runtime eval controls (`agentlab.yaml`)
 
 ```yaml
 eval:
   history_db_path: eval_history.db
   cache_enabled: true
-  cache_db_path: .autoagent/eval_cache.db
+  cache_db_path: .agentlab/eval_cache.db
   dataset_path:
   dataset_split: test
   dataset_strict_integrity: false

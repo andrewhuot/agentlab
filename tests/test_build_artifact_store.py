@@ -46,8 +46,8 @@ def _build_artifact(
 
 def test_build_artifact_store_persists_latest_and_recent_order(tmp_path: Path) -> None:
     store = BuildArtifactStore(
-        path=tmp_path / ".autoagent" / "build_artifacts.json",
-        latest_path=tmp_path / ".autoagent" / "build_artifact_latest.json",
+        path=tmp_path / ".agentlab" / "build_artifacts.json",
+        latest_path=tmp_path / ".agentlab" / "build_artifact_latest.json",
     )
 
     older = _build_artifact("build-001", created_at="2026-03-29T12:00:00Z")
@@ -66,7 +66,7 @@ def test_build_artifact_store_persists_latest_and_recent_order(tmp_path: Path) -
     assert legacy_payload is not None
     assert legacy_payload["artifact_id"] == "build-002"
     assert legacy_payload["source_prompt"] == "Build a support agent"
-    assert (tmp_path / ".autoagent" / "build_artifact_latest.json").exists()
+    assert (tmp_path / ".agentlab" / "build_artifact_latest.json").exists()
 
 
 def test_build_artifact_api_lists_and_fetches_saved_records(tmp_path: Path) -> None:
@@ -74,8 +74,8 @@ def test_build_artifact_api_lists_and_fetches_saved_records(tmp_path: Path) -> N
     app.include_router(intelligence_router)
 
     store = BuildArtifactStore(
-        path=tmp_path / ".autoagent" / "build_artifacts.json",
-        latest_path=tmp_path / ".autoagent" / "build_artifact_latest.json",
+        path=tmp_path / ".agentlab" / "build_artifacts.json",
+        latest_path=tmp_path / ".agentlab" / "build_artifact_latest.json",
     )
     saved = store.save_latest(_build_artifact("build-api-001", created_at="2026-03-29T14:00:00Z"))
     app.state.build_artifact_store = store

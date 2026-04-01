@@ -38,7 +38,7 @@ class CandidateSandbox:
     def __init__(self, baseline_config: dict[str, Any]) -> None:
         self._sandbox_id = str(uuid.uuid4())[:8]
         self._work_dir = tempfile.mkdtemp(
-            prefix=f"autoagent_sandbox_{self._sandbox_id}_"
+            prefix=f"agentlab_sandbox_{self._sandbox_id}_"
         )
         self._baseline = copy.deepcopy(baseline_config)
         self._candidate: dict[str, Any] | None = None

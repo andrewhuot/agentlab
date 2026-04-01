@@ -1,6 +1,6 @@
-# AutoAgent UI Quick Start Guide
+# AgentLab UI Quick Start Guide
 
-This guide gets you from zero to a working AutoAgent session in the browser using the current web console.
+This guide gets you from zero to a working AgentLab session in the browser using the current web console.
 
 It is based on the routes and page labels that ship in this repo today.
 
@@ -25,7 +25,7 @@ Manual alternative:
 
 ```bash
 # terminal 1
-autoagent server
+agentlab server
 
 # terminal 2
 cd web
@@ -78,10 +78,10 @@ What to look for:
 Closest CLI surfaces:
 
 ```bash
-autoagent status
-autoagent doctor
-autoagent mode show
-autoagent mcp status
+agentlab status
+agentlab doctor
+agentlab mode show
+agentlab mcp status
 ```
 
 ## 4. Use Build to Create or Refine a Config
@@ -113,10 +113,10 @@ Build a customer support agent for order tracking, refunds, and cancellations.
 Closest CLI surfaces:
 
 ```bash
-autoagent build "customer support agent for order tracking, refunds, and cancellations"
-autoagent build show latest
-autoagent instruction show
-autoagent instruction validate
+agentlab build "customer support agent for order tracking, refunds, and cancellations"
+agentlab build show latest
+agentlab instruction show
+agentlab instruction validate
 ```
 
 ## 5. Use Connect When You Already Have a Runtime
@@ -130,15 +130,15 @@ The current adapters are:
 - **HTTP**
 - **Transcript**
 
-The page is titled **Connect Existing Runtime** and creates a fresh AutoAgent workspace from the selected source.
+The page is titled **Connect Existing Runtime** and creates a fresh AgentLab workspace from the selected source.
 
 Closest CLI surfaces:
 
 ```bash
-autoagent connect openai-agents --path /path/to/project
-autoagent connect anthropic --path /path/to/project
-autoagent connect http --url https://agent.example.com
-autoagent connect transcript --file conversations.jsonl
+agentlab connect openai-agents --path /path/to/project
+agentlab connect anthropic --path /path/to/project
+agentlab connect http --url https://agent.example.com
+agentlab connect transcript --file conversations.jsonl
 ```
 
 ## 6. Run an Eval
@@ -160,10 +160,10 @@ The page lets you:
 Closest CLI surfaces:
 
 ```bash
-autoagent eval run
-autoagent eval list
-autoagent eval show latest
-autoagent eval generate
+agentlab eval run
+agentlab eval list
+agentlab eval show latest
+agentlab eval generate
 ```
 
 ## 7. Use Results Explorer for Case-Level Debugging
@@ -187,8 +187,8 @@ This is different from Eval Runs:
 Closest CLI surfaces:
 
 ```bash
-autoagent eval results
-autoagent eval results export RUN_ID --format markdown
+agentlab eval results
+agentlab eval results export RUN_ID --format markdown
 ```
 
 ## 8. Use Compare for Head-to-Head Decisions
@@ -208,8 +208,8 @@ This is the decision surface for "which version is better?" rather than the diag
 Closest CLI surfaces:
 
 ```bash
-autoagent compare candidates
-autoagent eval compare --config-a configs/v001.yaml --config-b configs/v002.yaml
+agentlab compare candidates
+agentlab eval compare --config-a configs/v001.yaml --config-b configs/v002.yaml
 ```
 
 ## 9. Optimize, Then Review in Improvements
@@ -241,10 +241,10 @@ This replaces the older "Change Review" framing in the main UI.
 Closest CLI surfaces:
 
 ```bash
-autoagent optimize --cycles 1
-autoagent review list
-autoagent review show pending
-autoagent review apply pending
+agentlab optimize --cycles 1
+agentlab review list
+agentlab review show pending
+agentlab review apply pending
 ```
 
 ## 10. Deploy Safely
@@ -263,15 +263,15 @@ The current page shows:
 Closest CLI surfaces:
 
 ```bash
-autoagent deploy --strategy canary --yes
-autoagent deploy status
-autoagent deploy rollback --yes
+agentlab deploy --strategy canary --yes
+agentlab deploy status
+agentlab deploy rollback --yes
 ```
 
 If you want review and deploy in one CLI step, this also works:
 
 ```bash
-autoagent deploy --auto-review --yes
+agentlab deploy --auto-review --yes
 ```
 
 ## 11. Explore the Pro and Integration Surfaces
@@ -328,15 +328,15 @@ Once the workspace is healthy, the usual operating rhythm is:
 Closest CLI loop:
 
 ```bash
-autoagent status
-autoagent build "describe the next refinement"
-autoagent eval run
-autoagent eval show latest
-autoagent compare candidates
-autoagent optimize --cycles 1
-autoagent review list
-autoagent deploy --auto-review --yes
-autoagent deploy status
+agentlab status
+agentlab build "describe the next refinement"
+agentlab eval run
+agentlab eval show latest
+agentlab compare candidates
+agentlab optimize --cycles 1
+agentlab review list
+agentlab deploy --auto-review --yes
+agentlab deploy status
 ```
 
 ## Troubleshooting
@@ -355,10 +355,10 @@ That is fine if you are using mock mode.
 To inspect or change the current mode:
 
 ```bash
-autoagent mode show
-autoagent mode set live
-autoagent provider list
-autoagent provider test
+agentlab mode show
+agentlab mode set live
+agentlab provider list
+agentlab provider test
 ```
 
 ### Results Explorer is empty
@@ -366,7 +366,7 @@ autoagent provider test
 Run an eval first:
 
 ```bash
-autoagent eval run
+agentlab eval run
 ```
 
 ### Compare has nothing to compare
@@ -383,7 +383,7 @@ Latest eval passed; no optimization needed.
 
 ### Deploy feels local
 
-That is expected for the default AutoAgent deployment target. External deployment targets such as CX use separate integration flows.
+That is expected for the default AgentLab deployment target. External deployment targets such as CX use separate integration flows.
 
 ## Next Steps
 

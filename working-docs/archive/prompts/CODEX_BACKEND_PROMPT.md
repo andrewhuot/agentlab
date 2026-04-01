@@ -1,16 +1,16 @@
 # Codex Task: Backend Architecture Review + Production Hardening
 
 ## Mission
-Review and harden AutoAgent VNextCC's backend so it can genuinely optimize AI agents in production. This system should run for days continuously, support multiple LLM providers, and produce real measurable improvements.
+Review and harden AgentLab VNextCC's backend so it can genuinely optimize AI agents in production. This system should run for days continuously, support multiple LLM providers, and produce real measurable improvements.
 
 ## Context
-AutoAgent VNextCC is a self-optimizing platform for AI agents. It evaluates agent performance, proposes improvements via LLM-as-optimizer, runs accept/reject gates, and deploys winners. The core loop: Eval → Observe → Optimize → Deploy → Repeat.
+AgentLab VNextCC is a self-optimizing platform for AI agents. It evaluates agent performance, proposes improvements via LLM-as-optimizer, runs accept/reject gates, and deploys winners. The core loop: Eval → Observe → Optimize → Deploy → Repeat.
 
 Key files:
 - `runner.py` — main engine (eval, optimize, deploy, observer, conversation logger)
 - `api/` — REST API (FastAPI/Starlette)
 - `tests/` — pytest suite
-- `autoagent.yaml` — config
+- `agentlab.yaml` — config
 
 ## Phase 1: Architecture Audit
 Review every Python file and answer:
@@ -30,7 +30,7 @@ Ensure the system can use ANY LLM provider for the optimizer (the LLM that propo
 - Local models via OpenAI-compatible API
 
 Design:
-- Config-driven model selection in `autoagent.yaml`
+- Config-driven model selection in `agentlab.yaml`
 - Support model rotation/ensemble: run the same eval through multiple models and compare proposals
 - Abstract LLM calls behind a provider interface
 - Include rate limiting, retry with backoff, and cost tracking per provider

@@ -1,6 +1,6 @@
 # Distinguished Engineer + Technical PM Review
 
-You are reviewing AutoAgent VNextCC as both a Distinguished Engineer and a Technical Product Manager. Your goal is to find everything that's broken, half-baked, or would embarrass us in front of a VP or customer — and fix it.
+You are reviewing AgentLab VNextCC as both a Distinguished Engineer and a Technical Product Manager. Your goal is to find everything that's broken, half-baked, or would embarrass us in front of a VP or customer — and fix it.
 
 ## Your Mindset
 
@@ -50,7 +50,7 @@ Test every critical user journey end-to-end:
 8. Settings page: all controls work
 9. Skills pages: list/detail views work
 10. Demo mode: guided walkthrough completes
-11. CLI: `autoagent init`, `autoagent loop --help`, `autoagent server`
+11. CLI: `agentlab init`, `agentlab loop --help`, `agentlab server`
 
 ### Phase 4: Code Quality Sweep
 - Find all `NotImplementedError` stubs in production paths

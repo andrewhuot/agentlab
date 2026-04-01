@@ -29,7 +29,7 @@ class DatasetStore:
     dataset_versions — immutable snapshots; create_version freezes the current rows
     """
 
-    def __init__(self, db_path: str = ".autoagent/datasets.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/datasets.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_tables()

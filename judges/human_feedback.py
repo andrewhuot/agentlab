@@ -53,7 +53,7 @@ class HumanFeedback:
 class HumanFeedbackStore:
     """SQLite-backed store for human calibration feedback."""
 
-    def __init__(self, db_path: str = ".autoagent/human_feedback.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/human_feedback.db") -> None:
         self._db_path = db_path
         self._ensure_table()
 

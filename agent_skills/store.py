@@ -25,7 +25,7 @@ class AgentSkillStore:
     All agent skills are converted to the RUNTIME kind in the unified format.
     """
 
-    def __init__(self, db_path: str = ".autoagent/agent_skills.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/agent_skills.db") -> None:
         """Initialize the agent skill store.
 
         Args:

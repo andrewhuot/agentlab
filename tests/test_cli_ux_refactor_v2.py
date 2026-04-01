@@ -52,10 +52,10 @@ def _seed_config_version(workspace: Path, *, model_name: str, status: str = "can
 
 
 class TestBareAutoagentStatusHome:
-    """Tests for the bare `autoagent` entry behavior."""
+    """Tests for the bare `agentlab` entry behavior."""
 
     def test_root_invokes_status_when_no_arguments_are_given(self, runner: CliRunner) -> None:
-        """Running `autoagent` inside a workspace should render the status home screen."""
+        """Running `agentlab` inside a workspace should render the status home screen."""
         with runner.isolated_filesystem():
             init_result = runner.invoke(cli, ["init", "--dir", "."])
             assert init_result.exit_code == 0, init_result.output
@@ -63,7 +63,7 @@ class TestBareAutoagentStatusHome:
             result = runner.invoke(cli, [])
 
             assert result.exit_code == 0, result.output
-            assert "AutoAgent Status" in result.output
+            assert "AgentLab Status" in result.output
             assert "Next step:" in result.output
 
 
@@ -71,7 +71,7 @@ class TestGrammarStandardization:
     """Tests for `resource verb` command routing plus compatibility aliases."""
 
     def test_build_show_new_subcommand_works(self, runner: CliRunner) -> None:
-        """`autoagent build show latest` should replace `build-show`."""
+        """`agentlab build show latest` should replace `build-show`."""
         with runner.isolated_filesystem():
             build_result = runner.invoke(
                 cli,
@@ -97,11 +97,11 @@ class TestGrammarStandardization:
 
             assert result.exit_code == 0, result.output
             assert "Deprecated" in result.output
-            assert "autoagent build show latest" in result.output
+            assert "agentlab build show latest" in result.output
             assert "Latest Build Artifact" in result.output
 
     def test_intelligence_import_new_command_works(self, runner: CliRunner) -> None:
-        """`autoagent intelligence import` should replace transcript upload aliases."""
+        """`agentlab intelligence import` should replace transcript upload aliases."""
         with runner.isolated_filesystem():
             transcript_file = _write_transcript_file(Path("transcripts.json"))
 
@@ -111,7 +111,7 @@ class TestGrammarStandardization:
             assert "Report ID:" in result.output
 
     def test_import_transcript_legacy_alias_warns_but_still_works(self, runner: CliRunner) -> None:
-        """`autoagent import transcript upload` should warn and route to the new syntax."""
+        """`agentlab import transcript upload` should warn and route to the new syntax."""
         with runner.isolated_filesystem():
             transcript_file = _write_transcript_file(Path("transcripts.json"))
 
@@ -119,7 +119,7 @@ class TestGrammarStandardization:
 
             assert result.exit_code == 0, result.output
             assert "Deprecated" in result.output
-            assert "autoagent intelligence import" in result.output
+            assert "agentlab intelligence import" in result.output
             assert "Report ID:" in result.output
 
     def test_loop_pause_and_resume_new_subcommands_work(
@@ -128,7 +128,7 @@ class TestGrammarStandardization:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
-        """`autoagent loop pause|resume` should replace the global control commands."""
+        """`agentlab loop pause|resume` should replace the global control commands."""
         control_path = tmp_path / "human_control.json"
 
         from optimizer.human_control import HumanControlStore
@@ -149,7 +149,7 @@ class TestGrammarStandardization:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
-        """`autoagent pause` should warn and delegate to `autoagent loop pause`."""
+        """`agentlab pause` should warn and delegate to `agentlab loop pause`."""
         control_path = tmp_path / "human_control.json"
 
         from optimizer.human_control import HumanControlStore
@@ -160,7 +160,7 @@ class TestGrammarStandardization:
 
         assert result.exit_code == 0, result.output
         assert "Deprecated" in result.output
-        assert "autoagent loop pause" in result.output
+        assert "agentlab loop pause" in result.output
         assert "Optimizer paused" in result.output
 
 
@@ -168,7 +168,7 @@ class TestOnboardingAndTemplates:
     """Tests for Stream 2 onboarding and template flows."""
 
     def test_template_list_shows_all_starter_templates(self, runner: CliRunner) -> None:
-        """`autoagent template list` should expose the four starter templates."""
+        """`agentlab template list` should expose the four starter templates."""
         result = runner.invoke(cli, ["template", "list"])
 
         assert result.exit_code == 0, result.output
@@ -181,7 +181,7 @@ class TestOnboardingAndTemplates:
             assert template_name in result.output
 
     def test_new_command_creates_workspace_from_template_and_demo_data(self, runner: CliRunner) -> None:
-        """`autoagent new` should create a template-backed workspace and print guided next steps."""
+        """`agentlab new` should create a template-backed workspace and print guided next steps."""
         with runner.isolated_filesystem():
             result = runner.invoke(
                 cli,
@@ -191,14 +191,14 @@ class TestOnboardingAndTemplates:
             workspace = Path("my-project")
             assert result.exit_code == 0, result.output
             assert workspace.is_dir()
-            assert (workspace / ".autoagent" / "workspace.json").exists()
-            assert (workspace / ".autoagent" / "change_cards.db").exists()
-            assert (workspace / ".autoagent" / "autofix.db").exists()
+            assert (workspace / ".agentlab" / "workspace.json").exists()
+            assert (workspace / ".agentlab" / "change_cards.db").exists()
+            assert (workspace / ".agentlab" / "autofix.db").exists()
             assert (workspace / "configs" / "v001.yaml").exists()
             assert (workspace / "evals" / "cases").is_dir()
             assert "Mode:" in result.output
             assert "cd my-project" in result.output
-            assert "autoagent status" in result.output
+            assert "agentlab status" in result.output
 
     def test_demo_workspace_review_card_can_be_applied_and_deployed(
         self,
@@ -236,7 +236,7 @@ class TestOnboardingAndTemplates:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
-        """`autoagent template apply` should rewrite starter assets for the selected template."""
+        """`agentlab template apply` should rewrite starter assets for the selected template."""
         workspace = tmp_path / "workspace"
         init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
         assert init_result.exit_code == 0, init_result.output
@@ -247,8 +247,8 @@ class TestOnboardingAndTemplates:
         assert result.exit_code == 0, result.output
         config_text = (workspace / "configs" / "v001.yaml").read_text(encoding="utf-8")
         assert "patient" in config_text.lower()
-        assert any((workspace / ".autoagent" / "scorers").glob("*"))
-        metadata = json.loads((workspace / ".autoagent" / "workspace.json").read_text(encoding="utf-8"))
+        assert any((workspace / ".agentlab" / "scorers").glob("*"))
+        metadata = json.loads((workspace / ".agentlab" / "workspace.json").read_text(encoding="utf-8"))
         assert metadata["template"] == "healthcare-intake"
 
     def test_doctor_fix_repairs_missing_dirs_and_active_config(
@@ -262,7 +262,7 @@ class TestOnboardingAndTemplates:
         init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
         assert init_result.exit_code == 0, init_result.output
 
-        metadata_path = workspace / ".autoagent" / "workspace.json"
+        metadata_path = workspace / ".agentlab" / "workspace.json"
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         metadata["active_config_version"] = None
         metadata["active_config_file"] = None
@@ -300,7 +300,7 @@ class TestOnboardingAndTemplates:
         )
 
         assert configure_result.exit_code == 0, configure_result.output
-        assert (workspace / ".autoagent" / "providers.json").exists()
+        assert (workspace / ".agentlab" / "providers.json").exists()
 
         list_result = runner.invoke(cli, ["provider", "list"])
         assert list_result.exit_code == 0, list_result.output
@@ -325,7 +325,7 @@ class TestStreamBQuickWins:
             init_result = runner.invoke(cli, ["init", "--dir", "."])
             assert init_result.exit_code == 0, init_result.output
 
-            Path(".autoagent/eval_results_latest.json").write_text(
+            Path(".agentlab/eval_results_latest.json").write_text(
                 json.dumps(
                     {
                         "api_version": "1",
@@ -344,7 +344,7 @@ class TestStreamBQuickWins:
                 ),
                 encoding="utf-8",
             )
-            tracker = CostTracker(db_path=".autoagent/cost_tracker.db")
+            tracker = CostTracker(db_path=".agentlab/cost_tracker.db")
             tracker.record_cycle("cycle-001", spent_dollars=0.42, improvement_delta=0.05)
 
             result = runner.invoke(cli, ["status", "--verbose"])
@@ -362,7 +362,7 @@ class TestStreamBQuickWins:
             result = runner.invoke(cli, ["edit", "--interactive"], input="quit\n")
 
             assert result.exit_code == 0, result.output
-            assert "AutoAgent Edit" in result.output
+            assert "AgentLab Edit" in result.output
             assert "Workspace:" in result.output
             assert "help" in result.output.lower()
             assert "quit" in result.output.lower()
@@ -376,7 +376,7 @@ class TestStreamBQuickWins:
             result = runner.invoke(cli, ["diagnose", "--interactive"], input="quit\n")
 
             assert result.exit_code == 0, result.output
-            assert "AutoAgent Diagnosis" in result.output
+            assert "AgentLab Diagnosis" in result.output
             assert "Workspace:" in result.output
             assert "help" in result.output.lower()
             assert "quit" in result.output.lower()
@@ -386,7 +386,7 @@ class TestWorkflowCommands:
     """Tests for Stream 1 workflow wrappers and mutation safety controls."""
 
     def test_improve_json_runs_eval_and_diagnosis_pipeline(self, runner: CliRunner) -> None:
-        """`autoagent improve --json` should return a structured improvement payload."""
+        """`agentlab improve --json` should return a structured improvement payload."""
         no_api_keys = {
             **{k: v for k, v in __import__("os").environ.items()},
             "OPENAI_API_KEY": "",
@@ -410,7 +410,7 @@ class TestWorkflowCommands:
             assert "proposal_count" in payload["data"]
 
     def test_compare_configs_reports_both_versions(self, runner: CliRunner) -> None:
-        """`autoagent compare configs` should compare two stored config versions."""
+        """`agentlab compare configs` should compare two stored config versions."""
         with runner.isolated_filesystem():
             init_result = runner.invoke(cli, ["init", "--dir", "."])
             assert init_result.exit_code == 0, init_result.output
@@ -427,7 +427,7 @@ class TestWorkflowCommands:
             assert "compare-model-v2" in payload["data"]["diff"]
 
     def test_compare_evals_picks_higher_scoring_run(self, runner: CliRunner) -> None:
-        """`autoagent compare evals` should identify the stronger run."""
+        """`agentlab compare evals` should identify the stronger run."""
         with runner.isolated_filesystem():
             left = Path("left.json")
             right = Path("right.json")
@@ -443,7 +443,7 @@ class TestWorkflowCommands:
             assert payload["data"]["delta_composite"] > 0
 
     def test_eval_compare_renders_metric_delta_table(self, runner: CliRunner) -> None:
-        """`autoagent eval compare` should show side-by-side metrics and deltas."""
+        """`agentlab eval compare` should show side-by-side metrics and deltas."""
         with runner.isolated_filesystem():
             left = Path("left.json")
             right = Path("right.json")
@@ -490,7 +490,7 @@ class TestWorkflowCommands:
             assert "0.8400" in result.output
 
     def test_eval_breakdown_shows_failure_clusters_for_latest_result(self, runner: CliRunner) -> None:
-        """`autoagent eval breakdown` should summarize scores and cluster failures."""
+        """`agentlab eval breakdown` should summarize scores and cluster failures."""
         with runner.isolated_filesystem():
             Path("eval_results_latest.json").write_text(
                 json.dumps(
@@ -539,7 +539,7 @@ class TestWorkflowCommands:
             assert "█" in result.output
 
     def test_compare_candidates_lists_non_active_versions(self, runner: CliRunner) -> None:
-        """`autoagent compare candidates` should show candidate or canary configs with scores."""
+        """`agentlab compare candidates` should show candidate or canary configs with scores."""
         with runner.isolated_filesystem():
             init_result = runner.invoke(cli, ["init", "--dir", "."])
             assert init_result.exit_code == 0, init_result.output
@@ -553,7 +553,7 @@ class TestWorkflowCommands:
             assert any(entry["version"] == 2 for entry in payload["data"])
 
     def test_ship_creates_release_and_marks_canary(self, runner: CliRunner) -> None:
-        """`autoagent ship --yes` should create a release and set a canary version."""
+        """`agentlab ship --yes` should create a release and set a canary version."""
         with runner.isolated_filesystem():
             init_result = runner.invoke(cli, ["init", "--dir", "."])
             assert init_result.exit_code == 0, init_result.output
@@ -566,7 +566,7 @@ class TestWorkflowCommands:
             json_start = result.output.index("{")
             payload = json.loads(result.output[json_start:])
             manifest = json.loads(Path("configs/manifest.json").read_text(encoding="utf-8"))
-            releases = list((Path(".autoagent") / "releases").glob("rel-*.json"))
+            releases = list((Path(".agentlab") / "releases").glob("rel-*.json"))
             assert payload["status"] == "ok"
             assert payload["data"]["config_version"] == 2
             assert manifest["canary_version"] == 2
@@ -593,7 +593,7 @@ class TestWorkflowCommands:
 
             assert result.exit_code == 0, result.output
             assert "Dry run" in result.output
-            assert not (Path(".autoagent") / "releases").exists()
+            assert not (Path(".agentlab") / "releases").exists()
 
     def test_deploy_rollback_marks_canary_rolled_back(self, runner: CliRunner) -> None:
         """`deploy rollback` should clear the canary and mark the version rolled back."""
@@ -637,7 +637,7 @@ class TestWorkflowCommands:
 
             assert result.exit_code == 0, result.output
             manifest = json.loads(Path("configs/manifest.json").read_text(encoding="utf-8"))
-            workspace = json.loads((Path(".autoagent") / "workspace.json").read_text(encoding="utf-8"))
+            workspace = json.loads((Path(".agentlab") / "workspace.json").read_text(encoding="utf-8"))
             assert manifest["active_version"] == 1
             assert workspace["active_config_version"] == 1
 
@@ -684,7 +684,7 @@ class TestWorkflowCommands:
             assert id_result.exit_code == 0, id_result.output
             assert id_result.output.strip()
             assert path_result.exit_code == 0, path_result.output
-            assert path_result.output.strip().endswith(".autoagent/build_artifact_latest.json")
+            assert path_result.output.strip().endswith(".agentlab/build_artifact_latest.json")
 
     def test_config_show_and_list_support_compact_output_flags(self, runner: CliRunner) -> None:
         """Config show/list should provide identifier-only and path-only output forms."""

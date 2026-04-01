@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Apply modern eval-harness engineering best practices to AutoAgent by adding reliability, reproducibility, cost controls, and observability improvements backed by tests and documentation.
+**Goal:** Apply modern eval-harness engineering best practices to AgentLab by adding reliability, reproducibility, cost controls, and observability improvements backed by tests and documentation.
 
-**Architecture:** We will first synthesize a best-practice rubric from primary external sources, then map AutoAgent capabilities and close priority gaps in narrow, test-driven increments. Improvements will focus on deterministic run identity, cache correctness, statistical confidence visibility, and budget-aware execution controls that integrate with existing `evals/`, `judges/`, and `optimizer/` flows.
+**Architecture:** We will first synthesize a best-practice rubric from primary external sources, then map AgentLab capabilities and close priority gaps in narrow, test-driven increments. Improvements will focus on deterministic run identity, cache correctness, statistical confidence visibility, and budget-aware execution controls that integrate with existing `evals/`, `judges/`, and `optimizer/` flows.
 
-**Tech Stack:** Python 3.11+, pytest, SQLite-backed repositories, existing AutoAgent eval/judge modules.
+**Tech Stack:** Python 3.11+, pytest, SQLite-backed repositories, existing AgentLab eval/judge modules.
 
 ---
 
@@ -25,7 +25,7 @@
 **Step 3: Persist findings**
 - Append source-backed findings to `findings.md`.
 
-### Task 2: AutoAgent Capability Audit and Gap Prioritization
+### Task 2: AgentLab Capability Audit and Gap Prioritization
 
 **Files:**
 - Modify: `findings.md`

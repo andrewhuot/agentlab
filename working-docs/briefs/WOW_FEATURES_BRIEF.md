@@ -1,7 +1,7 @@
-# WOW Features Brief — 6 Features to Make AutoAgent Magical
+# WOW Features Brief — 6 Features to Make AgentLab Magical
 
 ## Overview
-Build 6 high-impact UX features that create "wow" moments. These transform AutoAgent from a competent tool into something people want to show their boss.
+Build 6 high-impact UX features that create "wow" moments. These transform AgentLab from a competent tool into something people want to show their boss.
 
 **Current state**: 1,429 tests, 24 web pages, 38 CLI commands. All features are ADDITIVE — don't break anything.
 

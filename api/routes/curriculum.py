@@ -21,7 +21,7 @@ def _get_curriculum_store(request: Request) -> CurriculumStore:
     """Get curriculum store from app state."""
     store = getattr(request.app.state, "curriculum_store", None)
     if store is None:
-        store = CurriculumStore(store_dir=".autoagent/curriculum")
+        store = CurriculumStore(store_dir=".agentlab/curriculum")
         request.app.state.curriculum_store = store
     return store
 

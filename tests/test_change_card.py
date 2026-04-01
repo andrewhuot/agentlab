@@ -218,7 +218,7 @@ class TestRendering:
         card = _make_card()
         card.memory_context = "Prioritize conciseness"
         output = card.to_terminal()
-        assert "AUTOAGENT.md" in output
+        assert "AGENTLAB.md" in output
 
     def test_to_markdown_contains_sections(self) -> None:
         card = _make_card(card_id="md-001")
@@ -233,7 +233,7 @@ class TestRendering:
         card = _make_card()
         card.memory_context = "Focus on safety"
         md = card.to_markdown()
-        assert "AUTOAGENT.md" in md
+        assert "AGENTLAB.md" in md
         assert "Focus on safety" in md
 
 

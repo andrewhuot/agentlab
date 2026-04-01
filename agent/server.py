@@ -32,7 +32,7 @@ from logger.middleware import log_conversation
 from logger.store import ConversationStore
 from optimizer.memory import OptimizationMemory
 
-app = FastAPI(title="AutoAgent VNext", version="0.2.0")
+app = FastAPI(title="AgentLab VNext", version="0.2.0")
 
 _templates_dir = Path(__file__).parent / "templates"
 _static_dir = Path(__file__).parent / "static"
@@ -50,7 +50,7 @@ _eval_runner: EvalRunner | None = None
 _dashboard: DashboardDataService | None = None
 _loaded_config: dict | None = None
 
-_app_name = "autoagent"
+_app_name = "agentlab"
 _user_id = "default_user"
 _app_started_at = time.time()
 
@@ -99,10 +99,10 @@ async def startup() -> None:
     """Initialize agent runtime, stores, deployment manager, and dashboard service."""
     global _runner, _session_service, _store, _memory, _deployer, _eval_runner, _dashboard, _loaded_config, _app_started_at
 
-    configs_dir = os.environ.get("AUTOAGENT_CONFIGS_DIR", "configs")
-    config_path = os.environ.get("AUTOAGENT_CONFIG_PATH", "")
-    db_path = os.environ.get("AUTOAGENT_DB_PATH", "conversations.db")
-    memory_db_path = os.environ.get("AUTOAGENT_MEMORY_DB_PATH", "optimizer_memory.db")
+    configs_dir = os.environ.get("AGENTLAB_CONFIGS_DIR", "configs")
+    config_path = os.environ.get("AGENTLAB_CONFIG_PATH", "")
+    db_path = os.environ.get("AGENTLAB_DB_PATH", "conversations.db")
+    memory_db_path = os.environ.get("AGENTLAB_MEMORY_DB_PATH", "optimizer_memory.db")
 
     _loaded_config = _load_startup_config(configs_dir=configs_dir, config_path=config_path)
     _app_started_at = time.time()
@@ -137,7 +137,7 @@ async def startup() -> None:
     )
 
     # Initialize skill system and apply runtime skills
-    skill_store = SkillStore(db_path=".autoagent/core_skills.db")
+    skill_store = SkillStore(db_path=".agentlab/core_skills.db")
     skill_runtime = SkillRuntime(store=skill_store)
 
     # Check if config has skill references and apply them
@@ -174,12 +174,12 @@ async def health() -> dict:
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request) -> HTMLResponse:
-    """Serve the AutoAgent dark-mode dashboard shell."""
+    """Serve the AgentLab dark-mode dashboard shell."""
     return templates.TemplateResponse(
         "dashboard.html",
         {
             "request": request,
-            "title": "AutoAgent VNext Dashboard",
+            "title": "AgentLab VNext Dashboard",
         },
     )
 

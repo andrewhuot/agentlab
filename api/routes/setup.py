@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from cli.mcp_setup import _client_specs, _has_autoagent_entry
+from cli.mcp_setup import _client_specs, _has_agentlab_entry
 from cli.mode import summarize_mode_state
 from cli.workspace import discover_workspace
 
@@ -44,15 +44,15 @@ def _safe_sqlite_table_count(path: Path) -> int | None:
 async def get_setup_overview() -> dict[str, Any]:
     """Summarize workspace, doctor, mode, and MCP readiness for onboarding."""
     workspace = discover_workspace()
-    mode_summary = summarize_mode_state("autoagent.yaml")
+    mode_summary = summarize_mode_state("agentlab.yaml")
 
     workspace_path = workspace.root if workspace is not None else Path.cwd()
     data_store_paths = {
         "conversations": workspace_path / "conversations.db",
         "optimizer_memory": workspace_path / "optimizer_memory.db",
-        "traces": workspace_path / ".autoagent" / "traces.db",
-        "experiments": workspace_path / ".autoagent" / "experiments.db",
-        "transcript_reports": workspace_path / ".autoagent" / "intelligence_reports.json",
+        "traces": workspace_path / ".agentlab" / "traces.db",
+        "experiments": workspace_path / ".agentlab" / "experiments.db",
+        "transcript_reports": workspace_path / ".agentlab" / "intelligence_reports.json",
     }
 
     data_stores = []
@@ -77,20 +77,20 @@ async def get_setup_overview() -> dict[str, Any]:
         mcp_clients.append(
             {
                 "name": name,
-                "configured": _has_autoagent_entry(spec),
+                "configured": _has_agentlab_entry(spec),
                 "path": str(config_path),
             }
         )
 
     issues = []
     if workspace is None:
-        issues.append("No AutoAgent workspace found yet.")
+        issues.append("No AgentLab workspace found yet.")
     if mode_summary["effective_mode"] == "mock":
         issues.append("CLI is currently running in mock mode.")
     if not any(item["configured"] for item in api_keys):
         issues.append("No provider API keys are configured.")
     if not any(item["configured"] for item in mcp_clients):
-        issues.append("No MCP client is configured for AutoAgent.")
+        issues.append("No MCP client is configured for AgentLab.")
 
     return {
         "workspace": {
@@ -100,7 +100,7 @@ async def get_setup_overview() -> dict[str, Any]:
             "runtime_config_path": (
                 str(workspace.runtime_config_path)
                 if workspace is not None
-                else str((Path.cwd() / "autoagent.yaml").resolve())
+                else str((Path.cwd() / "agentlab.yaml").resolve())
             ),
             "active_config_version": (
                 workspace.metadata.active_config_version if workspace is not None else None
@@ -118,9 +118,9 @@ async def get_setup_overview() -> dict[str, Any]:
         },
         "mcp_clients": mcp_clients,
         "recommended_commands": [
-            "autoagent init",
-            "autoagent doctor",
-            "autoagent mode show",
-            "autoagent mcp status",
+            "agentlab init",
+            "agentlab doctor",
+            "agentlab mode show",
+            "agentlab mcp status",
         ],
     }

@@ -1,13 +1,13 @@
 # CLI Reference
 
-AutoAgent groups the default CLI into **Primary** and **Secondary** commands. Run `autoagent advanced` to see the broader hidden command set.
+AgentLab groups the default CLI into **Primary** and **Secondary** commands. Run `agentlab advanced` to see the broader hidden command set.
 
 Helpful starting points:
 
 ```bash
-autoagent --help
-autoagent advanced
-autoagent <command> --help
+agentlab --help
+agentlab advanced
+agentlab <command> --help
 ```
 
 Notes:
@@ -20,12 +20,12 @@ Notes:
 
 ## Primary Commands
 
-### `autoagent new`
+### `agentlab new`
 
 Create a new starter workspace.
 
 ```bash
-autoagent new my-agent --template customer-support --demo
+agentlab new my-agent --template customer-support --demo
 ```
 
 Key options:
@@ -34,34 +34,34 @@ Key options:
 - `--demo / --no-demo`
 - `--mode [mock|live|auto]`
 
-### `autoagent build`
+### `agentlab build`
 
 Generate build artifacts from a natural-language prompt, or inspect the latest build output.
 
 Common commands:
 
 ```bash
-autoagent build "Build a support agent for order tracking"
-autoagent build show latest
+agentlab build "Build a support agent for order tracking"
+agentlab build show latest
 ```
 
 Subcommands:
 
 - `show` — show the latest or selected build artifact
 
-### `autoagent eval`
+### `agentlab eval`
 
 Run evals, inspect results, compare runs, and generate eval suites.
 
 Common commands:
 
 ```bash
-autoagent eval run
-autoagent eval show latest
-autoagent eval list
-autoagent eval compare --left-run left.json --right-run right.json
-autoagent eval generate --config configs/v001.yaml --output generated_eval_suite.json
-autoagent eval results --run-id eval-123
+agentlab eval run
+agentlab eval show latest
+agentlab eval list
+agentlab eval compare --left-run left.json --right-run right.json
+agentlab eval generate --config configs/v001.yaml --output generated_eval_suite.json
+agentlab eval results --run-id eval-123
 ```
 
 Subcommands:
@@ -103,21 +103,21 @@ Useful `eval compare` options:
 Useful `eval results` subcommands:
 
 ```bash
-autoagent eval results --run-id eval-123 --failures
-autoagent eval results diff eval-123 --other-run eval-122
-autoagent eval results export eval-123 --format markdown
-autoagent eval results annotate eval-123 example_001 --type note --content "Needs human review"
+agentlab eval results --run-id eval-123 --failures
+agentlab eval results diff eval-123 --other-run eval-122
+agentlab eval results export eval-123 --format markdown
+agentlab eval results annotate eval-123 example_001 --type note --content "Needs human review"
 ```
 
-### `autoagent optimize`
+### `agentlab optimize`
 
 Run optimization cycles to improve the current agent config.
 
 ```bash
-autoagent optimize
-autoagent optimize --cycles 5
-autoagent optimize --continuous
-autoagent optimize --mode advanced
+agentlab optimize
+agentlab optimize --cycles 5
+agentlab optimize --continuous
+agentlab optimize --mode advanced
 ```
 
 Key options:
@@ -131,22 +131,22 @@ Key options:
 - `--json`
 - `--output-format [text|json|stream-json]`
 
-### `autoagent deploy`
+### `agentlab deploy`
 
 Deploy a version locally via canary, immediate release, rollback, or auto-review.
 
 ```bash
-autoagent deploy canary
-autoagent deploy status
-autoagent deploy --config-version 5 --strategy immediate
-autoagent deploy --auto-review --yes
+agentlab deploy canary
+agentlab deploy status
+agentlab deploy --config-version 5 --strategy immediate
+agentlab deploy --auto-review --yes
 ```
 
 Key options:
 
 - `--config-version INTEGER`
 - `--strategy [canary|immediate]`
-- `--target [autoagent|cx-studio]`
+- `--target [agentlab|cx-studio]`
 - `--project TEXT`
 - `--location TEXT`
 - `--agent-id TEXT`
@@ -160,14 +160,14 @@ Key options:
 - `--output-format [text|json|stream-json]`
 - `--auto-review`
 
-### `autoagent status`
+### `agentlab status`
 
 Show workspace health, versions, and recommended next steps.
 
 ```bash
-autoagent status
-autoagent status --json
-autoagent status --verbose
+agentlab status
+agentlab status --json
+agentlab status --verbose
 ```
 
 Key options:
@@ -178,14 +178,14 @@ Key options:
 - `--json`
 - `--verbose`
 
-### `autoagent doctor`
+### `agentlab doctor`
 
 Run readiness checks for providers, data stores, eval assets, and workspace health.
 
 ```bash
-autoagent doctor
-autoagent doctor --fix
-autoagent doctor --json
+agentlab doctor
+agentlab doctor --fix
+agentlab doctor --json
 ```
 
 Key options:
@@ -194,20 +194,20 @@ Key options:
 - `--fix`
 - `--json`
 
-### `autoagent shell`
+### `agentlab shell`
 
 Launch the interactive shell.
 
 ```bash
-autoagent shell
-autoagent continue
+agentlab shell
+agentlab continue
 ```
 
 ---
 
 ## Secondary Commands
 
-### `autoagent config`
+### `agentlab config`
 
 Manage versioned config files.
 
@@ -226,15 +226,15 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent config list
-autoagent config show active
-autoagent config diff 1 2
-autoagent config set-active 3
+agentlab config list
+agentlab config show active
+agentlab config diff 1 2
+agentlab config set-active 3
 ```
 
-### `autoagent connect`
+### `agentlab connect`
 
-Import existing runtimes into a new AutoAgent workspace.
+Import existing runtimes into a new AgentLab workspace.
 
 Subcommands:
 
@@ -246,13 +246,13 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent connect openai-agents --path ./agent-project
-autoagent connect anthropic --path ./claude-project
-autoagent connect http --url https://agent.example.com
-autoagent connect transcript --file ./conversations.jsonl --name imported-agent
+agentlab connect openai-agents --path ./agent-project
+agentlab connect anthropic --path ./claude-project
+agentlab connect http --url https://agent.example.com
+agentlab connect transcript --file ./conversations.jsonl --name imported-agent
 ```
 
-### `autoagent instruction`
+### `agentlab instruction`
 
 Inspect, validate, edit, generate, or migrate XML instructions.
 
@@ -267,15 +267,15 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent instruction show
-autoagent instruction validate
-autoagent instruction generate --brief "refund support agent" --apply
-autoagent instruction migrate
+agentlab instruction show
+agentlab instruction validate
+agentlab instruction generate --brief "refund support agent" --apply
+agentlab instruction migrate
 ```
 
-### `autoagent memory`
+### `agentlab memory`
 
-Manage `AUTOAGENT.md` project memory.
+Manage `AGENTLAB.md` project memory.
 
 Subcommands:
 
@@ -286,7 +286,7 @@ Subcommands:
 - `summarize-session`
 - `where`
 
-### `autoagent mode`
+### `agentlab mode`
 
 Show or set execution mode.
 
@@ -298,13 +298,13 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent mode show
-autoagent mode set mock
-autoagent mode set live
-autoagent mode set auto
+agentlab mode show
+agentlab mode set mock
+agentlab mode set live
+agentlab mode set auto
 ```
 
-### `autoagent model`
+### `agentlab model`
 
 Inspect or override model preferences.
 
@@ -317,12 +317,12 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent model list
-autoagent model show
-autoagent model set proposer openai:gpt-4o
+agentlab model list
+agentlab model show
+agentlab model set proposer openai:gpt-4o
 ```
 
-### `autoagent provider`
+### `agentlab provider`
 
 Configure and test provider profiles.
 
@@ -335,12 +335,12 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent provider configure
-autoagent provider list
-autoagent provider test
+agentlab provider configure
+agentlab provider list
+agentlab provider test
 ```
 
-### `autoagent review`
+### `agentlab review`
 
 Review change cards from the optimizer.
 
@@ -355,14 +355,14 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent review list
-autoagent review show pending
-autoagent review apply pending
-autoagent review reject latest
-autoagent review export pending
+agentlab review list
+agentlab review show pending
+agentlab review apply pending
+agentlab review reject latest
+agentlab review export pending
 ```
 
-### `autoagent template`
+### `agentlab template`
 
 List and apply bundled starter templates.
 
@@ -374,15 +374,15 @@ Subcommands:
 Examples:
 
 ```bash
-autoagent template list
-autoagent template apply customer-support
+agentlab template list
+agentlab template apply customer-support
 ```
 
 ---
 
 ## Advanced Commands
 
-Run `autoagent advanced` to see these in the CLI.
+Run `agentlab advanced` to see these in the CLI.
 
 | Command | Description |
 |---------|-------------|
@@ -390,7 +390,7 @@ Run `autoagent advanced` to see these in the CLI.
 | `autofix` | AutoFix Copilot workflows |
 | `benchmark` | Run benchmark suites |
 | `build-inspect` | Inspect build artifacts |
-| `build-show` | Deprecated alias for `autoagent build show` |
+| `build-show` | Deprecated alias for `agentlab build show` |
 | `changes` | Compatibility aliases for reviewable change cards |
 | `compare` | Compare configs, eval runs, and candidate versions |
 | `context` | Context Engineering Workbench |
@@ -442,13 +442,13 @@ Run `autoagent advanced` to see these in the CLI.
 ## Common Power Commands
 
 ```bash
-autoagent advanced
-autoagent quickstart
-autoagent compare candidates
-autoagent eval results export eval-123 --format markdown
-autoagent mcp status
-autoagent cx auth
-autoagent cx list --project PROJECT --location us-central1
+agentlab advanced
+agentlab quickstart
+agentlab compare candidates
+agentlab eval results export eval-123 --format markdown
+agentlab mcp status
+agentlab cx auth
+agentlab cx list --project PROJECT --location us-central1
 ```
 
 ---
@@ -459,7 +459,7 @@ These older commands still exist as compatibility aliases, but the current docs 
 
 | Old command | Current command |
 |-------------|-----------------|
-| `autoagent init` | `autoagent new` |
-| `autoagent improve` | `autoagent optimize` |
-| `autoagent loop` | `autoagent optimize --continuous` |
-| `autoagent ship` | `autoagent deploy --auto-review` |
+| `agentlab init` | `agentlab new` |
+| `agentlab improve` | `agentlab optimize` |
+| `agentlab loop` | `agentlab optimize --continuous` |
+| `agentlab ship` | `agentlab deploy --auto-review` |

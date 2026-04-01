@@ -60,10 +60,10 @@ class CxValidationResult:
 
 
 class CxValidator:
-    """Validate AutoAgent / ADK configs before CX Agent Studio export or deployment.
+    """Validate AgentLab / ADK configs before CX Agent Studio export or deployment.
 
     All methods are pure functions over their arguments — no I/O, no state.
-    Validation operates on the ``AgentConfig``-compatible dict that AutoAgent
+    Validation operates on the ``AgentConfig``-compatible dict that AgentLab
     produces internally (same structure used by the mapper layer).
     """
 
@@ -78,8 +78,8 @@ class CxValidator:
         dependencies in a single pass.
 
         Args:
-            agent_config: AutoAgent config dict (as produced by ``AgentConfig``
-                or ``CxMapper.to_autoagent``).
+            agent_config: AgentLab config dict (as produced by ``AgentConfig``
+                or ``CxMapper.to_agentlab``).
 
         Returns:
             ``CxValidationResult`` describing validity and any issues.
@@ -270,7 +270,7 @@ class CxValidator:
         sub-agents stored in ``config["sub_agents"]`` or ``config["agents"]``.
 
         Args:
-            config: AutoAgent config dict, potentially with nested sub-agents.
+            config: AgentLab config dict, potentially with nested sub-agents.
 
         Returns:
             Aggregated ``CxValidationResult`` for the entire agent tree.

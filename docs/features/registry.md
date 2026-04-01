@@ -32,36 +32,36 @@ Versions are immutable. Updates create new versions, never overwrite.
 
 ```bash
 # Add a skill from a YAML file
-autoagent registry add skills order_lookup --file skills/order_lookup.yaml
+agentlab registry add skills order_lookup --file skills/order_lookup.yaml
 
 # Add a policy
-autoagent registry add policies refund_policy --file policies/refund.yaml
+agentlab registry add policies refund_policy --file policies/refund.yaml
 
 # Add a tool contract
-autoagent registry add tools order_lookup --file tools/order_lookup.yaml
+agentlab registry add tools order_lookup --file tools/order_lookup.yaml
 
 # Add a handoff schema
-autoagent registry add handoffs support_to_billing --file handoffs/support_to_billing.yaml
+agentlab registry add handoffs support_to_billing --file handoffs/support_to_billing.yaml
 ```
 
 ### Read
 
 ```bash
 # List all skills
-autoagent registry list --type skills
+agentlab registry list --type skills
 
 # Show a specific item (latest version)
-autoagent registry show skills order_lookup
+agentlab registry show skills order_lookup
 
 # Show a specific tool version
-autoagent registry show tools order_lookup --version 2
+agentlab registry show tools order_lookup --version 2
 ```
 
 ### Diff
 
 ```bash
 # Compare two versions
-autoagent registry diff skills order_lookup 1 2
+agentlab registry diff skills order_lookup 1 2
 ```
 
 ## Import / Export
@@ -69,7 +69,7 @@ autoagent registry diff skills order_lookup 1 2
 Bulk import from a YAML or JSON file:
 
 ```bash
-autoagent registry import registry_export.yaml
+agentlab registry import registry_export.yaml
 ```
 
 The import file should use the internal YAML section names:
@@ -114,7 +114,7 @@ Search across all registry types or filter by type:
 
 ```bash
 # Via CLI
-autoagent registry list --type skills
+agentlab registry list --type skills
 ```
 
 ```bash
@@ -125,11 +125,11 @@ curl "http://localhost:8000/api/registry/search?q=order&type=skills"
 ## CLI commands
 
 ```bash
-autoagent registry list [--type TYPE] [--db PATH]
-autoagent registry show <type> <name> [--version N] [--db PATH]
-autoagent registry add <type> <name> --file <path> [--db PATH]
-autoagent registry diff <type> <name> <v1> <v2> [--db PATH]
-autoagent registry import <path> [--db PATH]
+agentlab registry list [--type TYPE] [--db PATH]
+agentlab registry show <type> <name> [--version N] [--db PATH]
+agentlab registry add <type> <name> --file <path> [--db PATH]
+agentlab registry diff <type> <name> <v1> <v2> [--db PATH]
+agentlab registry import <path> [--db PATH]
 ```
 
 CLI type values:

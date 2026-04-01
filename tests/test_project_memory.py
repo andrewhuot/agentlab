@@ -54,7 +54,7 @@ class TestParse:
         assert any("latency" in c.lower() for c in mem.business_constraints)
 
     def test_parse_custom_content(self):
-        content = """# AUTOAGENT.md \u2014 Project Memory
+        content = """# AGENTLAB.md \u2014 Project Memory
 
 ## Agent Identity
 - Name: CustomBot

@@ -1,6 +1,6 @@
 # Web App Guide
 
-This guide maps the current AutoAgent web console: what routes exist, what each area is for, and how the pages fit together.
+This guide maps the current AgentLab web console: what routes exist, what each area is for, and how the pages fit together.
 
 It is based on the current React route map in `web/src/App.tsx` and navigation metadata in `web/src/lib/navigation.ts`.
 
@@ -16,7 +16,7 @@ Manual alternative:
 
 ```bash
 # backend
-autoagent server
+agentlab server
 
 # frontend
 cd web
@@ -161,7 +161,7 @@ Current UI facts:
 
 Use Setup to answer:
 
-- Did AutoAgent detect a workspace?
+- Did AgentLab detect a workspace?
 - Which mode is effective right now?
 - Are providers and data stores configured?
 - Are local MCP client configs in place?
@@ -178,7 +178,7 @@ Use Build to answer:
 
 Use Connect to answer:
 
-- How do I bring an existing runtime into AutoAgent?
+- How do I bring an existing runtime into AgentLab?
 - What source should I import from?
 - Should the resulting workspace start in mock, live, or auto mode?
 
@@ -212,7 +212,7 @@ Use Compare to answer:
 
 Use Optimize to answer:
 
-- Can AutoAgent propose or test an improvement cycle here?
+- Can AgentLab propose or test an improvement cycle here?
 - What happened in recent optimize attempts?
 - Do I need the run view or the live monitoring view?
 

@@ -50,7 +50,7 @@ class MeterReading:
 class UsageMeter:
     """Record and aggregate meter readings (SQLite-backed)."""
 
-    def __init__(self, db_path: str = ".autoagent/metering.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/metering.db") -> None:
         self.db_path = db_path
         self._init_db()
 

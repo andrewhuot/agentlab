@@ -104,7 +104,7 @@ class AuditLog:
     (e.g. ConversationStore, CostTracker).
     """
 
-    def __init__(self, db_path: str = ".autoagent/audit.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/audit.db") -> None:
         self._db_path = Path(db_path)
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

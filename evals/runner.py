@@ -68,7 +68,7 @@ class EvalRunner:
         eval_mode: str = "single_agent",
         cache_store: EvalCacheStore | None = None,
         cache_enabled: bool = True,
-        cache_db_path: str = ".autoagent/eval_cache.db",
+        cache_db_path: str = ".agentlab/eval_cache.db",
         dataset_strict_integrity: bool = False,
         random_seed: int = 7,
         token_cost_per_1k: float = 0.0,
@@ -88,7 +88,7 @@ class EvalRunner:
         self.last_evaluation_run: EvaluationRun | None = None
 
         self.eval_mode = eval_mode
-        history_path = history_db_path if history_db_path is not None else os.environ.get("AUTOAGENT_EVAL_HISTORY_DB")
+        history_path = history_db_path if history_db_path is not None else os.environ.get("AGENTLAB_EVAL_HISTORY_DB")
         if history_store is not None:
             self.history_store = history_store
         elif history_path:
@@ -96,7 +96,7 @@ class EvalRunner:
         else:
             self.history_store = None
 
-        results_path = os.environ.get("AUTOAGENT_EVAL_RESULTS_DB", ".autoagent/eval_results.db")
+        results_path = os.environ.get("AGENTLAB_EVAL_RESULTS_DB", ".agentlab/eval_results.db")
         if results_store is not None:
             self.results_store = results_store
         else:

@@ -156,13 +156,13 @@ class AdkStateManager:
             self._store[k] = v
 
     # ------------------------------------------------------------------
-    # AutoAgent integration
+    # AgentLab integration
     # ------------------------------------------------------------------
 
     def to_environment_snapshot(self) -> dict:
-        """Convert state to an AutoAgent ``EnvironmentSnapshot``-compatible dict.
+        """Convert state to an AgentLab ``EnvironmentSnapshot``-compatible dict.
 
-        The snapshot groups state by scope so AutoAgent can display / diff it
+        The snapshot groups state by scope so AgentLab can display / diff it
         clearly in the evaluation UI.
 
         Returns:

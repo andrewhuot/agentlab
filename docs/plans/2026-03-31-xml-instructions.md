@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Make XML instructions the default authoring format for AutoAgent agents while preserving backward compatibility with existing plain-text instructions.
+**Goal:** Make XML instructions the default authoring format for AgentLab agents while preserving backward compatibility with existing plain-text instructions.
 
 **Architecture:** Add a shared `agent.instruction_builder` module that detects, parses, validates, merges, and serializes Google-style XML instructions. Reuse that module from eval and CLI flows, convert bundled starter templates to XML, and add a Build UI editor that offers both raw XML and section-based editing on top of the same validation model.
 
@@ -34,7 +34,7 @@ Run: `pytest tests/test_instruction_builder.py tests/test_eval_agent.py tests/te
 
 Cover:
 - Eval agent accepting XML root instructions and applying rule overrides.
-- `autoagent instruction show|validate|migrate|generate` command behavior.
+- `agentlab instruction show|validate|migrate|generate` command behavior.
 
 **Step 4: Run the targeted tests again**
 

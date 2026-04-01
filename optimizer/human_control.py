@@ -22,7 +22,7 @@ class HumanControlState:
 class HumanControlStore:
     """JSON-backed store for human control state."""
 
-    def __init__(self, path: str = ".autoagent/human_control.json") -> None:
+    def __init__(self, path: str = ".agentlab/human_control.json") -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
 

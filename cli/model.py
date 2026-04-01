@@ -19,7 +19,7 @@ def _model_key(model: RuntimeModelConfig) -> str:
 
 def list_available_models(root: str | Path = ".") -> list[dict[str, Any]]:
     """Return available runtime models for the current workspace."""
-    runtime = load_runtime_config(str(Path(root) / "autoagent.yaml"))
+    runtime = load_runtime_config(str(Path(root) / "agentlab.yaml"))
     return [
         {
             "key": _model_key(model),
@@ -57,7 +57,7 @@ def _resolve_model_choice(
 def effective_model_surface(root: str | Path = ".") -> dict[str, Any]:
     """Return effective proposer/evaluator selections for the workspace."""
     workspace_root = Path(root)
-    runtime = load_runtime_config(str(workspace_root / "autoagent.yaml"))
+    runtime = load_runtime_config(str(workspace_root / "agentlab.yaml"))
     settings = load_workspace_settings(workspace_root)
     model_settings = settings.get("models", {}) if isinstance(settings.get("models"), dict) else {}
 
@@ -110,11 +110,11 @@ def model_group(ctx: click.Context) -> None:
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def list_models(json_output: bool = False) -> None:
     """List available runtime models."""
-    if not Path(".autoagent").exists():
-        raise click_error("No AutoAgent workspace found.")
+    if not Path(".agentlab").exists():
+        raise click_error("No AgentLab workspace found.")
     data = list_available_models()
     if json_output:
-        click.echo(render_json_envelope("ok", data, next_command="autoagent model show"))
+        click.echo(render_json_envelope("ok", data, next_command="agentlab model show"))
         return
     click.echo("Available models")
     for item in data:
@@ -125,11 +125,11 @@ def list_models(json_output: bool = False) -> None:
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def show_models(json_output: bool = False) -> None:
     """Show the effective proposer and evaluator models."""
-    if not Path(".autoagent").exists():
-        raise click_error("No AutoAgent workspace found.")
+    if not Path(".agentlab").exists():
+        raise click_error("No AgentLab workspace found.")
     data = effective_model_surface()
     if json_output:
-        click.echo(render_json_envelope("ok", data, next_command="autoagent model list"))
+        click.echo(render_json_envelope("ok", data, next_command="agentlab model list"))
         return
     click.echo("Effective models")
     click.echo(f"  Proposer:  {data.get('proposer', {}).get('key', 'n/a')}")
@@ -142,8 +142,8 @@ def show_models(json_output: bool = False) -> None:
 def set_model(target: str, model_key: str) -> None:
     """Persist a proposer or evaluator workspace model override."""
     workspace_root = Path(".")
-    if not (workspace_root / ".autoagent").exists():
-        raise click_error("No AutoAgent workspace found.")
+    if not (workspace_root / ".agentlab").exists():
+        raise click_error("No AgentLab workspace found.")
     available = list_available_models(workspace_root)
     available_keys = {item["key"].lower(): item["key"] for item in available}
     matched_key = available_keys.get(model_key.lower())

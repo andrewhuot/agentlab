@@ -239,7 +239,7 @@ class PairwiseComparisonResult:
 class PairwiseComparisonStore:
     """Persist pairwise comparison payloads as JSON files."""
 
-    def __init__(self, base_dir: str = ".autoagent/pairwise") -> None:
+    def __init__(self, base_dir: str = ".agentlab/pairwise") -> None:
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { AlertTriangle, X } from 'lucide-react';
 
 const BANNER_COPY = 'Running in mock mode — add API keys for live optimization';
-const DISMISS_KEY = 'autoagent.mock_mode_banner.dismissed';
+const DISMISS_KEY = 'agentlab.mock_mode_banner.dismissed';
 const OPTIMIZATION_ROUTE_PREFIXES = ['/dashboard', '/evals', '/optimize', '/live-optimize', '/improvements'];
 
 interface MockModeHealthPayload {

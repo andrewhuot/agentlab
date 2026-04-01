@@ -177,7 +177,7 @@ class ProposedChangeCard:
             card: ExperimentCard instance.
             baseline_scores: Optional dict of baseline metric scores.
             candidate_scores: Optional dict of candidate metric scores.
-            memory_context: Optional AUTOAGENT.md context string.
+            memory_context: Optional AGENTLAB.md context string.
         """
         b_scores = baseline_scores or card.baseline_scores or {}
         c_scores = candidate_scores or card.candidate_scores or {}
@@ -254,7 +254,7 @@ class ProposedChangeCard:
 
         if self.memory_context:
             ctx_lines = _wrap_text(
-                f"AUTOAGENT.md: {self.memory_context}", width - 8
+                f"AGENTLAB.md: {self.memory_context}", width - 8
             )
             for cl in ctx_lines[:2]:
                 lines.append(
@@ -416,7 +416,7 @@ class ProposedChangeCard:
         lines.append("## Why")
         lines.append(self.why)
         if self.memory_context:
-            lines.append(f"\n*AUTOAGENT.md context:* {self.memory_context}")
+            lines.append(f"\n*AGENTLAB.md context:* {self.memory_context}")
         lines.append("")
 
         if self.diff_hunks:
@@ -482,7 +482,7 @@ def _wrap_text(text: str, width: int) -> list[str]:
 class ChangeCardStore:
     """SQLite-backed store for proposed change cards."""
 
-    def __init__(self, db_path: str = ".autoagent/change_cards.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/change_cards.db") -> None:
         self.db_path = db_path
         self._init_db()
 

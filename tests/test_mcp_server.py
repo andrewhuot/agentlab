@@ -37,14 +37,14 @@ def test_module_entrypoint_supports_stdio_requests(tmp_path) -> None:
         response_line = proc.stdout.readline().strip()
         response = json.loads(response_line)
         assert response["id"] == 1
-        assert response["result"]["serverInfo"]["name"] == "autoagent"
+        assert response["result"]["serverInfo"]["name"] == "agentlab"
     finally:
         proc.kill()
         proc.wait()
 
 
 def test_cli_port_flag_starts_http_transport(monkeypatch) -> None:
-    """`autoagent mcp-server --port` should start the HTTP transport instead of rejecting it."""
+    """`agentlab mcp-server --port` should start the HTTP transport instead of rejecting it."""
     called: dict[str, object] = {}
 
     def fake_run_http(*, host: str, port: int) -> None:
@@ -74,7 +74,7 @@ def test_resource_read_rejects_config_path_traversal(tmp_path, monkeypatch) -> N
             "jsonrpc": "2.0",
             "id": 99,
             "method": "resources/read",
-            "params": {"uri": "autoagent://configs/../secret.txt"},
+            "params": {"uri": "agentlab://configs/../secret.txt"},
         }
     )
 
@@ -127,7 +127,7 @@ class TestMCPServer:
     def test_initialize(self):
         resp = handle_request({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
         assert resp["id"] == 1
-        assert resp["result"]["serverInfo"]["name"] == "autoagent"
+        assert resp["result"]["serverInfo"]["name"] == "agentlab"
 
     def test_tools_list(self):
         resp = handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
@@ -135,9 +135,9 @@ class TestMCPServer:
         tools = resp["result"]["tools"]
         assert len(tools) >= 12  # 12 original + P0-10 build surface tools
         names = {t["name"] for t in tools}
-        assert "autoagent_status" in names
-        assert "autoagent_edit" in names
-        assert "autoagent_diagnose" in names
+        assert "agentlab_status" in names
+        assert "agentlab_edit" in names
+        assert "agentlab_diagnose" in names
 
     def test_tool_call_unknown(self):
         resp = handle_request({
@@ -151,7 +151,7 @@ class TestMCPServer:
         resp = handle_request({
             "jsonrpc": "2.0", "id": 4,
             "method": "tools/call",
-            "params": {"name": "autoagent_replay", "arguments": {"limit": 5}},
+            "params": {"name": "agentlab_replay", "arguments": {"limit": 5}},
         })
         assert resp["id"] == 4
         assert "result" in resp
@@ -163,7 +163,7 @@ class TestMCPServer:
         resp = handle_request({
             "jsonrpc": "2.0", "id": 5,
             "method": "tools/call",
-            "params": {"name": "autoagent_diagnose", "arguments": {}},
+            "params": {"name": "agentlab_diagnose", "arguments": {}},
         })
         assert "result" in resp
         text = resp["result"]["content"][0]["text"]

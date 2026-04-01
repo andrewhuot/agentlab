@@ -1,4 +1,4 @@
-"""Import ADK agents into AutoAgent format.
+"""Import ADK agents into AgentLab format.
 
 Layer: Layer 1 (Advanced). May import from Layer 0 / stdlib / PyPI only.
 """
@@ -16,7 +16,7 @@ from .types import ImportResult
 
 
 class AdkImporter:
-    """Import a ADK agent into AutoAgent config format."""
+    """Import a ADK agent into AgentLab config format."""
 
     def __init__(self, parser: None = None, mapper: AdkMapper | None = None):
         """Initialize importer.
@@ -36,7 +36,7 @@ class AdkImporter:
         """Full import pipeline:
 
         1. Parse agent directory with AdkParser
-        2. Map to AutoAgent config with AdkMapper
+        2. Map to AgentLab config with AdkMapper
         3. Save config YAML
         4. Save snapshot (copy of original Python source files)
         5. Return ImportResult
@@ -57,8 +57,8 @@ class AdkImporter:
             agent_path_obj = Path(agent_path).resolve()
             tree = parse_agent_directory(agent_path_obj)
 
-            # 2. Map to AutoAgent config
-            config = self._mapper.to_autoagent(tree)
+            # 2. Map to AgentLab config
+            config = self._mapper.to_agentlab(tree)
 
             # 3. Prepare output directory
             out = Path(output_dir)

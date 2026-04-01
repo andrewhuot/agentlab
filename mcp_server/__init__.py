@@ -1,1 +1,1 @@
-"""AutoAgent MCP Server — exposes optimization tools to AI coding assistants."""
+"""AgentLab MCP Server — exposes optimization tools to AI coding assistants."""

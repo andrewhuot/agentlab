@@ -1,6 +1,6 @@
 # Platform Overview
 
-AutoAgent is a local-first platform for improving AI agents across three surfaces:
+AgentLab is a local-first platform for improving AI agents across three surfaces:
 
 - a CLI for day-to-day build/eval/optimize/deploy work
 - a FastAPI backend for automation and UI data
@@ -57,7 +57,7 @@ Supported adapters:
 - HTTP-backed runtimes
 - transcript-backed imports
 
-This is the product surface for “bring an existing runtime into AutoAgent” rather than rebuilding from scratch.
+This is the product surface for “bring an existing runtime into AgentLab” rather than rebuilding from scratch.
 
 ### Eval
 
@@ -165,8 +165,8 @@ The default CLI help shows two groups:
 Run:
 
 ```bash
-autoagent --help
-autoagent advanced
+agentlab --help
+agentlab advanced
 ```
 
 The hidden/advanced surface includes operations like `compare`, `trace`, `mcp`, `cx`, `adk`, `runbook`, `skill`, `scorer`, `release`, and `quickstart`.
@@ -197,7 +197,7 @@ XML instructions are now part of the product, not a side feature.
 They show up in:
 
 - new workspace defaults
-- `autoagent instruction *` CLI commands
+- `agentlab instruction *` CLI commands
 - eval override support (`--instruction-overrides`)
 - the Build page’s XML Instruction Studio
 
@@ -234,7 +234,7 @@ The split matters because one is diagnosis-oriented and the other is decision-or
 
 ## Improvement objects
 
-AutoAgent currently works with a few related but different improvement objects:
+AgentLab currently works with a few related but different improvement objects:
 
 ### Opportunities
 
@@ -278,7 +278,7 @@ ADK support includes import, diff, export, and deploy flows rather than just a o
 
 ### MCP
 
-AutoAgent ships an MCP server with:
+AgentLab ships an MCP server with:
 
 - 22 tools
 - 5 prompts
@@ -305,7 +305,7 @@ For operators, the most important takeaway is that eval is no longer “one scor
 
 ## Reliability and control
 
-AutoAgent is designed to be human-interruptible:
+AgentLab is designed to be human-interruptible:
 
 - mock/live/auto execution modes
 - permission modes

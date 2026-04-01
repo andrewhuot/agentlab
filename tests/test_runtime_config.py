@@ -45,7 +45,7 @@ class TestRuntimeConfigIntegration:
                 "autonomy": "semi-auto",
             }
         }
-        cfg_file = tmp_path / "autoagent.yaml"
+        cfg_file = tmp_path / "agentlab.yaml"
         cfg_file.write_text(yaml.dump(data), encoding="utf-8")
 
         rc = load_runtime_config(str(cfg_file))
@@ -56,7 +56,7 @@ class TestRuntimeConfigIntegration:
 
     def test_load_runtime_config_without_optimization(self, tmp_path: Path):
         data = {"optimizer": {"use_mock": True}}
-        cfg_file = tmp_path / "autoagent.yaml"
+        cfg_file = tmp_path / "agentlab.yaml"
         cfg_file.write_text(yaml.dump(data), encoding="utf-8")
 
         rc = load_runtime_config(str(cfg_file))
@@ -71,7 +71,7 @@ class TestRuntimeConfigIntegration:
     def test_legacy_strategy_migration(self, tmp_path: Path):
         """Legacy search_strategy in optimizer block auto-migrates to optimization.mode."""
         data = {"optimizer": {"search_strategy": "adaptive", "use_mock": True}}
-        cfg_file = tmp_path / "autoagent.yaml"
+        cfg_file = tmp_path / "agentlab.yaml"
         cfg_file.write_text(yaml.dump(data), encoding="utf-8")
 
         rc = load_runtime_config(str(cfg_file))
@@ -79,7 +79,7 @@ class TestRuntimeConfigIntegration:
 
     def test_legacy_full_strategy_migration(self, tmp_path: Path):
         data = {"optimizer": {"search_strategy": "full", "use_mock": True}}
-        cfg_file = tmp_path / "autoagent.yaml"
+        cfg_file = tmp_path / "agentlab.yaml"
         cfg_file.write_text(yaml.dump(data), encoding="utf-8")
 
         rc = load_runtime_config(str(cfg_file))
@@ -90,7 +90,7 @@ class TestRuntimeConfigIntegration:
             "optimizer": {"search_strategy": "full"},
             "optimization": {"mode": "standard"},
         }
-        cfg_file = tmp_path / "autoagent.yaml"
+        cfg_file = tmp_path / "agentlab.yaml"
         cfg_file.write_text(yaml.dump(data), encoding="utf-8")
 
         rc = load_runtime_config(str(cfg_file))

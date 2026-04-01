@@ -10,7 +10,7 @@ adk/
 ├── __init__.py           # Public exports
 ├── types.py              # Pydantic models for ADK structures
 ├── parser.py             # AST-based Python source parser
-├── mapper.py             # Bidirectional ADK ↔ AutoAgent mapping
+├── mapper.py             # Bidirectional ADK ↔ AgentLab mapping
 ├── importer.py           # Import ADK agent directory → config
 ├── exporter.py           # Export config → patched Python source
 ├── deployer.py           # Deploy to Cloud Run / Vertex AI
@@ -67,7 +67,7 @@ adk/
 ### Track B: Mapper + Importer
 **Files**: `adk/mapper.py`, `adk/importer.py`, `tests/test_adk_mapper.py`, `tests/test_adk_importer.py`
 
-**Mapping Rules (ADK → AutoAgent)**:
+**Mapping Rules (ADK → AgentLab)**:
 - `Agent.instruction` → `prompts.root` (or specialist name)
 - `Agent.tools` docstrings → `tools.{tool_name}.description`
 - `Agent.sub_agents` → `routing.rules` (derive keywords from sub-agent names)
@@ -78,7 +78,7 @@ adk/
 
 **Importer Pipeline**:
 1. Parse agent directory with `AdkParser`
-2. Map to AutoAgent config with `AdkMapper`
+2. Map to AgentLab config with `AdkMapper`
 3. Save config YAML
 4. Save snapshot (original Python source files as zip or directory copy)
 5. Return `ImportResult` with paths
@@ -86,7 +86,7 @@ adk/
 ### Track C: Exporter + Deployer
 **Files**: `adk/exporter.py`, `adk/deployer.py`, `tests/test_adk_exporter.py`, `tests/test_adk_deployer.py`
 
-**Mapping Rules (AutoAgent → ADK)**:
+**Mapping Rules (AgentLab → ADK)**:
 - `prompts.root` → `Agent.instruction` string
 - `prompts.<specialist>` → sub-agent instructions
 - `tools.{tool_name}.timeout_ms` → tool spec
@@ -120,11 +120,11 @@ adk/
 
 **CLI Commands** (add to runner.py):
 ```bash
-autoagent adk import <path>                    # Import from local directory
-autoagent adk export <path> [--output DIR]     # Export optimized config
-autoagent adk deploy <path> [--target cloud-run|vertex-ai] [--project PROJECT] [--region REGION]
-autoagent adk status <path>                    # Show agent structure
-autoagent adk diff <path>                      # Preview export changes
+agentlab adk import <path>                    # Import from local directory
+agentlab adk export <path> [--output DIR]     # Export optimized config
+agentlab adk deploy <path> [--target cloud-run|vertex-ai] [--project PROJECT] [--region REGION]
+agentlab adk status <path>                    # Show agent structure
+agentlab adk diff <path>                      # Preview export changes
 ```
 
 **API Routes** (`api/routes/adk.py`):

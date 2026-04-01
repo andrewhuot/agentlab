@@ -110,8 +110,8 @@ class DistillationPipeline:
 
     def prepare_dataset(self, traces: list[dict[str, Any]], config: DistillationConfig) -> str:
         """Convert raw traces to a JSONL SFT dataset and return the file path."""
-        os.makedirs(".autoagent", exist_ok=True)
-        out_path = f".autoagent/distill_{config.dataset_version}_{uuid.uuid4().hex[:8]}.jsonl"
+        os.makedirs(".agentlab", exist_ok=True)
+        out_path = f".agentlab/distill_{config.dataset_version}_{uuid.uuid4().hex[:8]}.jsonl"
 
         limited = traces[: config.max_examples]
         with open(out_path, "w") as fh:

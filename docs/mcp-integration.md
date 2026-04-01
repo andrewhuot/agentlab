@@ -1,6 +1,6 @@
 # MCP Integration
 
-AutoAgent includes an MCP server for agentic coding tools such as Claude Code, Codex, Cursor, Windsurf, and other MCP-compatible clients.
+AgentLab includes an MCP server for agentic coding tools such as Claude Code, Codex, Cursor, Windsurf, and other MCP-compatible clients.
 
 ## Current status
 
@@ -15,7 +15,7 @@ AutoAgent includes an MCP server for agentic coding tools such as Claude Code, C
 Installed CLI:
 
 ```bash
-autoagent mcp-server
+agentlab mcp-server
 ```
 
 Repo-local fallback:

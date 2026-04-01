@@ -31,12 +31,12 @@ def clear_provider_api_keys(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _workspace_metadata(workspace: Path) -> dict:
     """Load workspace metadata JSON for assertions."""
-    return json.loads((workspace / ".autoagent" / "workspace.json").read_text(encoding="utf-8"))
+    return json.loads((workspace / ".agentlab" / "workspace.json").read_text(encoding="utf-8"))
 
 
 def _workspace_runtime(workspace: Path) -> dict:
     """Load the workspace runtime YAML for assertions."""
-    return yaml.safe_load((workspace / "autoagent.yaml").read_text(encoding="utf-8"))
+    return yaml.safe_load((workspace / "agentlab.yaml").read_text(encoding="utf-8"))
 
 
 def _seed_second_config(workspace: Path) -> None:
@@ -59,7 +59,7 @@ def test_init_name_creates_project_directory_and_workspace_metadata(
 
     assert result.exit_code == 0, result.output
     assert project_dir.is_dir()
-    assert (project_dir / ".autoagent" / "workspace.json").exists()
+    assert (project_dir / ".agentlab" / "workspace.json").exists()
     assert (project_dir / "configs" / "v001.yaml").exists()
     assert (project_dir / "configs" / "v001_base.yaml").exists()
     metadata = _workspace_metadata(project_dir)
@@ -76,9 +76,9 @@ def test_init_demo_seeds_workspace_state(runner: CliRunner, tmp_path: Path) -> N
 
     assert result.exit_code == 0, result.output
     assert (workspace / "conversations.db").exists()
-    assert (workspace / ".autoagent" / "traces.db").exists()
-    assert (workspace / ".autoagent" / "change_cards.db").exists()
-    assert (workspace / ".autoagent" / "autofix.db").exists()
+    assert (workspace / ".agentlab" / "traces.db").exists()
+    assert (workspace / ".agentlab" / "change_cards.db").exists()
+    assert (workspace / ".agentlab" / "autofix.db").exists()
     assert (workspace / "evals" / "cases").is_dir()
     assert "demo" in result.output.lower()
 
@@ -167,8 +167,8 @@ def test_demo_seed_command_works_after_plain_init(
     result = runner.invoke(cli, ["demo", "seed"])
 
     assert result.exit_code == 0, result.output
-    assert (workspace / ".autoagent" / "change_cards.db").exists()
-    assert (workspace / ".autoagent" / "autofix.db").exists()
+    assert (workspace / ".agentlab" / "change_cards.db").exists()
+    assert (workspace / ".agentlab" / "autofix.db").exists()
     review_result = runner.invoke(cli, ["review", "list"])
     assert review_result.exit_code == 0, review_result.output
     assert "Pending change cards" in review_result.output
@@ -185,7 +185,7 @@ def test_status_errors_clearly_when_workspace_is_missing(
     result = runner.invoke(cli, ["status"])
 
     assert result.exit_code != 0
-    assert "No AutoAgent workspace found. Run autoagent init" in result.output
+    assert "No AgentLab workspace found. Run agentlab init" in result.output
 
 
 def test_workspace_discovery_walks_up_from_nested_directory(
@@ -250,7 +250,7 @@ def test_deploy_auto_review_creates_release_and_marks_canary(
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     manifest = json.loads((workspace / "configs" / "manifest.json").read_text(encoding="utf-8"))
-    releases = list((workspace / ".autoagent" / "releases").glob("rel-*.json"))
+    releases = list((workspace / ".agentlab" / "releases").glob("rel-*.json"))
     assert payload["status"] == "ok"
     assert payload["data"]["version"] == 2
     assert payload["data"]["release"]["config_version"] == 2
@@ -499,7 +499,7 @@ def test_status_recommends_eval_before_any_optimization_attempts(
 
     assert result.exit_code == 0, result.output
     assert "Next step:" in result.output
-    assert "autoagent eval run" in result.output
+    assert "agentlab eval run" in result.output
 
 
 def test_eval_run_persists_latest_results_for_eval_show(
@@ -546,7 +546,7 @@ def test_eval_run_persists_latest_results_for_eval_show(
     show_result = runner.invoke(cli, ["eval", "show", "latest"])
 
     assert run_result.exit_code == 0, run_result.output
-    assert (workspace / ".autoagent" / "eval_results_latest.json").exists()
+    assert (workspace / ".agentlab" / "eval_results_latest.json").exists()
     assert show_result.exit_code == 0, show_result.output
     assert "3/3 passed" in show_result.output
 
@@ -568,7 +568,7 @@ def test_eval_run_persists_mock_mode_and_labels_results(
 
     run_result = runner.invoke(cli, ["eval", "run"])
     show_result = runner.invoke(cli, ["eval", "show", "latest"])
-    latest = json.loads((workspace / ".autoagent" / "eval_results_latest.json").read_text(encoding="utf-8"))
+    latest = json.loads((workspace / ".agentlab" / "eval_results_latest.json").read_text(encoding="utf-8"))
 
     assert run_result.exit_code == 0, run_result.output
     assert latest["mode"] == "mock"
@@ -588,7 +588,7 @@ def test_status_uses_latest_eval_result_when_no_optimize_history(
     assert init_result.exit_code == 0, init_result.output
 
     monkeypatch.chdir(workspace)
-    (workspace / ".autoagent" / "eval_results_latest.json").write_text(
+    (workspace / ".agentlab" / "eval_results_latest.json").write_text(
         json.dumps(
             {
                 "timestamp": "2026-03-30T16:00:00+00:00",
@@ -641,7 +641,7 @@ def test_optimize_handles_empty_best_score_file_in_fresh_workspace(
     workspace = tmp_path / "optimize-fresh"
     init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
     assert init_result.exit_code == 0, init_result.output
-    assert (workspace / ".autoagent" / "best_score.txt").read_text(encoding="utf-8") == ""
+    assert (workspace / ".agentlab" / "best_score.txt").read_text(encoding="utf-8") == ""
 
     monkeypatch.chdir(workspace)
     result = runner.invoke(cli, ["optimize", "--cycles", "1", "--json"])
@@ -671,8 +671,8 @@ def test_init_then_build_supports_repo_free_user_flow(
     )
 
     assert result.exit_code == 0, result.output
-    assert (workspace / ".autoagent" / "build_artifact_latest.json").exists()
-    assert (workspace / ".autoagent" / "build_artifacts.json").exists()
+    assert (workspace / ".agentlab" / "build_artifact_latest.json").exists()
+    assert (workspace / ".agentlab" / "build_artifacts.json").exists()
     assert "Next step:" in result.output
 
 

@@ -114,17 +114,17 @@ Changes made:
 
 ## Files Created
 
-1. `/Users/andrew/Desktop/AutoAgent-VNextCC/web/src/components/JourneyTimeline.tsx`
-2. `/Users/andrew/Desktop/AutoAgent-VNextCC/web/src/components/FixButton.tsx`
-3. `/Users/andrew/Desktop/AutoAgent-VNextCC/web/src/components/HealthPulse.tsx`
-4. `/Users/andrew/Desktop/AutoAgent-VNextCC/api/routes/quickfix.py`
+1. `/Users/andrew/Desktop/AgentLab-VNextCC/web/src/components/JourneyTimeline.tsx`
+2. `/Users/andrew/Desktop/AgentLab-VNextCC/web/src/components/FixButton.tsx`
+3. `/Users/andrew/Desktop/AgentLab-VNextCC/web/src/components/HealthPulse.tsx`
+4. `/Users/andrew/Desktop/AgentLab-VNextCC/api/routes/quickfix.py`
 
 ## Files Modified
 
-1. `/Users/andrew/Desktop/AutoAgent-VNextCC/api/server.py` - Added quickfix router
-2. `/Users/andrew/Desktop/AutoAgent-VNextCC/web/src/pages/Dashboard.tsx` - Integrated all components
-3. `/Users/andrew/Desktop/AutoAgent-VNextCC/web/src/App.tsx` - Added LiveOptimize route
-4. `/Users/andrew/Desktop/AutoAgent-VNextCC/web/src/components/Sidebar.tsx` - Added nav item
+1. `/Users/andrew/Desktop/AgentLab-VNextCC/api/server.py` - Added quickfix router
+2. `/Users/andrew/Desktop/AgentLab-VNextCC/web/src/pages/Dashboard.tsx` - Integrated all components
+3. `/Users/andrew/Desktop/AgentLab-VNextCC/web/src/App.tsx` - Added LiveOptimize route
+4. `/Users/andrew/Desktop/AgentLab-VNextCC/web/src/components/Sidebar.tsx` - Added nav item
 
 ## Feature Highlights
 

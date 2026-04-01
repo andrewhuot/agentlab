@@ -212,7 +212,7 @@ class GeneratedEvalSuite:
 class GeneratedEvalSuiteStore:
     """Durable store for generated eval suites used by API review flows."""
 
-    def __init__(self, store_dir: str = ".autoagent/generated_evals") -> None:
+    def __init__(self, store_dir: str = ".agentlab/generated_evals") -> None:
         self.store_dir = Path(store_dir)
         self.store_dir.mkdir(parents=True, exist_ok=True)
 

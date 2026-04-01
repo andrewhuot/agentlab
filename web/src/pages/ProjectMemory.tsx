@@ -164,7 +164,7 @@ export function ProjectMemory() {
     <div className="space-y-6">
       <PageHeader
         title="Project Memory"
-        description="View and edit your AUTOAGENT.md project memory — identity, constraints, patterns, and preferences"
+        description="View and edit your AGENTLAB.md project memory — identity, constraints, patterns, and preferences"
         actions={
           <button
             onClick={handleSave}
@@ -197,7 +197,7 @@ export function ProjectMemory() {
               <div className="text-center">
                 <Brain className="mx-auto mb-2 h-8 w-8 text-gray-400" />
                 <p>No project memory found.</p>
-                <p className="mt-1 text-xs text-gray-400">Create an AUTOAGENT.md file to get started.</p>
+                <p className="mt-1 text-xs text-gray-400">Create an AGENTLAB.md file to get started.</p>
               </div>
             </div>
           ) : (

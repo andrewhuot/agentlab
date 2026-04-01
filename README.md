@@ -1,10 +1,10 @@
-# AutoAgent
+# AgentLab
 
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB)
 ![Test Suite](https://img.shields.io/badge/test%20suite-pytest%20%2B%20vite-22C55E)
 ![License](https://img.shields.io/badge/license-Apache%202.0-111827)
 
-AutoAgent automatically makes your AI agents better. Give it an agent, define what "good" looks like, and AutoAgent will build, evaluate, compare, optimize, review, and deploy changes in a loop you can inspect end to end.
+AgentLab automatically makes your AI agents better. Give it an agent, define what "good" looks like, and AgentLab will build, evaluate, compare, optimize, review, and deploy changes in a loop you can inspect end to end.
 
 ```text
 BUILD -> EVAL -> OPTIMIZE -> REVIEW -> DEPLOY
@@ -23,8 +23,8 @@ BUILD -> EVAL -> OPTIMIZE -> REVIEW -> DEPLOY
 ## Install
 
 ```bash
-git clone https://github.com/andrewhuot/autoagent-vnextcc.git
-cd autoagent-vnextcc
+git clone https://github.com/andrewhuot/agentlab.git
+cd agentlab
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -40,7 +40,7 @@ pip install -e .
 
 ### API keys
 
-AutoAgent auto-detects your environment:
+AgentLab auto-detects your environment:
 
 - if provider credentials are present, it can use live LLM providers
 - if they are missing, it falls back to deterministic mock responses
@@ -53,34 +53,34 @@ export ANTHROPIC_API_KEY=sk-ant-...
 export GOOGLE_API_KEY=AI...
 ```
 
-Run `autoagent doctor` to verify the current mode and provider readiness.
+Run `agentlab doctor` to verify the current mode and provider readiness.
 
 ---
 
 ## Quick Start
 
 ```bash
-autoagent new my-agent --template customer-support --demo
+agentlab new my-agent --template customer-support --demo
 cd my-agent
-autoagent instruction show
-autoagent build "customer support agent for order tracking, refunds, and cancellations"
-autoagent eval run
-autoagent optimize --cycles 1
-autoagent deploy --auto-review --yes
+agentlab instruction show
+agentlab build "customer support agent for order tracking, refunds, and cancellations"
+agentlab eval run
+agentlab optimize --cycles 1
+agentlab deploy --auto-review --yes
 ```
 
 Notes:
 
 - `--demo` seeds a friendlier first workspace with review and autofix data.
 - New workspaces start with an XML root instruction by default.
-- If the starter eval already passes cleanly, `autoagent optimize --cycles 1` may say `Latest eval passed; no optimization needed.` That is expected.
-- `autoagent deploy --auto-review --yes` still works on a demo workspace because the seeded review data and staged versions make the deploy path reproducible.
+- If the starter eval already passes cleanly, `agentlab optimize --cycles 1` may say `Latest eval passed; no optimization needed.` That is expected.
+- `agentlab deploy --auto-review --yes` still works on a demo workspace because the seeded review data and staged versions make the deploy path reproducible.
 
 ---
 
 ## CLI
 
-Default help groups the CLI into **Primary** and **Secondary** commands. Run `autoagent advanced` to see the broader hidden command set.
+Default help groups the CLI into **Primary** and **Secondary** commands. Run `agentlab advanced` to see the broader hidden command set.
 
 ### Primary commands
 
@@ -93,7 +93,7 @@ Default help groups the CLI into **Primary** and **Secondary** commands. Run `au
 | `deploy` | Canary, release, rollback, or auto-review-and-deploy |
 | `status` | Show workspace health, versions, and recommended next steps |
 | `doctor` | Check configuration, providers, data stores, and readiness |
-| `shell` | Launch the interactive AutoAgent shell |
+| `shell` | Launch the interactive AgentLab shell |
 
 ### Secondary commands
 
@@ -102,7 +102,7 @@ Default help groups the CLI into **Primary** and **Secondary** commands. Run `au
 | `config` | List, diff, import, edit, resolve, rollback, and activate configs |
 | `connect` | Import OpenAI Agents, Anthropic, HTTP, or transcript-backed runtimes |
 | `instruction` | Show, validate, edit, generate, or migrate XML instructions |
-| `memory` | Manage `AUTOAGENT.md` project memory |
+| `memory` | Manage `AGENTLAB.md` project memory |
 | `mode` | Show or set mock/live/auto execution mode |
 | `model` | Inspect or override proposer/evaluator model preferences |
 | `provider` | Configure, list, and test provider profiles |
@@ -115,7 +115,7 @@ All commands support `--help`. See [docs/cli-reference.md](docs/cli-reference.md
 
 ## How It Works
 
-AutoAgent centers everything around a closed improvement loop:
+AgentLab centers everything around a closed improvement loop:
 
 1. **Build** — create or refine agent configs and starter evals
 2. **Eval** — run the current config against the active suite
@@ -149,7 +149,7 @@ The CLI, API, and UI all work off the same local workspace state, so you can mov
 
 - **Google CX Studio / Dialogflow CX** — import, diff, export, sync, deploy
 - **Google ADK** — import ADK agents, inspect diffs, export patches, deploy
-- **MCP** — expose the live AutoAgent surface to coding agents
+- **MCP** — expose the live AgentLab surface to coding agents
 - **Transcript intelligence** — ingest archives and turn them into build artifacts and eval inputs
 
 ---
@@ -159,7 +159,7 @@ The CLI, API, and UI all work off the same local workspace state, so you can mov
 For the combined app:
 
 ```bash
-autoagent server
+agentlab server
 ```
 
 Then open `http://localhost:8000`.
@@ -202,7 +202,7 @@ docker compose up --build -d
 ./deploy/deploy.sh "$PROJECT_ID" "$REGION"
 
 # Fly.io
-fly launch --name autoagent --region ord && fly deploy
+fly launch --name agentlab --region ord && fly deploy
 ```
 
 See [docs/deployment.md](docs/deployment.md) for local, container, and Cloud Run details.

@@ -11,7 +11,7 @@ from typing import Any
 
 import yaml
 
-from cli.workspace import AutoAgentWorkspace
+from cli.workspace import AgentLabWorkspace
 
 
 STARTER_TEMPLATE_NAMES: tuple[str, ...] = (
@@ -87,7 +87,7 @@ def load_template(name: str) -> WorkspaceTemplate:
 
 
 def apply_template_to_workspace(
-    workspace: AutoAgentWorkspace,
+    workspace: AgentLabWorkspace,
     template_name: str,
 ) -> dict[str, Any]:
     """Write the starter config, eval cases, and scorer specs for a template."""
@@ -138,7 +138,7 @@ def apply_template_to_workspace(
         path = workspace.scorer_specs_dir / filename
         path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
-    summary_path = workspace.autoagent_dir / "template.json"
+    summary_path = workspace.agentlab_dir / "template.json"
     summary_path.write_text(
         json.dumps(
             {

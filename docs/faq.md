@@ -1,15 +1,15 @@
 # FAQ and Troubleshooting
 
-This FAQ focuses on the most common operational issues with AutoAgent VNextCC.
+This FAQ focuses on the most common operational issues with AgentLab VNextCC.
 
 ## Quick Triage Checklist
 
 When something looks wrong, run these first:
 
 ```bash
-autoagent status
-autoagent config list
-autoagent logs --limit 20
+agentlab status
+agentlab config list
+agentlab logs --limit 20
 curl -sS http://localhost:8000/api/health
 curl -sS http://localhost:8000/api/tasks
 ```
@@ -18,7 +18,7 @@ These five checks usually tell you whether the issue is data, config, task execu
 
 ## Installation and Startup
 
-## `autoagent` command not found
+## `agentlab` command not found
 
 Cause:
 - package not installed in current environment
@@ -28,8 +28,8 @@ Fix:
 
 ```bash
 pip install -e ".[dev]"
-which autoagent
-autoagent --version
+which agentlab
+agentlab --version
 ```
 
 ## Server starts, but web UI says frontend not found
@@ -44,7 +44,7 @@ cd web
 npm install
 npm run build
 cd ..
-autoagent server
+agentlab server
 ```
 
 ## Port 8000 already in use
@@ -53,7 +53,7 @@ Fix:
 - run on a different port
 
 ```bash
-autoagent server --port 8010
+agentlab server --port 8010
 ```
 
 Then use `http://localhost:8010`.
@@ -83,7 +83,7 @@ curl -sS http://localhost:8000/api/tasks/<run_id>
 
 ## Can I force optimization when health is fine?
 
-- CLI `autoagent optimize` does not expose a `--force` flag.
+- CLI `agentlab optimize` does not expose a `--force` flag.
 - API supports it:
 
 ```bash
@@ -99,7 +99,7 @@ curl -X POST http://localhost:8000/api/optimize/run \
 Use CLI with config file path:
 
 ```bash
-autoagent eval run --config configs/v003.yaml
+agentlab eval run --config configs/v003.yaml
 ```
 
 Or API with `config_path`:
@@ -115,7 +115,7 @@ curl -X POST http://localhost:8000/api/eval/run \
 CLI:
 
 ```bash
-autoagent eval run --category safety
+agentlab eval run --category safety
 ```
 
 API:
@@ -165,7 +165,7 @@ Actions:
 CLI:
 
 ```bash
-autoagent deploy --config-version 5 --strategy immediate
+agentlab deploy --config-version 5 --strategy immediate
 ```
 
 API:
@@ -204,7 +204,7 @@ Generate signal by:
 - ensuring logger writes to expected DB path
 
 Check DB path alignment:
-- `AUTOAGENT_DB`
+- `AGENTLAB_DB`
 
 ## Where are configs and versions stored?
 
@@ -214,8 +214,8 @@ Check DB path alignment:
 Inspect quickly:
 
 ```bash
-autoagent config list
-autoagent config show
+agentlab config list
+agentlab config show
 ```
 
 ## How do I reset local state?
@@ -223,7 +223,7 @@ autoagent config show
 ```bash
 rm -f conversations.db optimizer_memory.db
 rm -rf configs
-autoagent new my-project
+agentlab new my-project
 ```
 
 For Docker:

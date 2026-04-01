@@ -15,7 +15,7 @@ from cli.errors import with_doctor_hint
 from optimizer.providers import has_real_provider_credentials
 
 
-WORKSPACE_STATE_PATH = Path(".autoagent") / "workspace.json"
+WORKSPACE_STATE_PATH = Path(".agentlab") / "workspace.json"
 VALID_MODES = {"auto", "mock", "live"}
 
 
@@ -50,7 +50,7 @@ def set_mode_preference(mode: str, path: Path = WORKSPACE_STATE_PATH) -> None:
     payload = _read_workspace_state(path)
     payload["mode"] = normalized
     payload["updated_at"] = time.time()
-    payload["updated_by"] = "autoagent mode set"
+    payload["updated_by"] = "agentlab mode set"
     _write_workspace_state(payload, path)
 
 
@@ -75,7 +75,7 @@ def describe_providers(runtime: RuntimeConfig) -> list[dict[str, Any]]:
     return providers
 
 
-def summarize_mode_state(config_path: str = "autoagent.yaml") -> dict[str, Any]:
+def summarize_mode_state(config_path: str = "agentlab.yaml") -> dict[str, Any]:
     """Return preferred/effective mode details plus provider configuration."""
     runtime = load_runtime_config(config_path)
     workspace_mode = get_mode_preference()
@@ -90,7 +90,7 @@ def summarize_mode_state(config_path: str = "autoagent.yaml") -> dict[str, Any]:
     if preferred_mode == "mock":
         message = (
             "Running in MOCK mode — results use deterministic responses. "
-            "Run autoagent mode set live to use real providers."
+            "Run agentlab mode set live to use real providers."
         )
     elif preferred_mode == "auto":
         if effective_mode == "live":
@@ -117,14 +117,14 @@ def summarize_mode_state(config_path: str = "autoagent.yaml") -> dict[str, Any]:
         "config_mode": config_mode,
         "preferred_mode": preferred_mode,
         "effective_mode": effective_mode,
-        "mode_source": "workspace preference (.autoagent/workspace.json)" if workspace_mode else f"runtime config ({config_path})",
+        "mode_source": "workspace preference (.agentlab/workspace.json)" if workspace_mode else f"runtime config ({config_path})",
         "providers": describe_providers(runtime),
         "real_provider_configured": real_provider_configured,
         "message": message,
     }
 
 
-def load_runtime_with_mode_preference(config_path: str = "autoagent.yaml") -> RuntimeConfig:
+def load_runtime_with_mode_preference(config_path: str = "agentlab.yaml") -> RuntimeConfig:
     """Load runtime config and apply the CLI workspace mode preference."""
     summary = summarize_mode_state(config_path)
     runtime = summary["runtime"].model_copy(deep=True)
@@ -132,7 +132,7 @@ def load_runtime_with_mode_preference(config_path: str = "autoagent.yaml") -> Ru
     return runtime
 
 
-def ensure_live_mode_ready(config_path: str = "autoagent.yaml") -> dict[str, Any]:
+def ensure_live_mode_ready(config_path: str = "agentlab.yaml") -> dict[str, Any]:
     """Validate that live mode has at least one configured real provider credential."""
     summary = summarize_mode_state(config_path)
     if not summary["real_provider_configured"]:
@@ -164,17 +164,17 @@ def mode_group(ctx: click.Context) -> None:
     """Show or set explicit CLI execution mode.
 
     Examples:
-      autoagent mode show
-      autoagent mode set auto
-      autoagent mode set mock
-      autoagent mode set live
+      agentlab mode show
+      agentlab mode set auto
+      agentlab mode set mock
+      agentlab mode set live
     """
     if ctx.invoked_subcommand is None:
         ctx.invoke(show_mode)
 
 
 @mode_group.command("show")
-@click.option("--config", "config_path", default="autoagent.yaml", show_default=True,
+@click.option("--config", "config_path", default="agentlab.yaml", show_default=True,
               help="Path to runtime config YAML.")
 def show_mode(config_path: str) -> None:
     """Show the current CLI mode and configured providers."""
@@ -190,7 +190,7 @@ def show_mode(config_path: str) -> None:
 
 @mode_group.command("set")
 @click.argument("mode", type=click.Choice(sorted(VALID_MODES), case_sensitive=False))
-@click.option("--config", "config_path", default="autoagent.yaml", show_default=True,
+@click.option("--config", "config_path", default="agentlab.yaml", show_default=True,
               help="Path to runtime config YAML.")
 def set_mode(mode: str, config_path: str) -> None:
     """Persist the requested CLI mode preference for this workspace."""

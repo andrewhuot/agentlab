@@ -129,7 +129,7 @@ class VersionPinStore:
         created_at TEXT, pin_json TEXT, metadata_json TEXT
     """
 
-    def __init__(self, db_path: str = ".autoagent/version_pins.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/version_pins.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_tables()

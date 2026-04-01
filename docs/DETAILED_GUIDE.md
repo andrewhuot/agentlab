@@ -1,21 +1,21 @@
 > **TL;DR** — Want the shortest path? Start with the [Quick Start](QUICKSTART_GUIDE.md).
 
-# AutoAgent Detailed Guide
+# AgentLab Detailed Guide
 
 This guide walks the current first-run CLI flow from install to review and deployment. It is written for the product as it exists today:
 
 - new workspaces default to XML root instructions
-- AutoAgent auto-detects mock vs live execution
+- AgentLab auto-detects mock vs live execution
 - the first-run loop can end either in a new proposal or in `no optimization needed`
 - the browser UI and CLI share the same workspace state
 
-## 1. Install AutoAgent
+## 1. Install AgentLab
 
 From the repository root:
 
 ```bash
-git clone https://github.com/andrewhuot/autoagent-vnextcc.git
-cd autoagent-vnextcc
+git clone https://github.com/andrewhuot/agentlab.git
+cd agentlab
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -29,7 +29,7 @@ Requirements:
 ## 2. Explore the starter templates
 
 ```bash
-autoagent template list
+agentlab template list
 ```
 
 Current bundled starter templates:
@@ -48,9 +48,9 @@ Starter templates
 For a reproducible walkthrough, start with demo data:
 
 ```bash
-autoagent new my-project --template customer-support --demo
+agentlab new my-project --template customer-support --demo
 cd my-project
-autoagent status
+agentlab status
 ```
 
 What `--demo` adds:
@@ -61,7 +61,7 @@ What `--demo` adds:
 
 ### Mock vs live mode
 
-AutoAgent auto-detects the execution mode from your environment.
+AgentLab auto-detects the execution mode from your environment.
 
 - no provider keys -> mock mode
 - configured provider keys -> live mode is available
@@ -71,10 +71,10 @@ The recommended first run is **mock mode** because it is deterministic and does 
 When you are ready to configure live providers:
 
 ```bash
-autoagent provider configure
-autoagent provider test
-autoagent mode set live
-autoagent mode show
+agentlab provider configure
+agentlab provider test
+agentlab mode set live
+agentlab mode show
 ```
 
 Helpful notes:
@@ -90,32 +90,32 @@ New workspaces now start with an XML root instruction in `prompts.root`.
 Show the current instruction:
 
 ```bash
-autoagent instruction show
+agentlab instruction show
 ```
 
 Validate that it is well-formed:
 
 ```bash
-autoagent instruction validate
+agentlab instruction validate
 ```
 
 Open it in your editor:
 
 ```bash
-autoagent instruction edit
+agentlab instruction edit
 ```
 
 Generate a fresh XML draft from a brief:
 
 ```bash
-autoagent instruction generate --brief "customer support agent for order tracking and refunds" --apply
+agentlab instruction generate --brief "customer support agent for order tracking and refunds" --apply
 ```
 
 Migrate an older plain-text prompt:
 
 ```bash
-autoagent instruction migrate
-autoagent instruction validate
+agentlab instruction migrate
+agentlab instruction validate
 ```
 
 For the full XML workflow, see [XML Instructions](xml-instructions.md).
@@ -125,7 +125,7 @@ For the full XML workflow, see [XML Instructions](xml-instructions.md).
 Generate a config and build artifact from a natural-language prompt:
 
 ```bash
-autoagent build "Build a customer support agent for order tracking, refunds, and cancellations"
+agentlab build "Build a customer support agent for order tracking, refunds, and cancellations"
 ```
 
 The build step stages:
@@ -137,7 +137,7 @@ The build step stages:
 Inspect the latest build artifact:
 
 ```bash
-autoagent build show latest
+agentlab build show latest
 ```
 
 ### Transcript and builder flows
@@ -145,9 +145,9 @@ autoagent build show latest
 The CLI also supports transcript-driven generation through the `intelligence` surface:
 
 ```bash
-autoagent intelligence import /path/to/transcripts.zip
-autoagent intelligence report list
-autoagent intelligence generate-agent <report-id> --output configs/v003_transcript.yaml
+agentlab intelligence import /path/to/transcripts.zip
+agentlab intelligence report list
+agentlab intelligence generate-agent <report-id> --output configs/v003_transcript.yaml
 ```
 
 ## 6. Run evals
@@ -155,19 +155,19 @@ autoagent intelligence generate-agent <report-id> --output configs/v003_transcri
 Evaluate the active config:
 
 ```bash
-autoagent eval run
+agentlab eval run
 ```
 
 Show the latest run again:
 
 ```bash
-autoagent eval show latest
+agentlab eval show latest
 ```
 
 List recent runs:
 
 ```bash
-autoagent eval list
+agentlab eval list
 ```
 
 ### Useful eval options
@@ -175,19 +175,19 @@ autoagent eval list
 Run one category only:
 
 ```bash
-autoagent eval run --category safety
+agentlab eval run --category safety
 ```
 
 Write the result to a file:
 
 ```bash
-autoagent eval run --output results.json
+agentlab eval run --output results.json
 ```
 
 Run against a specific config:
 
 ```bash
-autoagent eval run --config configs/v003.yaml
+agentlab eval run --config configs/v003.yaml
 ```
 
 Run with XML instruction overrides:
@@ -198,20 +198,20 @@ constraints:
 ```
 
 ```bash
-autoagent eval run --instruction-overrides instruction_override.yaml
+agentlab eval run --instruction-overrides instruction_override.yaml
 ```
 
 Inspect structured results:
 
 ```bash
-autoagent eval results --run-id <run-id>
-autoagent eval results --run-id <run-id> --failures
-autoagent eval results export <run-id> --format markdown
+agentlab eval results --run-id <run-id>
+agentlab eval results --run-id <run-id> --failures
+agentlab eval results export <run-id> --format markdown
 ```
 
 ### What to expect
 
-In mock mode, AutoAgent will tell you that the run is simulated. That is expected until you connect a real runtime and live providers.
+In mock mode, AgentLab will tell you that the run is simulated. That is expected until you connect a real runtime and live providers.
 
 Do not rely on a specific starter score like `4/5` or `5/5` in docs or scripts. The exact demo output can change as templates and seeded data evolve.
 
@@ -220,33 +220,33 @@ Do not rely on a specific starter score like `4/5` or `5/5` in docs or scripts. 
 Run one optimization cycle:
 
 ```bash
-autoagent optimize --cycles 1
+agentlab optimize --cycles 1
 ```
 
 Run several cycles:
 
 ```bash
-autoagent optimize --cycles 5
+agentlab optimize --cycles 5
 ```
 
 Run continuously:
 
 ```bash
-autoagent optimize --continuous
+agentlab optimize --continuous
 ```
 
 Switch optimizer mode:
 
 ```bash
-autoagent optimize --mode advanced
-autoagent optimize --mode research
+agentlab optimize --mode advanced
+agentlab optimize --mode research
 ```
 
 ### Two normal first-run outcomes
 
-Outcome 1: AutoAgent finds a failure cluster, proposes a change, and evaluates it.
+Outcome 1: AgentLab finds a failure cluster, proposes a change, and evaluates it.
 
-Outcome 2: AutoAgent prints:
+Outcome 2: AgentLab prints:
 
 ```text
 Cycle 1/1 — Latest eval passed; no optimization needed.
@@ -257,7 +257,7 @@ That second outcome is normal when the current workspace is already healthy enou
 ### Compare candidate-like versions
 
 ```bash
-autoagent compare candidates
+agentlab compare candidates
 ```
 
 This only shows versions already marked with statuses such as `candidate`, `canary`, `imported`, or `evaluated`.
@@ -267,9 +267,9 @@ This only shows versions already marked with statuses such as `candidate`, `cana
 ### Review change cards
 
 ```bash
-autoagent review list
-autoagent review show pending
-autoagent review apply pending
+agentlab review list
+agentlab review show pending
+agentlab review apply pending
 ```
 
 `review apply` supports selectors such as `pending` and `latest`.
@@ -279,20 +279,20 @@ autoagent review apply pending
 Canary the latest deployable version:
 
 ```bash
-autoagent deploy canary --yes
-autoagent deploy status
+agentlab deploy canary --yes
+agentlab deploy status
 ```
 
 Quick path that applies pending review cards first:
 
 ```bash
-autoagent deploy --auto-review --yes
+agentlab deploy --auto-review --yes
 ```
 
 Preview the deployment plan without mutating state:
 
 ```bash
-autoagent deploy --auto-review --yes --dry-run
+agentlab deploy --auto-review --yes --dry-run
 ```
 
 ### Release objects
@@ -300,7 +300,7 @@ autoagent deploy --auto-review --yes --dry-run
 Create a signed release object from an experiment:
 
 ```bash
-autoagent release create --experiment-id exp-abc123
+agentlab release create --experiment-id exp-abc123
 ```
 
 ### External deployment target example
@@ -308,7 +308,7 @@ autoagent release create --experiment-id exp-abc123
 The deploy command also exposes a CX target:
 
 ```bash
-autoagent deploy --target cx-studio --project PROJECT --agent-id AGENT --snapshot .autoagent/cx/snapshot.json
+agentlab deploy --target cx-studio --project PROJECT --agent-id AGENT --snapshot .agentlab/cx/snapshot.json
 ```
 
 ## 9. Use the interactive shell
@@ -316,14 +316,14 @@ autoagent deploy --target cx-studio --project PROJECT --agent-id AGENT --snapsho
 Launch the shell:
 
 ```bash
-autoagent shell
+agentlab shell
 ```
 
 Resume the most recent saved session:
 
 ```bash
-autoagent continue
-autoagent session list
+agentlab continue
+agentlab session list
 ```
 
 Common shell slash commands:
@@ -343,24 +343,24 @@ Common shell slash commands:
 Show the effective model setup:
 
 ```bash
-autoagent model show
-autoagent model list
-autoagent model set proposer openai:gpt-4o
+agentlab model show
+agentlab model list
+agentlab model set proposer openai:gpt-4o
 ```
 
 Manage provider settings:
 
 ```bash
-autoagent provider configure
-autoagent provider list
-autoagent provider test
+agentlab provider configure
+agentlab provider list
+agentlab provider test
 ```
 
 Inspect or change permission mode:
 
 ```bash
-autoagent permissions show
-autoagent permissions set acceptEdits
+agentlab permissions show
+agentlab permissions set acceptEdits
 ```
 
 Available permission modes:
@@ -378,35 +378,35 @@ Available permission modes:
 Inspect current MCP status:
 
 ```bash
-autoagent mcp status
+agentlab mcp status
 ```
 
 Manage workspace MCP servers:
 
 ```bash
-autoagent mcp add my-tool --command "npx" --arg "-y" --arg "@my/tool-server"
-autoagent mcp list
-autoagent mcp inspect my-tool
-autoagent mcp remove my-tool
+agentlab mcp add my-tool --command "npx" --arg "-y" --arg "@my/tool-server"
+agentlab mcp list
+agentlab mcp inspect my-tool
+agentlab mcp remove my-tool
 ```
 
-Start the AutoAgent MCP server:
+Start the AgentLab MCP server:
 
 ```bash
-autoagent mcp-server
+agentlab mcp-server
 ```
 
-See [MCP Integration](mcp-integration.md) and [Connecting AutoAgent to Agentic Coding Tools](guides/agentic-coding-tools.md) for the full setup.
+See [MCP Integration](mcp-integration.md) and [Connecting AgentLab to Agentic Coding Tools](guides/agentic-coding-tools.md) for the full setup.
 
 ## 12. Connect existing runtimes
 
-Import an existing runtime into AutoAgent:
+Import an existing runtime into AgentLab:
 
 ```bash
-autoagent connect openai-agents --path ./agent-project
-autoagent connect anthropic --path ./claude-project
-autoagent connect http --url https://agent.example.com
-autoagent connect transcript --file ./conversations.jsonl --name imported-agent
+agentlab connect openai-agents --path ./agent-project
+agentlab connect anthropic --path ./claude-project
+agentlab connect http --url https://agent.example.com
+agentlab connect transcript --file ./conversations.jsonl --name imported-agent
 ```
 
 The web UI equivalent lives at `/connect`.
@@ -416,17 +416,17 @@ The web UI equivalent lives at `/connect`.
 Authenticate and browse CX agents:
 
 ```bash
-autoagent cx auth
-autoagent cx list --project PROJECT --location us-central1
+agentlab cx auth
+agentlab cx list --project PROJECT --location us-central1
 ```
 
 Import, diff, export, and sync:
 
 ```bash
-autoagent cx import AGENT_ID --project PROJECT --location us-central1
-autoagent cx diff AGENT_ID --project PROJECT --location us-central1
-autoagent cx export AGENT_ID --project PROJECT --location us-central1 --dry-run
-autoagent cx sync AGENT_ID --project PROJECT --location us-central1
+agentlab cx import AGENT_ID --project PROJECT --location us-central1
+agentlab cx diff AGENT_ID --project PROJECT --location us-central1
+agentlab cx export AGENT_ID --project PROJECT --location us-central1 --dry-run
+agentlab cx sync AGENT_ID --project PROJECT --location us-central1
 ```
 
 See [CX Studio Integration](cx-studio-integration.md) for the full round-trip workflow.
@@ -436,20 +436,20 @@ See [CX Studio Integration](cx-studio-integration.md) for the full round-trip wo
 Once the workspace exists, the normal loop is:
 
 ```bash
-autoagent status
-autoagent build "Describe the next refinement"
-autoagent eval run
-autoagent optimize --cycles 3
-autoagent review show pending
-autoagent review apply pending
-autoagent deploy canary --yes
-autoagent deploy status
+agentlab status
+agentlab build "Describe the next refinement"
+agentlab eval run
+agentlab optimize --cycles 3
+agentlab review show pending
+agentlab review apply pending
+agentlab deploy canary --yes
+agentlab deploy status
 ```
 
 Shortcut:
 
 ```bash
-autoagent deploy --auto-review --yes
+agentlab deploy --auto-review --yes
 ```
 
 ## 15. Next steps
@@ -469,7 +469,7 @@ autoagent deploy --auto-review --yes
 You are outside a workspace directory. Either `cd` into one or create one:
 
 ```bash
-autoagent new my-project --template customer-support
+agentlab new my-project --template customer-support
 ```
 
 ### Provider credentials missing
@@ -477,15 +477,15 @@ autoagent new my-project --template customer-support
 Mock mode is still valid:
 
 ```bash
-autoagent mode set mock
+agentlab mode set mock
 ```
 
 Or finish live setup:
 
 ```bash
-autoagent provider configure
-autoagent provider test
-autoagent mode set live
+agentlab provider configure
+agentlab provider test
+agentlab mode set live
 ```
 
 ### No pending review card
@@ -493,16 +493,16 @@ autoagent mode set live
 Generate or inspect more improvement output:
 
 ```bash
-autoagent optimize --cycles 1
-autoagent autofix suggest
+agentlab optimize --cycles 1
+agentlab autofix suggest
 ```
 
-### `autoagent compare candidates` prints `No candidate configs found.`
+### `agentlab compare candidates` prints `No candidate configs found.`
 
 That command is optional. It only lists versions already marked as `candidate`, `canary`, `imported`, or `evaluated`.
 
 ### Need the broader command surface?
 
 ```bash
-autoagent advanced
+agentlab advanced
 ```

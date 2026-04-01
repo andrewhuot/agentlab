@@ -1,4 +1,4 @@
-"""Modular Registry for AutoAgent.
+"""Modular Registry for AgentLab.
 
 Re-exports the public API for convenient imports.
 """

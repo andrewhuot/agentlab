@@ -1515,7 +1515,7 @@ export function useApplyRunbook() {
 }
 
 // ---------------------------------------------------------------------------
-// Project Memory (AUTOAGENT.md)
+// Project Memory (AGENTLAB.md)
 // ---------------------------------------------------------------------------
 
 export function useProjectMemory() {

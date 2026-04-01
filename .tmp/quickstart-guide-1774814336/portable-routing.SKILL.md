@@ -5,7 +5,7 @@ kind: build
 category: customer-support
 platform: universal
 description: Expand routing keywords for order tracking and refund intents.
-author: autoagent
+author: agentlab
 tags:
 - routing
 - optimization

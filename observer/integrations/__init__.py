@@ -1,4 +1,4 @@
-"""Observability platform integrations for AutoAgent."""
+"""Observability platform integrations for AgentLab."""
 
 from .langfuse import LangfuseExporter
 from .braintrust import BraintrustExporter

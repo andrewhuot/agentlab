@@ -3,7 +3,7 @@
 Read BUILDER_WORKSPACE_PRD.md for the complete product requirements.
 Read BUILDER_IMPLEMENTATION_PLAN.md for the architecture overview.
 
-You are building the ENTIRE Builder Workspace — backend AND frontend — in one session. This is a massive feature that transforms AutoAgent into a command center for agent builders.
+You are building the ENTIRE Builder Workspace — backend AND frontend — in one session. This is a massive feature that transforms AgentLab into a command center for agent builders.
 
 ## What to Build
 
@@ -117,7 +117,7 @@ Create these files:
 
 When completely finished with everything, run all builder tests:
 ```
-cd /Users/andrew/Desktop/AutoAgent-VNextCC && .venv/bin/pytest tests/test_builder_*.py -v 2>&1 | tail -40
+cd /Users/andrew/Desktop/AgentLab-VNextCC && .venv/bin/pytest tests/test_builder_*.py -v 2>&1 | tail -40
 ```
 
 Then signal completion:

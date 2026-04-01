@@ -1,4 +1,4 @@
-"""Project memory (AUTOAGENT.md) API endpoints."""
+"""Project memory (AGENTLAB.md) API endpoints."""
 
 from __future__ import annotations
 

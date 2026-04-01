@@ -56,7 +56,7 @@ eval_runner.mock_mode_messages = [
 **Status:** Known, acknowledged in code. Roadmap item #1.
 
 ### Gap 2: Mock mode is default with no visible UI warning
-**Files:** `autoagent.yaml`, `optimizer/proposer.py:93`
+**Files:** `agentlab.yaml`, `optimizer/proposer.py:93`
 ```yaml
 optimizer:
   use_mock: true  # default
@@ -83,7 +83,7 @@ Zero authentication on the FastAPI server. All 200+ endpoints are accessible wit
 ### Gap 5: SQLite only — no Postgres support
 **File:** `api/server.py:76–78`
 ```python
-CONVERSATIONS_DB = os.environ.get("AUTOAGENT_DB", "conversations.db")
+CONVERSATIONS_DB = os.environ.get("AGENTLAB_DB", "conversations.db")
 ```
 Eight SQLite databases with direct `sqlite3` module usage. No ORM, no connection string abstraction, no Postgres support.
 **Status:** Scale blocker. Roadmap item #8.

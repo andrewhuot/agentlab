@@ -1,7 +1,7 @@
 """Pydantic models for ADK agent structures.
 
 These types represent parsed ADK agent definitions extracted from Python source
-code. They are intentionally separate from AutoAgent's internal config schema
+code. They are intentionally separate from AgentLab's internal config schema
 so that the mapper layer can evolve each side independently.
 """
 from __future__ import annotations
@@ -107,7 +107,7 @@ class AdkAgentTree(BaseModel):
 
 
 class ImportResult(BaseModel):
-    """Result of a successful ADK-to-AutoAgent import operation."""
+    """Result of a successful ADK-to-AgentLab import operation."""
 
     config_path: str
     snapshot_path: str

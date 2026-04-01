@@ -73,7 +73,7 @@ class ImpactProjection:
 class WhatIfStore:
     """SQLite-backed store for what-if replay results."""
 
-    def __init__(self, db_path: str = ".autoagent/what_if.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/what_if.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

@@ -2,9 +2,9 @@
 
 ## Executive Summary
 
-Three features that transform AutoAgent from a research tool into an intuitive product:
+Three features that transform AgentLab from a research tool into an intuitive product:
 1. **Hide Algorithms, Expose Objectives** — Standard/Advanced/Research modes replace algorithm jargon
-2. **Playbooks + AUTOAGENT.md** — Uplevel registry into user-facing playbooks with persistent project memory
+2. **Playbooks + AGENTLAB.md** — Uplevel registry into user-facing playbooks with persistent project memory
 3. **Reviewable Change Cards** — Git-like diff experience for every optimization proposal
 
 ---
@@ -12,7 +12,7 @@ Three features that transform AutoAgent from a research tool into an intuitive p
 ## Architecture: How Features Interact
 
 ```
-AUTOAGENT.md (project memory)
+AGENTLAB.md (project memory)
     ↓ read at cycle start
 ModeRouter (standard/advanced/research)
     ↓ selects strategy + model routing
@@ -23,8 +23,8 @@ ChangeCard (wraps ExperimentCard)
 Playbooks (inform AutoFix proposals)
 ```
 
-- **AUTOAGENT.md → ModeRouter**: Business constraints in AUTOAGENT.md auto-populate guardrails for mode routing
-- **AUTOAGENT.md → ChangeCard**: "WHY" reasoning references project memory context
+- **AGENTLAB.md → ModeRouter**: Business constraints in AGENTLAB.md auto-populate guardrails for mode routing
+- **AGENTLAB.md → ChangeCard**: "WHY" reasoning references project memory context
 - **Playbooks → AutoFix**: AutoFix suggests relevant playbooks when proposing fixes
 - **Modes → ChangeCard**: Metric labels in change cards use new hierarchy (Guardrails/Objectives/Constraints/Diagnostics)
 
@@ -64,7 +64,7 @@ MODE_STRATEGY_MAP = {
 
 ### Config Migration (backwards compat)
 
-Old config (`search_strategy: adaptive`) still works. New config (`optimization.mode: advanced`) is preferred. `autoagent config migrate` converts:
+Old config (`search_strategy: adaptive`) still works. New config (`optimization.mode: advanced`) is preferred. `agentlab config migrate` converts:
 - `simple` → `standard`
 - `adaptive` → `advanced`
 - `full` / `pro` → `research`
@@ -91,26 +91,26 @@ Display-only change. `MetricLayer` enum values unchanged. Add `display_name` pro
 
 ---
 
-## Feature 2: Playbooks + AUTOAGENT.md
+## Feature 2: Playbooks + AGENTLAB.md
 
 ### New Files
 
 | File | Purpose |
 |------|---------|
 | `registry/playbooks.py` | Playbook model + SQLite-backed PlaybookStore |
-| `core/project_memory.py` | Load/save/update AUTOAGENT.md; structured sections parser |
+| `core/project_memory.py` | Load/save/update AGENTLAB.md; structured sections parser |
 | `api/routes/playbooks.py` | `/api/playbooks/` CRUD |
 | `api/routes/memory.py` | `/api/memory/` read/update |
 | `web/src/pages/Playbooks.tsx` | Playbook browser (replaces Registry as default) |
-| `web/src/pages/ProjectMemory.tsx` | AUTOAGENT.md viewer/editor |
+| `web/src/pages/ProjectMemory.tsx` | AGENTLAB.md viewer/editor |
 
 ### Modified Files
 
 | File | Changes |
 |------|---------|
 | `registry/store.py` | Add `playbooks` table to `_TABLES` |
-| `runner.py` | Add `playbook` subgroup (list/show/apply/create), `memory` subgroup (show/edit/add), update `init` to generate AUTOAGENT.md |
-| `optimizer/loop.py` | Load AUTOAGENT.md at cycle start, pass context to proposers |
+| `runner.py` | Add `playbook` subgroup (list/show/apply/create), `memory` subgroup (show/edit/add), update `init` to generate AGENTLAB.md |
+| `optimizer/loop.py` | Load AGENTLAB.md at cycle start, pass context to proposers |
 | `optimizer/autofix.py` | Reference playbooks when suggesting fixes |
 | `api/server.py` | Initialize PlaybookStore + ProjectMemory on startup |
 | `web/src/App.tsx` | Add `/playbooks` and `/memory` routes |
@@ -142,10 +142,10 @@ class Playbook:
 5. `optimize-cost-efficiency` — Token/cost reduction without quality loss
 6. `enhance-few-shot-examples` — Few-shot example curation
 
-### AUTOAGENT.md Structure
+### AGENTLAB.md Structure
 
 ```markdown
-# AUTOAGENT.md — Project Memory
+# AGENTLAB.md — Project Memory
 
 ## Agent Identity
 ## Business Constraints
@@ -155,7 +155,7 @@ class Playbook:
 ## Optimization History
 ```
 
-Generated on `autoagent init` with template-appropriate defaults. Sections are parsed as structured data for optimizer context.
+Generated on `agentlab init` with template-appropriate defaults. Sections are parsed as structured data for optimizer context.
 
 ### Integration with Optimizer
 
@@ -216,7 +216,7 @@ class ProposedChangeCard:
     experiment_card_id: str           # Link to underlying ExperimentCard
     status: str                       # pending, applied, rejected
     created_at: float
-    # AUTOAGENT.md context used in reasoning
+    # AGENTLAB.md context used in reasoning
     memory_context: str | None
 ```
 
@@ -239,7 +239,7 @@ class CandidateSandbox:
     """Isolated workspace for candidate evaluation."""
 
     def __init__(self, baseline_config: dict):
-        self.work_dir = tempfile.mkdtemp(prefix="autoagent_sandbox_")
+        self.work_dir = tempfile.mkdtemp(prefix="agentlab_sandbox_")
         self._save_baseline(baseline_config)
 
     def apply_mutation(self, mutation: dict) -> dict:
@@ -255,7 +255,7 @@ class CandidateSandbox:
 ### CLI Experience
 
 ```
-$ autoagent review
+$ agentlab review
 ┌─────────────────────────────────────────────────────┐
 │ 3 pending changes                                    │
 ├─────────────────────────────────────────────────────┤
@@ -264,10 +264,10 @@ $ autoagent review
 │ #3 Swap model for cost efficiency        [med risk]  │
 └─────────────────────────────────────────────────────┘
 
-$ autoagent review abc123
+$ agentlab review abc123
 [Full change card with diff, metrics, confidence]
 
-$ autoagent review abc123 --apply
+$ agentlab review abc123 --apply
 Applied change abc123. Rollout: 2h canary → auto-promote.
 ```
 
@@ -279,10 +279,10 @@ Applied change abc123. Rollout: 2h canary → auto-promote.
 |-----------|--------------------------|
 | `search_strategy` config | Still works — ModeRouter falls back to direct strategy lookup |
 | `--strategy` CLI flag | Deprecated with warning, maps to `--mode` internally |
-| `autoagent registry` commands | Still work, documented as "advanced" |
+| `agentlab registry` commands | Still work, documented as "advanced" |
 | `/api/registry/*` endpoints | Still work, playbooks endpoints added alongside |
 | `ExperimentCard` | Still exists, ChangeCard wraps it |
-| Old `autoagent.yaml` format | Parsed alongside new `optimization:` section |
+| Old `agentlab.yaml` format | Parsed alongside new `optimization:` section |
 | `MetricLayer` enum values | Unchanged — only display names change |
 
 ---
@@ -292,11 +292,11 @@ Applied change abc123. Rollout: 2h canary → auto-promote.
 ### Journey 1: PM Sets Up Optimization (Feature 1)
 
 ```
-$ autoagent init
-→ Creates AUTOAGENT.md with template
-→ "Edit AUTOAGENT.md with your agent's identity and constraints"
+$ agentlab init
+→ Creates AGENTLAB.md with template
+→ "Edit AGENTLAB.md with your agent's identity and constraints"
 
-$ cat autoagent.yaml
+$ cat agentlab.yaml
 optimization:
   mode: standard
   objective: "Maximize task success while keeping latency under 3s"
@@ -306,42 +306,42 @@ optimization:
     per_cycle: 1.0
   autonomy: supervised
 
-$ autoagent optimize
+$ agentlab optimize
 → "Mode: Standard | Objective: Maximize task success..."
 → Runs conservative BootstrapFewShot optimization
 → Generates ProposedChangeCard
 
-$ autoagent review
+$ agentlab review
 → Shows readable change card with why/what/metrics
 ```
 
 ### Journey 2: Team Lead Applies Playbook (Feature 2)
 
 ```
-$ autoagent playbook list
+$ agentlab playbook list
   fix-retrieval-grounding     Improve RAG quality, reduce hallucination
   reduce-tool-latency         Optimize tool timeout and retry settings
   tighten-safety-policy       Enforce safety guardrails
   ...
 
-$ autoagent playbook show fix-retrieval-grounding
+$ agentlab playbook show fix-retrieval-grounding
   Skills: retrieval_query_rewriting, context_relevance_filtering
   Policies: no_hallucination_policy, citation_required_policy
   Triggers: quality_degradation + retrieval_quality root cause
 
-$ autoagent playbook apply fix-retrieval-grounding
+$ agentlab playbook apply fix-retrieval-grounding
   Applied playbook. 2 skills, 2 policies registered.
-  Run 'autoagent optimize' to evaluate impact.
+  Run 'agentlab optimize' to evaluate impact.
 ```
 
 ### Journey 3: Engineer Reviews Change (Feature 3)
 
 ```
-$ autoagent review abc123
+$ agentlab review abc123
 ┌──────────────────────────────────────────────┐
 │ Proposed Change: Improve returns flow        │
 │ WHY: Blame map shows 62% quality regression  │
-│      AUTOAGENT.md notes returns = highest    │
+│      AGENTLAB.md notes returns = highest    │
 │      impact surface.                         │
 │                                              │
 │ WHAT CHANGES:                                │
@@ -358,7 +358,7 @@ $ autoagent review abc123
 │ [Apply] [Reject] [Edit] [Export]             │
 └──────────────────────────────────────────────┘
 
-$ autoagent review abc123 --apply
+$ agentlab review abc123 --apply
 Applied. Rollout: 2h canary → auto-promote if metrics hold.
 ```
 
@@ -375,7 +375,7 @@ Applied. Rollout: 2h canary → auto-promote if metrics hold.
 
 ### Agent 2: Feature 2 Backend
 - `registry/playbooks.py` — Playbook model + PlaybookStore
-- `core/project_memory.py` — ProjectMemory class, AUTOAGENT.md parser/writer
+- `core/project_memory.py` — ProjectMemory class, AGENTLAB.md parser/writer
 - `registry/store.py` — Add playbooks table
 - 6 built-in starter playbooks (YAML definitions)
 - Integration hooks in optimizer/loop.py and autofix.py
@@ -387,7 +387,7 @@ Applied. Rollout: 2h canary → auto-promote if metrics hold.
 - Integration with optimizer/loop.py (wrap candidates as change cards)
 
 ### Agent 4: CLI + API
-- `runner.py` — Add review, playbook, memory subcommands; update optimize with --mode; add config migrate; update init for AUTOAGENT.md
+- `runner.py` — Add review, playbook, memory subcommands; update optimize with --mode; add config migrate; update init for AGENTLAB.md
 - `api/routes/changes.py` — Change card CRUD + hunks + export
 - `api/routes/playbooks.py` — Playbook CRUD
 - `api/routes/memory.py` — Project memory read/update
@@ -397,7 +397,7 @@ Applied. Rollout: 2h canary → auto-promote if metrics hold.
 ### Agent 5: Web Pages
 - `web/src/pages/ChangeReview.tsx` — Change card review (PR-like)
 - `web/src/pages/Playbooks.tsx` — Playbook browser
-- `web/src/pages/ProjectMemory.tsx` — AUTOAGENT.md editor
+- `web/src/pages/ProjectMemory.tsx` — AGENTLAB.md editor
 - Update Optimize.tsx — Mode selector
 - Update App.tsx, Layout.tsx — New routes and nav
 
@@ -445,6 +445,6 @@ tests/test_memory_api.py          # API Tests
 - [ ] 80+ new tests, total 1200+
 - [ ] Full test suite passes
 - [ ] Old configs/commands still work (backwards compat verified)
-- [ ] AUTOAGENT.md template generated on `autoagent init`
-- [ ] `autoagent review` shows beautiful terminal output
+- [ ] AGENTLAB.md template generated on `agentlab init`
+- [ ] `agentlab review` shows beautiful terminal output
 - [ ] Metric labels use new hierarchy in all user-facing output

@@ -1,4 +1,4 @@
-# Ghostwriter Feature Map (Sierra -> AutoAgent VNextCC)
+# Ghostwriter Feature Map (Sierra -> AgentLab VNextCC)
 
 Date: 2026-03-26
 
@@ -19,7 +19,7 @@ This map was built after auditing:
 
 ## Sierra Feature Coverage
 
-| # | Sierra Feature | AutoAgent Equivalent | Coverage |
+| # | Sierra Feature | AgentLab Equivalent | Coverage |
 |---|---|---|---|
 | 1 | Prompt-to-Agent (zero-to-one) | Prompt artifact generation with intents, journeys, tools, guardrails, auth/escalation outputs | **Covered** (`optimizer/transcript_intelligence.py:build_agent_artifact`, `api/routes/intelligence.py:/build`) |
 | 2 | System integration via prompt | Connector-aware integration scaffolding templates (Shopify/Zendesk/Amazon Connect/Salesforce + generic HTTP fallback) | **Implemented in this pass** (`optimizer/transcript_intelligence.py:_build_integration_templates`) |

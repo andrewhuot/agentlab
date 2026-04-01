@@ -132,8 +132,8 @@ def test_slash_mcp_routes_to_status(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_compact_session_writes_file(tmp_path: Path) -> None:
     workspace = MagicMock()
-    workspace.autoagent_dir = tmp_path / ".autoagent"
-    workspace.autoagent_dir.mkdir(parents=True)
+    workspace.agentlab_dir = tmp_path / ".agentlab"
+    workspace.agentlab_dir.mkdir(parents=True)
 
     session = Session(
         session_id="abc",
@@ -144,7 +144,7 @@ def test_compact_session_writes_file(tmp_path: Path) -> None:
         transcript=[],
     )
     _compact_session(session, workspace)
-    summary_path = workspace.autoagent_dir / "memory" / "latest_session.md"
+    summary_path = workspace.agentlab_dir / "memory" / "latest_session.md"
     assert summary_path.exists()
     content = summary_path.read_text(encoding="utf-8")
     assert "Test Session" in content

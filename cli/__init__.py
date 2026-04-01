@@ -1,4 +1,4 @@
-"""CLI command modules for AutoAgent.
+"""CLI command modules for AgentLab.
 
 This package contains modular CLI commands that can be imported
 and registered to the main CLI group.

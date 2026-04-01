@@ -1,7 +1,7 @@
 """Core skills module - unified skill system for build-time and run-time capabilities.
 
 Skills are the foundational abstraction for both:
-- Build-time skills: optimization strategies AutoAgent uses to improve agents
+- Build-time skills: optimization strategies AgentLab uses to improve agents
 - Run-time skills: capabilities the deployed agent itself has
 
 This module provides:

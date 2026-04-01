@@ -18,13 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN groupadd --gid 1001 autoagent && \
-    useradd --uid 1001 --gid autoagent --create-home autoagent
+RUN groupadd --gid 1001 agentlab && \
+    useradd --uid 1001 --gid agentlab --create-home agentlab
 
 # Copy Python project files
 COPY pyproject.toml ./
 COPY runner.py ./
-COPY autoagent.yaml ./
+COPY agentlab.yaml ./
 COPY agent/ ./agent/
 COPY api/ ./api/
 COPY configs/ ./configs/
@@ -48,18 +48,18 @@ RUN pip install --no-cache-dir -e .
 COPY --from=frontend-build /app/web/dist ./web/dist
 
 # Create data directory and set ownership
-RUN mkdir -p /app/data /app/.autoagent/logs && \
-    chown -R autoagent:autoagent /app/data /app/.autoagent
+RUN mkdir -p /app/data /app/.agentlab/logs && \
+    chown -R agentlab:agentlab /app/data /app/.agentlab
 
 # Environment
-ENV AUTOAGENT_DB=/app/data/conversations.db
-ENV AUTOAGENT_CONFIGS=/app/data/configs
-ENV AUTOAGENT_MEMORY_DB=/app/data/optimizer_memory.db
+ENV AGENTLAB_DB=/app/data/conversations.db
+ENV AGENTLAB_CONFIGS=/app/data/configs
+ENV AGENTLAB_MEMORY_DB=/app/data/optimizer_memory.db
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-USER autoagent
+USER agentlab
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/api/health/ready || exit 1

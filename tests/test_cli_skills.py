@@ -99,12 +99,12 @@ def test_skill_commands_default_to_shared_lifecycle_store(runner, tmp_path, monk
     result = runner.invoke(cli, ["skill", "list"])
 
     assert result.exit_code == 0
-    assert (tmp_path / ".autoagent" / "core_skills.db").exists()
-    assert not (tmp_path / ".autoagent" / "skills.db").exists()
+    assert (tmp_path / ".agentlab" / "core_skills.db").exists()
+    assert not (tmp_path / ".agentlab" / "skills.db").exists()
 
 
 class TestSkillList:
-    """Tests for 'autoagent skill list' command."""
+    """Tests for 'agentlab skill list' command."""
 
     def test_list_empty_db(self, runner, temp_db):
         """List skills in empty database."""
@@ -145,7 +145,7 @@ class TestSkillList:
 
 
 class TestSkillShow:
-    """Tests for 'autoagent skill show' command."""
+    """Tests for 'agentlab skill show' command."""
 
     def test_show_existing_skill(self, runner, populated_db):
         """Show details of existing skill."""
@@ -170,7 +170,7 @@ class TestSkillShow:
 
 
 class TestSkillCreate:
-    """Tests for 'autoagent skill create' command."""
+    """Tests for 'agentlab skill create' command."""
 
     def test_create_from_file(self, runner, temp_db):
         """Create skill from YAML file."""
@@ -221,7 +221,7 @@ class TestSkillCreate:
 
 
 class TestSkillTest:
-    """Tests for 'autoagent skill test' command."""
+    """Tests for 'agentlab skill test' command."""
 
     def test_test_valid_skill(self, runner, populated_db):
         """Test a valid skill."""
@@ -284,7 +284,7 @@ class TestSkillPortableFormat:
 
 
 class TestSkillSearch:
-    """Tests for 'autoagent skill search' command."""
+    """Tests for 'agentlab skill search' command."""
 
     def test_search_finds_skill(self, runner, populated_db):
         """Search finds matching skill."""
@@ -308,7 +308,7 @@ class TestSkillSearch:
 
 
 class TestSkillEffectiveness:
-    """Tests for 'autoagent skill effectiveness' command."""
+    """Tests for 'agentlab skill effectiveness' command."""
 
     def test_effectiveness_existing_skill(self, runner, populated_db):
         """Show effectiveness for existing skill."""
@@ -328,7 +328,7 @@ class TestSkillEffectiveness:
 
 
 class TestSkillCompose:
-    """Tests for 'autoagent skill compose' command."""
+    """Tests for 'agentlab skill compose' command."""
 
     def test_compose_multiple_skills(self, runner, populated_db):
         """Compose multiple skills."""
@@ -380,7 +380,7 @@ class TestSkillCompose:
 
 
 class TestSkillInstall:
-    """Tests for 'autoagent skill install' command."""
+    """Tests for 'agentlab skill install' command."""
 
     def test_install_from_file(self, runner, temp_db):
         """Install skill from local file."""
@@ -420,7 +420,7 @@ class TestSkillInstall:
 
 
 class TestSkillPublish:
-    """Tests for 'autoagent skill publish' command."""
+    """Tests for 'agentlab skill publish' command."""
 
     def test_publish_existing_skill(self, runner, populated_db):
         """Publish an existing skill to marketplace."""

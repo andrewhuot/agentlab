@@ -1,4 +1,4 @@
-"""Module entrypoint for starting the AutoAgent MCP server."""
+"""Module entrypoint for starting the AgentLab MCP server."""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +11,7 @@ def main() -> None:
     """Start the MCP server in stdio mode by default, or HTTP when a port is supplied."""
     parser = argparse.ArgumentParser(
         prog="python -m mcp_server",
-        description="Start the AutoAgent MCP server for stdio or streamable HTTP clients.",
+        description="Start the AgentLab MCP server for stdio or streamable HTTP clients.",
     )
     parser.add_argument(
         "--host",

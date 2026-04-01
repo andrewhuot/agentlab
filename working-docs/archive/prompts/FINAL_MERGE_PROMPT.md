@@ -1,13 +1,13 @@
-# AutoAgent VNextCC — Final Three-Way Merge
+# AgentLab VNextCC — Final Three-Way Merge
 
 ## Context
 
-Three parallel builds implemented researcher feedback on AutoAgent VNextCC. You need to merge the best of all three into one production-grade result. This is the convergence session.
+Three parallel builds implemented researcher feedback on AgentLab VNextCC. You need to merge the best of all three into one production-grade result. This is the convergence session.
 
 **The three builds:**
 1. **CC Opus (Researcher #1)** — THIS REPO, current state. 551 tests. Deep domain objects, judge subsystem, release manager, training escalation, layered scorer.
-2. **Codex R1 (Researcher #1)** — at `/Users/andrew/Desktop/AutoAgent-VNextCC-Codex2/`. 389 tests. Three-plane architecture, repository pattern, governance wrapper.
-3. **Codex R2 (Researcher #2 — Simplicity)** — at `/Users/andrew/Desktop/AutoAgent-VNextCC-Codex3/`. 451 tests. Cost controls, human escape hatches, event log, coherence detection, difficulty scoring, binary rubric judge, simplified dashboard.
+2. **Codex R1 (Researcher #1)** — at `/Users/andrew/Desktop/AgentLab-VNextCC-Codex2/`. 389 tests. Three-plane architecture, repository pattern, governance wrapper.
+3. **Codex R2 (Researcher #2 — Simplicity)** — at `/Users/andrew/Desktop/AgentLab-VNextCC-Codex3/`. 451 tests. Cost controls, human escape hatches, event log, coherence detection, difficulty scoring, binary rubric judge, simplified dashboard.
 
 ## Design Philosophy for the Merge
 
@@ -30,7 +30,7 @@ Keep ALL existing code and tests. Then enhance with:
 
 ### From Researcher #2's build (highest priority — production-critical):
 
-1. **`optimizer/cost_tracker.py`** (190 lines) — Copy from R2 (`/Users/andrew/Desktop/AutoAgent-VNextCC-Codex3/optimizer/cost_tracker.py`). Per-cycle budget, daily budget, cost-per-improvement, diminishing returns detection. Wire into the optimization loop.
+1. **`optimizer/cost_tracker.py`** (190 lines) — Copy from R2 (`/Users/andrew/Desktop/AgentLab-VNextCC-Codex3/optimizer/cost_tracker.py`). Per-cycle budget, daily budget, cost-per-improvement, diminishing returns detection. Wire into the optimization loop.
 
 2. **`optimizer/human_control.py`** (100 lines) — Copy from R2. Pause/resume, reject promoted candidates, inject manual mutations, pin/unpin immutable surfaces. Wire into the optimization loop (loop checks `paused` before each cycle, checks `immutable_surfaces` before applying mutations).
 
@@ -53,11 +53,11 @@ Keep ALL existing code and tests. Then enhance with:
 11. **`web/src/pages/EventLog.tsx`** (66 lines) — Copy from R2. Event log viewer page.
 
 12. **CLI commands** — Add from R2's implementation:
-    - `autoagent pause` / `autoagent resume`
-    - `autoagent reject <experiment_id>`
-    - `autoagent pin <surface>` / `autoagent unpin <surface>`
+    - `agentlab pause` / `agentlab resume`
+    - `agentlab reject <experiment_id>`
+    - `agentlab pin <surface>` / `agentlab unpin <surface>`
 
-13. **autoagent.yaml additions** — From R2:
+13. **agentlab.yaml additions** — From R2:
     ```yaml
     budget:
       per_cycle_dollars: 1.0
@@ -69,7 +69,7 @@ Keep ALL existing code and tests. Then enhance with:
 
 ### From Researcher #1 Codex build (structural improvements):
 
-14. **`data/repositories.py`** (101 lines) — Copy from R1 (`/Users/andrew/Desktop/AutoAgent-VNextCC-Codex2/data/repositories.py`). Protocol-based `TraceRepository` and `ArtifactRepository` with SQLite implementations. Postgres-ready interfaces.
+14. **`data/repositories.py`** (101 lines) — Copy from R1 (`/Users/andrew/Desktop/AgentLab-VNextCC-Codex2/data/repositories.py`). Protocol-based `TraceRepository` and `ArtifactRepository` with SQLite implementations. Postgres-ready interfaces.
 
 15. **`AgentGraphVersion.validate()`** — Merge from R1 into `core/types.py`. Graph integrity validation (duplicate node IDs, dangling edges).
 
@@ -114,7 +114,7 @@ Keep ALL existing code and tests. Then enhance with:
 - Gemini stays default for proposer; judge default should be configurable as different family
 - Simple Karpathy loop = default. Advanced = opt-in.
 - Frontend stays Apple/Linear aesthetic
-- `autoagent run` works identically to before with simple mode
+- `agentlab run` works identically to before with simple mode
 
 ## When Done
 

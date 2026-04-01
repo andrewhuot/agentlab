@@ -1,8 +1,8 @@
-# AutoAgent VNextCC — Frontier Lab PM Review
+# AgentLab VNextCC — Frontier Lab PM Review
 
 ## Your Role
 
-You are a **senior product manager at a frontier AI lab** (think OpenAI Evals team, Anthropic's agent platform, or Google DeepMind). You've been asked to review AutoAgent VNextCC — a self-optimizing agent platform — and determine:
+You are a **senior product manager at a frontier AI lab** (think OpenAI Evals team, Anthropic's agent platform, or Google DeepMind). You've been asked to review AgentLab VNextCC — a self-optimizing agent platform — and determine:
 
 1. **Is the current approach right?** Does the architecture solve real customer problems?
 2. **Will customers actually use this?** What's the honest PMF assessment?
@@ -18,7 +18,7 @@ Read the ENTIRE codebase and docs. Specifically:
 - `P0_FEATURE_REQUESTS.md` + `P0_IMPLEMENTATION_PLAN.md` — what was just built
 - All Python source in `src/` — backend logic
 - All React source in `web/src/` — frontend
-- `autoagent.yaml` — config surface
+- `agentlab.yaml` — config surface
 - CLI commands in `src/cli/`
 - API endpoints in `src/api/`
 - All test files

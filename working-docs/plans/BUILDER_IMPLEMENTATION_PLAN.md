@@ -71,7 +71,7 @@ Right-panel inspector tabs for tools, skills, guardrails, files, coding agent co
 - `web/src/components/builder/inspector/CodingAgentConfigTab.tsx` — AGENTS.md, CLAUDE.md renderer with scope
 - `web/src/components/builder/inspector/EvalResultsTab.tsx` — Eval results with before/after
 - `web/src/components/builder/inspector/TraceViewerTab.tsx` — Trace span timeline
-- `web/src/components/builder/inspector/InstructionsMemoryTab.tsx` — Project memory, AUTOAGENT.md
+- `web/src/components/builder/inspector/InstructionsMemoryTab.tsx` — Project memory, AGENTLAB.md
 - `web/src/components/builder/inspector/index.ts` — Barrel exports
 
 ### Stream 5: Integration + Tests (Python + TSX)

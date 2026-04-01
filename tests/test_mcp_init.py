@@ -24,7 +24,7 @@ def test_mcp_init_writes_valid_config_files() -> None:
 
         for payload in [root_config, cursor_config]:
             assert "mcpServers" in payload
-            assert "autoagent" in payload["mcpServers"]
-            autoagent = payload["mcpServers"]["autoagent"]
-            assert autoagent["command"]
-            assert autoagent["args"]
+            assert "agentlab" in payload["mcpServers"]
+            agentlab = payload["mcpServers"]["agentlab"]
+            assert agentlab["command"]
+            assert agentlab["args"]

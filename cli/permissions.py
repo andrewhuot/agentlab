@@ -58,11 +58,11 @@ _MODE_RULES: dict[str, dict[str, list[str]]] = {
 def settings_path(root: str | Path | None = None) -> Path:
     """Return the workspace settings path."""
     base = Path(root or ".")
-    return base / ".autoagent" / SETTINGS_FILENAME
+    return base / ".agentlab" / SETTINGS_FILENAME
 
 
 def load_workspace_settings(root: str | Path | None = None) -> dict[str, Any]:
-    """Load `.autoagent/settings.json`, defaulting to an empty object."""
+    """Load `.agentlab/settings.json`, defaulting to an empty object."""
     path = settings_path(root)
     if not path.exists():
         return {}
@@ -158,7 +158,7 @@ class PermissionManager:
         if decision == "deny":
             raise click_error(
                 f"Permission mode '{self.mode}' blocks action '{action}'. "
-                f"Update .autoagent/settings.json if this workspace should allow it."
+                f"Update .agentlab/settings.json if this workspace should allow it."
             )
         if decision == "allow" or assume_yes:
             return "allow"
@@ -172,10 +172,10 @@ class PermissionManager:
 
 
 def _require_workspace_root(root: str | Path = ".") -> Path:
-    """Return the workspace root path or raise when `.autoagent` is missing."""
+    """Return the workspace root path or raise when `.agentlab` is missing."""
     workspace_root = Path(root)
-    if not (workspace_root / ".autoagent").exists():
-        raise click_error("No AutoAgent workspace found.")
+    if not (workspace_root / ".agentlab").exists():
+        raise click_error("No AgentLab workspace found.")
     return workspace_root
 
 
@@ -202,7 +202,7 @@ def show_permissions(json_output: bool = False) -> None:
         },
     }
     if json_output:
-        click.echo(render_json_envelope("ok", data, next_command="autoagent permissions set <mode>"))
+        click.echo(render_json_envelope("ok", data, next_command="agentlab permissions set <mode>"))
         return
 
     click.echo("Workspace permissions")

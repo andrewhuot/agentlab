@@ -62,7 +62,7 @@ class SupplyChainManager:
 
     def __init__(
         self,
-        install_dir: str = ".autoagent/skills",
+        install_dir: str = ".agentlab/skills",
         author_key: str = "",
     ) -> None:
         self._install_dir = Path(install_dir)

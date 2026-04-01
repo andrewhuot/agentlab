@@ -1,4 +1,4 @@
-"""Helpers for materializing imported runtime specs into AutoAgent workspaces."""
+"""Helpers for materializing imported runtime specs into AgentLab workspaces."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from cli.bootstrap import bootstrap_workspace
-from cli.workspace import AutoAgentWorkspace, WORKSPACE_DIRNAME
+from cli.workspace import AgentLabWorkspace, WORKSPACE_DIRNAME
 
 from .base import ConnectWorkspaceResult, ImportedAgentSpec, slugify_label
 
@@ -20,7 +20,7 @@ def create_connected_workspace(
     workspace_name: str | None = None,
     runtime_mode: str = "mock",
 ) -> ConnectWorkspaceResult:
-    """Create an AutoAgent workspace seeded from an imported runtime spec."""
+    """Create an AgentLab workspace seeded from an imported runtime spec."""
 
     spec.ensure_defaults()
     workspace_root = _resolve_workspace_root(
@@ -28,7 +28,7 @@ def create_connected_workspace(
         workspace_name=workspace_name,
         suggested_name=spec.default_workspace_name(),
     )
-    workspace = AutoAgentWorkspace.create(
+    workspace = AgentLabWorkspace.create(
         workspace_root,
         name=workspace_root.name,
         template="minimal",
@@ -52,8 +52,8 @@ def create_connected_workspace(
     base_config_path.write_text(yaml.safe_dump(spec.config, sort_keys=False), encoding="utf-8")
     workspace.set_active_config(1, filename="v001.yaml")
 
-    spec_path = workspace.autoagent_dir / "adapter_spec.json"
-    adapter_config_path = workspace.autoagent_dir / "adapter_config.json"
+    spec_path = workspace.agentlab_dir / "adapter_spec.json"
+    adapter_config_path = workspace.agentlab_dir / "adapter_config.json"
     spec_path.write_text(json.dumps(spec.to_dict(), indent=2), encoding="utf-8")
     adapter_config_path.write_text(json.dumps(spec.adapter_config, indent=2), encoding="utf-8")
 
@@ -65,7 +65,7 @@ def create_connected_workspace(
 
     traces_path: Path | None = None
     if spec.traces:
-        traces_path = workspace.autoagent_dir / "imported_traces.jsonl"
+        traces_path = workspace.agentlab_dir / "imported_traces.jsonl"
         traces_path.write_text(
             "\n".join(json.dumps(trace) for trace in spec.traces) + "\n",
             encoding="utf-8",

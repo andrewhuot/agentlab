@@ -12,7 +12,7 @@ from typing import Any
 class KnowledgeStore:
     """Store for mined knowledge entries."""
 
-    def __init__(self, db_path: str = ".autoagent/knowledge.db"):
+    def __init__(self, db_path: str = ".agentlab/knowledge.db"):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

@@ -1,7 +1,7 @@
 """Task lifecycle management for the A2A protocol layer.
 
 TaskManager is the single source of truth for in-memory A2A task state.
-It also provides a bridge to AutoAgent's experiment-tracking conventions.
+It also provides a bridge to AgentLab's experiment-tracking conventions.
 """
 
 from __future__ import annotations
@@ -133,10 +133,10 @@ class TaskManager:
     # ------------------------------------------------------------------
 
     def map_to_experiment(self, task: A2ATask) -> dict[str, Any]:
-        """Map an A2ATask to an AutoAgent experiment-tracking record.
+        """Map an A2ATask to an AgentLab experiment-tracking record.
 
         The returned dict is compatible with the experiment store schema
-        used elsewhere in the AutoAgent platform.
+        used elsewhere in the AgentLab platform.
 
         Args:
             task: The A2ATask to convert.

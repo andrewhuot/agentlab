@@ -43,7 +43,7 @@ class TestCLIStructure:
     def test_root_group_exists(self, runner):
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
-        assert "AutoAgent VNextCC" in result.output
+        assert "AgentLab VNextCC" in result.output
 
     def test_version_flag(self, runner):
         result = runner.invoke(cli, ["--version"])
@@ -98,7 +98,7 @@ class TestBrandedBanner:
         assert result.exit_code == 0
         assert "Continuous Agent Optimization Platform" in result.output
         assert "Created by Andrew Huot" in result.output
-        assert "AutoAgent" in result.output
+        assert "AgentLab" in result.output
 
     def test_root_help_suppresses_banner_with_no_banner_flag(self, runner):
         result = runner.invoke(cli, ["--no-banner", "--help"])
@@ -121,7 +121,7 @@ class TestBrandedBanner:
 
         assert result.exit_code == 0
         assert "Continuous Agent Optimization Platform" in result.output
-        assert "Starting AutoAgent VNextCC server on 127.0.0.1:8123" in result.output
+        assert "Starting AgentLab VNextCC server on 127.0.0.1:8123" in result.output
         assert captured == {
             "app": "api.server:app",
             "host": "127.0.0.1",
@@ -297,7 +297,7 @@ class TestJourneyCommands:
             result = runner.invoke(cli, ["deploy", "--target", "cx-studio"])
             assert result.exit_code == 0, result.output
             assert "CX export package" in result.output
-            assert list(Path(".autoagent").glob("cx_export_v*.json"))
+            assert list(Path(".agentlab").glob("cx_export_v*.json"))
 
 
 class TestEvalCommands:
@@ -321,13 +321,13 @@ class TestEvalCommands:
         assert "results" in data
 
     def test_eval_list_reads_workspace_latest_snapshot(self, runner, tmp_path, monkeypatch):
-        """`eval list` should include the canonical workspace latest snapshot under `.autoagent/`."""
+        """`eval list` should include the canonical workspace latest snapshot under `.agentlab/`."""
         workspace = tmp_path / "eval-list-workspace"
         init_result = runner.invoke(cli, ["init", "--dir", str(workspace)])
         assert init_result.exit_code == 0, init_result.output
 
         monkeypatch.chdir(workspace)
-        latest_path = workspace / ".autoagent" / "eval_results_latest.json"
+        latest_path = workspace / ".agentlab" / "eval_results_latest.json"
         latest_path.write_text(
             json.dumps(
                 {
@@ -569,7 +569,7 @@ class TestStatusCommand:
             "--memory-db", memory_db,
         ])
         assert result.exit_code == 0
-        assert "AutoAgent Status" in result.output
+        assert "AgentLab Status" in result.output
 
 
 class TestLogsCommand:
@@ -594,13 +594,13 @@ class TestDoctorCommand:
         """doctor command exits cleanly and prints the header."""
         result = runner.invoke(cli, ["doctor"])
         assert result.exit_code == 0
-        assert "AutoAgent Doctor" in result.output
+        assert "AgentLab Doctor" in result.output
         assert "API Keys" in result.output
         assert "Data Stores" in result.output
 
     def test_doctor_shows_mock_warning_when_use_mock_true(self, runner, tmp_dir):
         """doctor reports mock-mode warning when use_mock: true."""
-        config_file = os.path.join(tmp_dir, "autoagent_mock.yaml")
+        config_file = os.path.join(tmp_dir, "agentlab_mock.yaml")
         Path(config_file).write_text("optimizer:\n  use_mock: true\n", encoding="utf-8")
         result = runner.invoke(cli, ["doctor", "--config", config_file])
         assert result.exit_code == 0
@@ -609,7 +609,7 @@ class TestDoctorCommand:
 
     def test_doctor_no_mock_warning_when_use_mock_false(self, runner, tmp_dir):
         """doctor does not warn about mock mode when use_mock: false."""
-        config_file = os.path.join(tmp_dir, "autoagent_real.yaml")
+        config_file = os.path.join(tmp_dir, "agentlab_real.yaml")
         Path(config_file).write_text("optimizer:\n  use_mock: false\n", encoding="utf-8")
         result = runner.invoke(cli, ["doctor", "--config", config_file])
         assert result.exit_code == 0
@@ -617,7 +617,7 @@ class TestDoctorCommand:
 
     def test_doctor_shows_api_key_set(self, runner, tmp_dir):
         """doctor shows OPENAI_API_KEY as Set when the env var is present."""
-        config_file = os.path.join(tmp_dir, "autoagent.yaml")
+        config_file = os.path.join(tmp_dir, "agentlab.yaml")
         Path(config_file).write_text("optimizer:\n  use_mock: false\n", encoding="utf-8")
         env = {**os.environ, "OPENAI_API_KEY": "sk-test-key"}
         result = runner.invoke(cli, ["doctor", "--config", config_file], env=env)
@@ -627,7 +627,7 @@ class TestDoctorCommand:
 
     def test_doctor_shows_api_key_not_set(self, runner, tmp_dir):
         """doctor shows OPENAI_API_KEY as Not set when the env var is absent."""
-        config_file = os.path.join(tmp_dir, "autoagent.yaml")
+        config_file = os.path.join(tmp_dir, "agentlab.yaml")
         Path(config_file).write_text("optimizer:\n  use_mock: false\n", encoding="utf-8")
         env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
         result = runner.invoke(cli, ["doctor", "--config", config_file], env=env)
@@ -637,7 +637,7 @@ class TestDoctorCommand:
 
     def test_doctor_status_line_reports_ready_workspace(self, runner, tmp_dir):
         """Mock-mode workspaces should still report a healthy doctor summary."""
-        config_file = os.path.join(tmp_dir, "autoagent.yaml")
+        config_file = os.path.join(tmp_dir, "agentlab.yaml")
         Path(config_file).write_text("optimizer:\n  use_mock: true\n", encoding="utf-8")
         env = {
             k: v for k, v in os.environ.items()

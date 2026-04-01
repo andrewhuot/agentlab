@@ -1,7 +1,7 @@
 # Pro-Mode Prompt Optimization Brief
 
 ## Mission
-Build a genuine, research-grade prompt optimization module gated behind `search_strategy: pro` in config and `autoagent optimize --strategy pro` on CLI. The happy path (`simple`/`adaptive`/`full`) stays COMPLETELY untouched.
+Build a genuine, research-grade prompt optimization module gated behind `search_strategy: pro` in config and `agentlab optimize --strategy pro` on CLI. The happy path (`simple`/`adaptive`/`full`) stays COMPLETELY untouched.
 
 ## What This Is
 Real prompt optimization using established algorithms from the DSPy ecosystem and recent research. Not stubs. Not mocks. Genuine implementations that can actually optimize prompts when given an eval set and an LLM.
@@ -82,8 +82,8 @@ Keep it simple. No scipy/sklearn dependency:
 - This is a ~100-line module, not a full GP implementation
 
 ## CLI Integration
-- `autoagent optimize --strategy pro` — runs pro-mode optimization
-- `autoagent optimize --strategy pro --algorithm bootstrap_fewshot` — force specific algorithm
+- `agentlab optimize --strategy pro` — runs pro-mode optimization
+- `agentlab optimize --strategy pro --algorithm bootstrap_fewshot` — force specific algorithm
 - Existing `--strategy simple/adaptive/full` unchanged
 
 ## API Integration
@@ -126,6 +126,6 @@ Then converge, run full test suite, commit, push.
 
 ## DONE CRITERIA
 - `python3 -m pytest tests/ --tb=short -q` passes (baseline 862 + 40 new = 900+)
-- `autoagent optimize --strategy pro` works end-to-end with mock LLM
+- `agentlab optimize --strategy pro` works end-to-end with mock LLM
 - simple/adaptive/full strategies completely unchanged
 - Git commit + push to origin master

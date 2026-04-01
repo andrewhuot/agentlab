@@ -12,7 +12,7 @@ from typing import Any
 class EvalCacheStore:
     """SQLite-backed cache keyed by eval fingerprint."""
 
-    def __init__(self, db_path: str = ".autoagent/eval_cache.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/eval_cache.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

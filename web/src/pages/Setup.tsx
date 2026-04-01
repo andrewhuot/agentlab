@@ -65,7 +65,7 @@ export function Setup() {
         >
           <KeyValue label="Detected" value={data.workspace.found ? 'Yes' : 'No'} />
           <KeyValue label="Label" value={data.workspace.label ?? 'Not initialized'} />
-          <KeyValue label="Path" value={data.workspace.path ?? 'Run `autoagent init` to create a workspace'} />
+          <KeyValue label="Path" value={data.workspace.path ?? 'Run `agentlab init` to create a workspace'} />
           <KeyValue
             label="Runtime Config"
             value={data.workspace.runtime_config_path}
@@ -179,7 +179,7 @@ export function Setup() {
         <Card
           icon={<PlugZap className="h-4 w-4 text-fuchsia-700" />}
           title="MCP Clients"
-          description="Track whether AutoAgent has been wired into the local MCP-aware tools."
+          description="Track whether AgentLab has been wired into the local MCP-aware tools."
         >
           <div className="space-y-2">
             {data.mcp_clients.map((client) => (

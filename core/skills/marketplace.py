@@ -1,7 +1,7 @@
 """Skill marketplace for discovering, installing, and publishing skills.
 
 This module provides a file-based marketplace that can be extended to HTTP in the future.
-Skills are stored in ~/.autoagent/marketplace/ and can be browsed, searched, and installed.
+Skills are stored in ~/.agentlab/marketplace/ and can be browsed, searched, and installed.
 
 Future enhancements:
 - HTTP-based remote marketplace
@@ -45,7 +45,7 @@ class MarketplaceError(Exception):
 class SkillMarketplace:
     """Marketplace for discovering, installing, and publishing skills.
 
-    The marketplace is file-based by default, storing skills in ~/.autoagent/marketplace/.
+    The marketplace is file-based by default, storing skills in ~/.agentlab/marketplace/.
     Each skill is stored as a YAML file named {skill_id}.yaml.
 
     Metadata index is maintained in marketplace.json for fast browsing and searching.
@@ -77,11 +77,11 @@ class SkillMarketplace:
         """Initialize the marketplace.
 
         Args:
-            marketplace_dir: Directory for marketplace files. Defaults to ~/.autoagent/marketplace/
+            marketplace_dir: Directory for marketplace files. Defaults to ~/.agentlab/marketplace/
             validator: Optional validator instance. Creates default if None.
         """
         if marketplace_dir is None:
-            marketplace_dir = str(Path.home() / ".autoagent" / "marketplace")
+            marketplace_dir = str(Path.home() / ".agentlab" / "marketplace")
 
         self.marketplace_dir = Path(marketplace_dir)
         self.marketplace_dir.mkdir(parents=True, exist_ok=True)

@@ -232,7 +232,7 @@ def _patch_optimize_runtime(
     monkeypatch.setattr(
         runner_module,
         "_latest_eval_payload_for_active_config",
-        lambda *_args, **_kwargs: (Path(".autoagent/eval_results_latest.json"), baseline_eval_payload),
+        lambda *_args, **_kwargs: (Path(".agentlab/eval_results_latest.json"), baseline_eval_payload),
     )
 
     def _next_report(_data: dict) -> object:
@@ -291,7 +291,7 @@ def test_optimize_creates_experiment_log_tsv_on_first_run(
     result = runner.invoke(cli, ["optimize", "--cycles", "1", "--json"])
 
     assert result.exit_code == 0, result.output
-    log_path = tmp_path / ".autoagent" / "experiment_log.tsv"
+    log_path = tmp_path / ".agentlab" / "experiment_log.tsv"
     assert log_path.exists()
 
     rows = _read_tsv_rows(log_path)
@@ -354,7 +354,7 @@ def test_optimize_appends_experiment_log_rows_across_multiple_runs(
     second_result = runner.invoke(cli, ["optimize", "--cycles", "1", "--json"])
     assert second_result.exit_code == 0, second_result.output
 
-    rows = _read_tsv_rows(tmp_path / ".autoagent" / "experiment_log.tsv")
+    rows = _read_tsv_rows(tmp_path / ".agentlab" / "experiment_log.tsv")
     assert len(rows) == 3
     assert rows[1][0] == "1"
     assert rows[2][0] == "2"
@@ -393,9 +393,9 @@ def test_optimize_continuous_catches_keyboard_interrupt_and_prints_summary(
     assert "Starting continuous optimization. Press Ctrl+C to stop." in result.output
     assert "Cycle 1 | Best: 0.82 | Last: keep (+0.12) | Press Ctrl+C to stop" in result.output
     assert "Ran 1 experiments: 1 kept, 0 discarded, 0 skipped. Best score: 0.82" in result.output
-    assert "Experiment log saved to .autoagent/experiment_log.tsv" in result.output
+    assert "Experiment log saved to .agentlab/experiment_log.tsv" in result.output
 
-    rows = _read_tsv_rows(tmp_path / ".autoagent" / "experiment_log.tsv")
+    rows = _read_tsv_rows(tmp_path / ".agentlab" / "experiment_log.tsv")
     assert len(rows) == 2
     assert rows[1][5] == "keep"
 
@@ -407,7 +407,7 @@ def test_experiment_log_pretty_prints_entries_with_statuses(
 ) -> None:
     """The log command should render a readable aligned table with colored statuses."""
     monkeypatch.chdir(tmp_path)
-    _seed_experiment_log(tmp_path / ".autoagent" / "experiment_log.tsv")
+    _seed_experiment_log(tmp_path / ".agentlab" / "experiment_log.tsv")
 
     result = runner.invoke(cli, ["experiment", "log"], color=True)
 
@@ -429,7 +429,7 @@ def test_experiment_log_tail_shows_only_last_entries(
 ) -> None:
     """The tail option should limit output to the most recent rows."""
     monkeypatch.chdir(tmp_path)
-    _seed_experiment_log(tmp_path / ".autoagent" / "experiment_log.tsv")
+    _seed_experiment_log(tmp_path / ".agentlab" / "experiment_log.tsv")
 
     result = runner.invoke(cli, ["experiment", "log", "--tail", "2"])
 
@@ -447,7 +447,7 @@ def test_experiment_log_outputs_json_array(
 ) -> None:
     """The JSON flag should return the experiment history as a JSON array."""
     monkeypatch.chdir(tmp_path)
-    _seed_experiment_log(tmp_path / ".autoagent" / "experiment_log.tsv")
+    _seed_experiment_log(tmp_path / ".agentlab" / "experiment_log.tsv")
 
     result = runner.invoke(cli, ["experiment", "log", "--json"])
 
@@ -466,7 +466,7 @@ def test_experiment_log_summary_reports_best_and_latest_scores(
 ) -> None:
     """The summary view should compress the experiment history into a single line."""
     monkeypatch.chdir(tmp_path)
-    _seed_experiment_log(tmp_path / ".autoagent" / "experiment_log.tsv")
+    _seed_experiment_log(tmp_path / ".agentlab" / "experiment_log.tsv")
 
     result = runner.invoke(cli, ["experiment", "log", "--summary"])
 
@@ -488,7 +488,7 @@ def test_experiment_log_empty_state_suggests_continuous_optimize(
     result = runner.invoke(cli, ["experiment", "log"])
 
     assert result.exit_code == 0, result.output
-    assert "No experiments yet. Run: autoagent optimize --continuous" in result.output
+    assert "No experiments yet. Run: agentlab optimize --continuous" in result.output
 
 
 def test_append_entry_persists_shared_experiment_store(
@@ -511,7 +511,7 @@ def test_append_entry_persists_shared_experiment_store(
         )
     )
 
-    store = ExperimentStore(db_path=str(tmp_path / ".autoagent" / "experiments.db"))
+    store = ExperimentStore(db_path=str(tmp_path / ".agentlab" / "experiments.db"))
     cards = store.get_all()
     assert len(cards) == 1
 
@@ -542,7 +542,7 @@ def test_read_entries_rehydrates_from_shared_experiment_store_without_tsv(
         )
     )
 
-    tsv_path = tmp_path / ".autoagent" / "experiment_log.tsv"
+    tsv_path = tmp_path / ".agentlab" / "experiment_log.tsv"
     assert tsv_path.exists()
     tsv_path.unlink()
 

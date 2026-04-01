@@ -12,7 +12,7 @@ class WandbExporter:
     """Exports traces and eval results to Weights & Biases.
 
     W&B (wandb) is an MLOps platform for experiment tracking and observability.
-    This exporter logs AutoAgent traces as W&B runs/tables and records eval
+    This exporter logs AgentLab traces as W&B runs/tables and records eval
     metrics via its summary API.
     """
 
@@ -55,7 +55,7 @@ class WandbExporter:
         kwargs: dict[str, Any] = {
             "project": self.project,
             "reinit": True,
-            "job_type": "autoagent-trace",
+            "job_type": "agentlab-trace",
         }
         if self.entity:
             kwargs["entity"] = self.entity
@@ -74,7 +74,7 @@ class WandbExporter:
         that the full conversation history is queryable from the W&B UI.
 
         Args:
-            trace: AutoAgent trace dictionary.
+            trace: AgentLab trace dictionary.
 
         Returns:
             True on success, False on failure.

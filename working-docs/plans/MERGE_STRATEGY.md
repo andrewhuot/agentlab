@@ -2,13 +2,13 @@
 
 ## Current State
 
-Master (`~/Desktop/AutoAgent-VNextCC/`) has:
+Master (`~/Desktop/AgentLab-VNextCC/`) has:
 - CC Assistant (committed in `04808ad`)
 - 7 Platform Features (committed in `04808ad`)
 - 12 pre-existing test failures in `tests/test_magic_ux.py`
 - Some unstashed work from platform features session (run `git stash pop` first)
 
-CC Skills (`~/Desktop/AutoAgent-VNextCC-Skills/`) has:
+CC Skills (`~/Desktop/AgentLab-VNextCC-Skills/`) has:
 - `core/skills/` — 7 files, 3,684 lines (types, store, loader, composer, validator, marketplace)
 - `assistant/` — 10 files, 4,029 lines (orchestrator, builder, explorer, etc.)
 - `agent/skill_runtime.py` — runtime skill integration
@@ -19,7 +19,7 @@ CC Skills (`~/Desktop/AutoAgent-VNextCC-Skills/`) has:
 - 24 test files for skills + assistant
 - 2 collection errors in `test_skills_routes.py` need fixing
 
-Codex (`~/Desktop/AutoAgent-VNextCC-Codex8/`) has:
+Codex (`~/Desktop/AgentLab-VNextCC-Codex8/`) has:
 - Same `core/skills/` structure (7 files)
 - Same `assistant/` structure (9 files)
 - 11 frontend assistant components (vs CC's 14)
@@ -38,14 +38,14 @@ Commit any remaining platform features work.
 Fix the 12 failures in `tests/test_magic_ux.py` — these are NameError and assertion failures unrelated to new features.
 
 ### Step 3: Port CC Skills core module
-From `~/Desktop/AutoAgent-VNextCC-Skills/`, copy:
+From `~/Desktop/AgentLab-VNextCC-Skills/`, copy:
 - `core/skills/` directory (entire — types.py, store.py, loader.py, composer.py, validator.py, marketplace.py, __init__.py)
 - `agent/skill_runtime.py`
 - `optimizer/skill_engine.py`
 - `cli/` directory (skills CLI)
 
 ### Step 4: Port CC Skills modifications
-From `~/Desktop/AutoAgent-VNextCC-Skills/`, apply changes to:
+From `~/Desktop/AgentLab-VNextCC-Skills/`, apply changes to:
 - `optimizer/loop.py` — skill-driven optimization integration
 - `optimizer/memory.py` — skill effectiveness tracking
 - `registry/skill_store.py` — migration to use core/skills/store
@@ -59,12 +59,12 @@ From `~/Desktop/AutoAgent-VNextCC-Skills/`, apply changes to:
 **IMPORTANT:** Master has evolved since Skills branched (has Assistant + 7 Platform Features). Merge carefully — don't overwrite the platform features or assistant code already on master.
 
 ### Step 5: Port CC Skills tests
-From `~/Desktop/AutoAgent-VNextCC-Skills/`, copy all `tests/test_skill*.py` and `tests/test_core_skill*.py` and `tests/test_cli_skills.py` and `tests/test_optimizer_skill*.py`.
+From `~/Desktop/AgentLab-VNextCC-Skills/`, copy all `tests/test_skill*.py` and `tests/test_core_skill*.py` and `tests/test_cli_skills.py` and `tests/test_optimizer_skill*.py`.
 
 Don't overwrite existing assistant tests already on master.
 
 ### Step 6: Cherry-pick Codex frontend
-From `~/Desktop/AutoAgent-VNextCC-Codex8/`, check if these are better than what CC produced:
+From `~/Desktop/AgentLab-VNextCC-Codex8/`, check if these are better than what CC produced:
 - `web/src/pages/Skills.tsx` — compare CC vs Codex redesign
 - `web/src/lib/api.ts` — skill API hooks
 - `web/src/lib/types.ts` — skill types

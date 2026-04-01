@@ -8,7 +8,7 @@ For the current workflow, use:
 
 ## Current Product Reality
 
-In the current AutoAgent repo, the supported CX workflow is the `autoagent cx` CLI plus the `/cx/studio` web route.
+In the current AgentLab repo, the supported CX workflow is the `agentlab cx` CLI plus the `/cx/studio` web route.
 
 That workflow covers:
 
@@ -23,22 +23,22 @@ That workflow covers:
 Common commands:
 
 ```bash
-autoagent cx auth
-autoagent cx list --project PROJECT --location global
-autoagent cx import AGENT_ID --project PROJECT --location global
-autoagent cx diff AGENT_ID --project PROJECT --location global
-autoagent cx export AGENT_ID --project PROJECT --location global --dry-run
-autoagent cx sync AGENT_ID --project PROJECT --location global
-autoagent cx status --project PROJECT --location global --agent AGENT_ID
+agentlab cx auth
+agentlab cx list --project PROJECT --location global
+agentlab cx import AGENT_ID --project PROJECT --location global
+agentlab cx diff AGENT_ID --project PROJECT --location global
+agentlab cx export AGENT_ID --project PROJECT --location global --dry-run
+agentlab cx sync AGENT_ID --project PROJECT --location global
+agentlab cx status --project PROJECT --location global --agent AGENT_ID
 ```
 
 ## Naming Note
 
 Older docs in this repo sometimes tried to draw a hard line between "CX Agent Studio" and "Dialogflow CX."
 
-For operators using AutoAgent today, that distinction is less useful than following the actual supported workflow:
+For operators using AgentLab today, that distinction is less useful than following the actual supported workflow:
 
-- use `autoagent cx ...`
+- use `agentlab cx ...`
 - use `/cx/studio`
 - use the current CX route family under `/api/cx/*`
 

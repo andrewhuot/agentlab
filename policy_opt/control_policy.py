@@ -9,7 +9,7 @@ Learns policies for discrete choices:
 - Whether to escalate or retry
 
 Uses contextual bandits (Thompson sampling) on logged outcomes.
-This is Mode A from the spec — the safest form of RL for AutoAgent.
+This is Mode A from the spec — the safest form of RL for AgentLab.
 """
 
 from __future__ import annotations

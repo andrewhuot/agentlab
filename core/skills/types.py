@@ -329,7 +329,7 @@ class Skill:
     effectiveness: EffectivenessMetrics = field(default_factory=EffectivenessMetrics)
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    author: str = "autoagent"
+    author: str = "agentlab"
     status: str = "active"  # "active", "draft", "deprecated"
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -388,7 +388,7 @@ class Skill:
             domain=data.get("domain", "general"),
             effectiveness=EffectivenessMetrics.from_dict(data.get("effectiveness", {})),
             metadata=data.get("metadata", {}),
-            author=data.get("author", "autoagent"),
+            author=data.get("author", "agentlab"),
             status=data.get("status", "active"),
             created_at=data.get("created_at", time.time()),
             updated_at=data.get("updated_at", time.time()),

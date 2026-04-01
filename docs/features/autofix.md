@@ -27,19 +27,19 @@ failure analysis → constrained proposals → human review → apply → eval �
 Generate proposals from recent failures:
 
 ```bash
-autoagent autofix suggest
+agentlab autofix suggest
 ```
 
 Review and apply a proposal:
 
 ```bash
-autoagent autofix apply fix_001
+agentlab autofix apply fix_001
 ```
 
 View past proposals and outcomes:
 
 ```bash
-autoagent autofix history --limit 20
+agentlab autofix history --limit 20
 ```
 
 ## API endpoints
@@ -55,23 +55,23 @@ autoagent autofix history --limit 20
 
 ```bash
 # 1. Check what's failing
-autoagent status
+agentlab status
 
 # 2. Generate fix proposals
-autoagent autofix suggest
+agentlab autofix suggest
 # → Proposal fix_001: Rewrite support instruction to handle order lookup edge case
 # → Proposal fix_002: Add tool description for refund API
 # → Confidence: 0.82, 0.71
 
 # 3. Apply the highest-confidence fix
-autoagent autofix apply fix_001
+agentlab autofix apply fix_001
 
 # 4. Verify the fix improved things
-autoagent eval run --output after_fix.json
-autoagent eval results --file after_fix.json
+agentlab eval run --output after_fix.json
+agentlab eval results --file after_fix.json
 
 # 5. Check history
-autoagent autofix history
+agentlab autofix history
 ```
 
 AutoFix proposals respect pinned surfaces. If you have pinned `safety_instructions`, no proposal will modify that surface.

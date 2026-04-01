@@ -37,7 +37,7 @@ async def receive_gate_webhook(request: Request, payload: GateWebhookPayload) ->
     Receive webhook notification from CI/CD system about gate results.
 
     This endpoint allows GitHub Actions or other CI/CD systems to notify
-    AutoAgent about gate results for tracking and analytics.
+    AgentLab about gate results for tracking and analytics.
 
     Args:
         payload: Gate result payload

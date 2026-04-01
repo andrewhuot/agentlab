@@ -69,7 +69,7 @@ class ReleaseManager:
         self,
         version_manager: ConfigVersionManager,
         canary_manager: CanaryManager | None = None,
-        signing_key: str = "autoagent-default-key",
+        signing_key: str = "agentlab-default-key",
     ) -> None:
         self.version_manager = version_manager
         self.canary_manager = canary_manager

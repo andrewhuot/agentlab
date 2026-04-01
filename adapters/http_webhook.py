@@ -8,7 +8,7 @@ from .base import AgentAdapter, ImportedAgentSpec
 
 
 class HttpWebhookAdapter(AgentAdapter):
-    """Wrap an arbitrary HTTP endpoint as an AutoAgent import source."""
+    """Wrap an arbitrary HTTP endpoint as an AgentLab import source."""
 
     adapter_name = "http"
     platform_name = "HTTP Webhook"

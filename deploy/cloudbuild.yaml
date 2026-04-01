@@ -3,25 +3,25 @@ steps:
     args:
       - "build"
       - "-t"
-      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/autoagent-vnextcc:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/agentlab:${SHORT_SHA}"
       - "-t"
-      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/autoagent-vnextcc:latest"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/agentlab:latest"
       - "."
 
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "push"
       - "--all-tags"
-      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/autoagent-vnextcc"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/agentlab"
 
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
       - "run"
       - "deploy"
-      - "autoagent-vnextcc"
+      - "agentlab"
       - "--image"
-      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/autoagent-vnextcc:${SHORT_SHA}"
+      - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/agentlab:${SHORT_SHA}"
       - "--region"
       - "${_REGION}"
       - "--platform"
@@ -40,7 +40,7 @@ steps:
 
 substitutions:
   _REGION: us-central1
-  _REPO: autoagent
+  _REPO: agentlab
 
 options:
   logging: CLOUD_LOGGING_ONLY

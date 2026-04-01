@@ -81,7 +81,7 @@ describe('Build', () => {
   it('lists persisted build artifacts in the saved artifacts tab', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(
-      'autoagent.build-artifacts.v1',
+      'agentlab.build-artifacts.v1',
       JSON.stringify([
         {
           artifact_id: 'artifact-123',

@@ -1,16 +1,16 @@
-# AutoAgent Assistant — Implementation Summary
+# AgentLab Assistant — Implementation Summary
 
 **Completed:** 2026-03-26
-**Feature:** Conversational AI interface for the entire AutoAgent platform
-**Vision:** "Manus for Agent Optimization" — natural language access to all AutoAgent capabilities
+**Feature:** Conversational AI interface for the entire AgentLab platform
+**Vision:** "Manus for Agent Optimization" — natural language access to all AgentLab capabilities
 
 ---
 
 ## Overview
 
-The AutoAgent Assistant is a production-grade conversational AI interface that makes the entire AutoAgent platform accessible through natural language. Users can build agents from transcripts, diagnose and fix issues, and explore conversations — all through a ChatGPT-like interface with rich interactive cards.
+The AgentLab Assistant is a production-grade conversational AI interface that makes the entire AgentLab platform accessible through natural language. Users can build agents from transcripts, diagnose and fix issues, and explore conversations — all through a ChatGPT-like interface with rich interactive cards.
 
-**Competitive Edge:** This is how AutoAgent beats Sierra — we maintain research-grade statistical rigor and framework-agnostic architecture while delivering the conversational UX that Sierra pioneered with Ghostwriter.
+**Competitive Edge:** This is how AgentLab beats Sierra — we maintain research-grade statistical rigor and framework-agnostic architecture while delivering the conversational UX that Sierra pioneered with Ghostwriter.
 
 ---
 
@@ -349,7 +349,7 @@ The AutoAgent Assistant is a production-grade conversational AI interface that m
 - Continuous improvement loop
 - Voice Sims for testing
 
-**What AutoAgent Has (Now):**
+**What AgentLab Has (Now):**
 - ✅ Conversational UX (Assistant page with rich cards)
 - ✅ Explorer with semantic search and clustering
 - ✅ Continuous improvement (existing optimizer loop)
@@ -361,7 +361,7 @@ The AutoAgent Assistant is a production-grade conversational AI interface that m
 - ✅ **Multi-hypothesis search** (budget-aware search with learning)
 - ✅ **Pro-mode algorithms** (MIPROv2, BootstrapFewShot, GEPA, SIMBA)
 
-**The Edge:** AutoAgent now has Sierra's conversational UX *plus* research-grade optimization rigor and framework-agnostic architecture. We can optimize agents you already have, with statistical guarantees Sierra doesn't publicly document.
+**The Edge:** AgentLab now has Sierra's conversational UX *plus* research-grade optimization rigor and framework-agnostic architecture. We can optimize agents you already have, with statistical guarantees Sierra doesn't publicly document.
 
 ---
 
@@ -439,6 +439,6 @@ The AutoAgent Assistant is a production-grade conversational AI interface that m
 
 ## Summary
 
-The AutoAgent Assistant is a complete, production-ready conversational AI interface that delivers on the "Manus for Agent Optimization" vision. With 110+ passing tests, 8,400+ lines of new code, and seamless integration with existing modules, it transforms AutoAgent from a CLI-first platform into a conversational-first platform — while maintaining the research-grade rigor that differentiates us from Sierra.
+The AgentLab Assistant is a complete, production-ready conversational AI interface that delivers on the "Manus for Agent Optimization" vision. With 110+ passing tests, 8,400+ lines of new code, and seamless integration with existing modules, it transforms AgentLab from a CLI-first platform into a conversational-first platform — while maintaining the research-grade rigor that differentiates us from Sierra.
 
 **The UX is now magical. The optimization is still statistically rigorous. That's the competitive edge.**

@@ -8,14 +8,14 @@
 
 ### P0 (Implemented)
 1. Missing CLI build command
-- Added `autoagent build "..."` to generate full artifact coverage including `intents`, `tools`, `guardrails`, `skills`, and `integration_templates`.
+- Added `agentlab build "..."` to generate full artifact coverage including `intents`, `tools`, `guardrails`, `skills`, and `integration_templates`.
 - Added handoff file generation:
   - versioned config scaffold in `configs/`
   - generated eval cases in `evals/cases/generated_build.yaml`
-  - artifact snapshot in `.autoagent/build_artifact_latest.json`
+  - artifact snapshot in `.agentlab/build_artifact_latest.json`
 
 2. Missing CLI changes namespace
-- Added `autoagent changes` group with aliases:
+- Added `agentlab changes` group with aliases:
   - `changes list`
   - `changes show <id>`
   - `changes approve <id>`
@@ -23,11 +23,11 @@
   - `changes export <id>`
 
 3. Missing CLI deploy target contract
-- Extended `autoagent deploy` with `--target`:
-  - `--target autoagent` (existing deploy behavior)
+- Extended `agentlab deploy` with `--target`:
+  - `--target agentlab` (existing deploy behavior)
   - `--target cx-studio` (new CX package/export flow)
 - Added no-auth package mode for golden path validation:
-  - writes `.autoagent/cx_export_vNNN.json`
+  - writes `.agentlab/cx_export_vNNN.json`
   - optional preview with `--snapshot`
   - optional push with `--push` and CX credentials/agent metadata
 

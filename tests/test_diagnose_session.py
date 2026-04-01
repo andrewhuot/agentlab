@@ -50,7 +50,7 @@ class TestDiagnoseSession:
         types = {c.failure_type for c in s.clusters}
         assert "routing_error" in types
         assert "unhelpful_response" in types
-        assert "AutoAgent Diagnosis" in summary
+        assert "AgentLab Diagnosis" in summary
 
     def test_start_focuses_first_cluster(self):
         """After start(), focused_cluster is set to the highest-count cluster."""
@@ -303,7 +303,7 @@ class TestDiagnoseSession:
         """start → drill down → fix → apply → next → quit."""
         s = _session()
         summary = s.start()
-        assert "AutoAgent Diagnosis" in summary
+        assert "AgentLab Diagnosis" in summary
         assert len(s.clusters) > 0
 
         # Drill into cluster 1

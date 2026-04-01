@@ -1,6 +1,6 @@
 # Skill Validator
 
-Production-grade validation for AutoAgent skills. Validates both build-time and run-time skills with comprehensive schema checking, dependency resolution, and test execution.
+Production-grade validation for AgentLab skills. Validates both build-time and run-time skills with comprehensive schema checking, dependency resolution, and test execution.
 
 ## Quick Start
 

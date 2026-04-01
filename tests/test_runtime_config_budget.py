@@ -22,7 +22,7 @@ def test_budget_runtime_config_defaults():
     assert budget.per_cycle_dollars == 1.0
     assert budget.daily_dollars == 10.0
     assert budget.stall_threshold_cycles == 5
-    assert budget.tracker_db_path == ".autoagent/cost_tracker.db"
+    assert budget.tracker_db_path == ".agentlab/cost_tracker.db"
 
 
 def test_budget_runtime_config_custom_values():
@@ -98,7 +98,7 @@ def test_runtime_config_includes_budget_field():
     assert config.budget.per_cycle_dollars == 1.0
     assert config.budget.daily_dollars == 10.0
     assert config.budget.stall_threshold_cycles == 5
-    assert config.budget.tracker_db_path == ".autoagent/cost_tracker.db"
+    assert config.budget.tracker_db_path == ".agentlab/cost_tracker.db"
 
 
 def test_load_runtime_config_with_budget_section():
@@ -146,15 +146,15 @@ def test_load_runtime_config_partial_budget_section():
         # Default fields
         assert config.budget.per_cycle_dollars == 1.0
         assert config.budget.stall_threshold_cycles == 5
-        assert config.budget.tracker_db_path == ".autoagent/cost_tracker.db"
+        assert config.budget.tracker_db_path == ".agentlab/cost_tracker.db"
     finally:
         Path(tmp_path).unlink()
 
 
 def test_load_runtime_config_missing_file_uses_budget_defaults():
     """Test load_runtime_config returns budget defaults when YAML file is missing."""
-    config = load_runtime_config("/nonexistent/path/autoagent.yaml")
+    config = load_runtime_config("/nonexistent/path/agentlab.yaml")
     assert config.budget.per_cycle_dollars == 1.0
     assert config.budget.daily_dollars == 10.0
     assert config.budget.stall_threshold_cycles == 5
-    assert config.budget.tracker_db_path == ".autoagent/cost_tracker.db"
+    assert config.budget.tracker_db_path == ".agentlab/cost_tracker.db"

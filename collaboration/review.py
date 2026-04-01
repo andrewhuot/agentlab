@@ -36,7 +36,7 @@ class ReviewSubmission:
 class ReviewManager:
     """Manages collaborative review and approval workflows."""
 
-    def __init__(self, db_path: str = ".autoagent/reviews.db"):
+    def __init__(self, db_path: str = ".agentlab/reviews.db"):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

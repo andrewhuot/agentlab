@@ -229,7 +229,7 @@ async def main():
     """Run all demos."""
     print("\n")
     print("╔" + "═" * 58 + "╗")
-    print("║" + " " * 10 + "AutoAgent Assistant Builder Demo" + " " * 14 + "║")
+    print("║" + " " * 10 + "AgentLab Assistant Builder Demo" + " " * 14 + "║")
     print("╚" + "═" * 58 + "╝")
 
     # Demo 1: Intent extraction

@@ -188,7 +188,7 @@ class SkillVectorStore:
 
     def __init__(
         self,
-        db_path: str = ".autoagent/skill_vectors.db",
+        db_path: str = ".agentlab/skill_vectors.db",
         embedding_fn: Any = None,
     ) -> None:
         """

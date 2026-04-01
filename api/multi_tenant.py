@@ -55,7 +55,7 @@ class Tenant:
 class TenantManager:
     """Create and manage tenants with SQLite-backed persistence."""
 
-    def __init__(self, db_path: str = ".autoagent/tenants.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/tenants.db") -> None:
         self.db_path = db_path
         self._init_db()
 

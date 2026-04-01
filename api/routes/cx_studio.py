@@ -155,7 +155,7 @@ async def list_cx_agents(
 
 @router.post("/import", response_model=CxImportResponse, status_code=201)
 async def import_cx_agent(body: CxImportRequest) -> CxImportResponse:
-    """Import a CX agent into AutoAgent format."""
+    """Import a CX agent into AgentLab format."""
     from cx_studio import CxAuth, CxClient, CxImporter
     from cx_studio.types import CxAgentRef
     try:

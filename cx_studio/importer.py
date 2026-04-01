@@ -1,4 +1,4 @@
-"""Import Dialogflow CX agents into AutoAgent workspaces."""
+"""Import Dialogflow CX agents into AgentLab workspaces."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from .types import CxAgentRef, ImportResult
 
 
 class CxImporter:
-    """Import a Dialogflow CX agent into an AutoAgent workspace."""
+    """Import a Dialogflow CX agent into an AgentLab workspace."""
 
     def __init__(self, client, mapper: CxMapper | None = None):
         self._client = client
@@ -41,7 +41,7 @@ class CxImporter:
             )
 
             workspace_root = Path(workspace_result.workspace_path)
-            cx_dir = workspace_root / ".autoagent" / "cx"
+            cx_dir = workspace_root / ".agentlab" / "cx"
             cx_dir.mkdir(parents=True, exist_ok=True)
 
             snapshot_path = cx_dir / "snapshot.json"

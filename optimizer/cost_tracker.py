@@ -25,7 +25,7 @@ class CostTracker:
 
     def __init__(
         self,
-        db_path: str = ".autoagent/cost_tracker.db",
+        db_path: str = ".agentlab/cost_tracker.db",
         per_cycle_budget_dollars: float = 1.0,
         daily_budget_dollars: float = 10.0,
         stall_threshold_cycles: int = 5,

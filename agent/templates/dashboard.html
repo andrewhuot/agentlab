@@ -33,7 +33,7 @@
     <header class="mb-6 rounded-2xl border border-slate-700/70 bg-slate-800/70 p-5 shadow-panel backdrop-blur">
       <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p class="text-xs uppercase tracking-[0.22em] text-slate-400">AutoAgent VNext Monitoring</p>
+          <p class="text-xs uppercase tracking-[0.22em] text-slate-400">AgentLab VNext Monitoring</p>
           <h1 class="mt-2 text-2xl font-semibold text-slate-50 lg:text-3xl">Self-Healing Status Dashboard</h1>
           <p class="mt-2 text-sm text-slate-300">
             Real-time observability for the observer → optimizer → deployer feedback loop.
@@ -95,7 +95,7 @@
       <article class="rounded-2xl border border-slate-700 bg-slate-800/70 p-5 shadow-panel">
         <h2 class="text-lg font-semibold text-slate-100">Next Best Action</h2>
         <p class="mt-3 text-xs uppercase tracking-wide text-slate-400" x-text="health.journey?.next_action?.label || 'Run quickstart'"></p>
-        <pre class="mt-2 overflow-auto rounded-lg border border-slate-700 bg-slate-900/80 p-3 text-xs text-cyan-200" x-text="health.journey?.next_action?.command || 'autoagent quickstart'"></pre>
+        <pre class="mt-2 overflow-auto rounded-lg border border-slate-700 bg-slate-900/80 p-3 text-xs text-cyan-200" x-text="health.journey?.next_action?.command || 'agentlab quickstart'"></pre>
         <p class="mt-4 text-xs uppercase tracking-wide text-slate-400">Recent Wins</p>
         <div class="mt-2 space-y-2">
           <template x-if="!health.journey?.recent_wins || health.journey.recent_wins.length === 0">

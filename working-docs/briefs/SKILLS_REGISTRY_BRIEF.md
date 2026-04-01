@@ -1,7 +1,7 @@
 # Executable Skills Registry Brief
 
 ## Mission
-Upgrade AutoAgent's skills registry from metadata entries to executable optimization strategies. Skills become the core knowledge unit — code + knowledge that the optimizer consults before proposing changes. This is the "npm for agent optimization."
+Upgrade AgentLab's skills registry from metadata entries to executable optimization strategies. Skills become the core knowledge unit — code + knowledge that the optimizer consults before proposing changes. This is the "npm for agent optimization."
 
 ## Current State
 - `registry/` module has `RegistryStore` (SQLite CRUD for skills, policies, tool_contracts, handoff_schemas)
@@ -179,7 +179,7 @@ triggers:
     metric_name: routing_accuracy
     threshold: 0.85
     operator: lt
-author: autoagent-builtin
+author: agentlab-builtin
 tags: [routing, keywords, core]
 ```
 
@@ -209,14 +209,14 @@ When an optimization succeeds:
 
 ### 7. CLI Commands
 ```
-autoagent skill list [--category routing] [--platform cx-agent-studio]
-autoagent skill show <name> [--version N]
-autoagent skill recommend                    # Recommend skills based on current failures
-autoagent skill apply <name>                 # Apply a skill (run 1 optimization cycle guided by this skill)
-autoagent skill install <path>               # Install a skill pack from YAML
-autoagent skill export <name> [--output FILE]
-autoagent skill stats                        # Show skill effectiveness leaderboard
-autoagent skill learn                        # Analyze recent optimizations and create draft skills
+agentlab skill list [--category routing] [--platform cx-agent-studio]
+agentlab skill show <name> [--version N]
+agentlab skill recommend                    # Recommend skills based on current failures
+agentlab skill apply <name>                 # Apply a skill (run 1 optimization cycle guided by this skill)
+agentlab skill install <path>               # Install a skill pack from YAML
+agentlab skill export <name> [--output FILE]
+agentlab skill stats                        # Show skill effectiveness leaderboard
+agentlab skill learn                        # Analyze recent optimizations and create draft skills
 ```
 
 ### 8. API Endpoints
@@ -256,8 +256,8 @@ Update `tests/test_dependency_layers.py` accordingly.
 - `cd web && npx tsc --noEmit` — must pass
 - `python3 -m pytest tests/test_dependency_layers.py -v` — must pass
 - Builtin packs must load without errors
-- `autoagent skill list` must show all 15 builtin skills
-- `autoagent skill recommend` must return relevant skills based on failure state
+- `agentlab skill list` must show all 15 builtin skills
+- `agentlab skill recommend` must return relevant skills based on failure state
 
 ## When Done
 Commit: `feat: executable skills registry — types, store, packs, proposer integration, skill learning, CLI/API/web`

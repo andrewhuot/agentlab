@@ -23,7 +23,7 @@ class LineageStore:
             created automatically if they do not exist.
     """
 
-    def __init__(self, db_path: str = ".autoagent/lineage.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/lineage.db") -> None:
         self._db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._ensure_table()

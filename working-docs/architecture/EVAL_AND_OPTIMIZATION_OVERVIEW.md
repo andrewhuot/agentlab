@@ -1,14 +1,14 @@
-# AutoAgent — Evaluation & Optimization Architecture
+# AgentLab — Evaluation & Optimization Architecture
 
 *A technical overview for expert review. No prior knowledge of the project assumed.*
 
 ---
 
-## What Is AutoAgent?
+## What Is AgentLab?
 
-AutoAgent is a platform that **continuously evaluates and optimizes AI agents in production**. You point it at a deployed agent (initially targeting Google ADK agents), and it runs an autonomous loop: observe the agent's behavior → diagnose failures → propose improvements → evaluate candidates → gate on statistical significance → deploy winners. It runs for days/weeks unattended.
+AgentLab is a platform that **continuously evaluates and optimizes AI agents in production**. You point it at a deployed agent (initially targeting Google ADK agents), and it runs an autonomous loop: observe the agent's behavior → diagnose failures → propose improvements → evaluate candidates → gate on statistical significance → deploy winners. It runs for days/weeks unattended.
 
-Think of it as an outer optimization loop around an inner agent system — the agent serves users, AutoAgent serves the agent.
+Think of it as an outer optimization loop around an inner agent system — the agent serves users, AgentLab serves the agent.
 
 ---
 
@@ -220,5 +220,5 @@ Accepted candidates are deployed via canary with monitoring. High-risk mutations
 
 ---
 
-*Repository: https://github.com/andrewhuot/autoagent-vnextcc*
+*Repository: https://github.com/andrewhuot/agentlab*
 *Branch: `feat/p0-architectural-overhaul`*

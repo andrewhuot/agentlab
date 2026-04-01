@@ -61,7 +61,7 @@ describe('CxImport', () => {
           config_path: 'configs/support.yaml',
           eval_path: 'evals/support.jsonl',
           test_cases_imported: 24,
-          snapshot_path: '.autoagent/support.snapshot.json',
+          snapshot_path: '.agentlab/support.snapshot.json',
           surfaces_mapped: ['instructions', 'tools'],
         });
       }
@@ -75,7 +75,7 @@ describe('CxImport', () => {
         config_path: 'configs/support.yaml',
         eval_path: 'evals/support.jsonl',
         test_cases_imported: 24,
-        snapshot_path: '.autoagent/support.snapshot.json',
+        snapshot_path: '.agentlab/support.snapshot.json',
         surfaces_mapped: ['instructions', 'tools'],
       },
     });

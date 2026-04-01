@@ -1,10 +1,10 @@
 # VP Demo Implementation Plan
 
 ## Overview
-Create a VP-ready demo that tells a compelling 5-minute story showcasing AutoAgent's full power: diagnose → fix → deploy.
+Create a VP-ready demo that tells a compelling 5-minute story showcasing AgentLab's full power: diagnose → fix → deploy.
 
 ## Current State
-- `autoagent demo` exists as a single command (runner.py:2957)
+- `agentlab demo` exists as a single command (runner.py:2957)
 - `evals/synthetic.py` has generic failure templates
 - README has quickstart section but no VP demo script
 
@@ -156,13 +156,13 @@ def test_vp_demo_score_progression():
 
 ### Phase 5: Quality Assurance
 1. Run full test suite: `python3 -m pytest tests/ -x -q`
-2. Manual run: `autoagent demo vp --no-pause`
-3. Manual run with web: `autoagent demo vp --web --no-pause`
+2. Manual run: `agentlab demo vp --no-pause`
+3. Manual run with web: `agentlab demo vp --web --no-pause`
 4. Verify README instructions are accurate
 
 ## Success Criteria
-- ✅ `autoagent demo vp --no-pause` runs cleanly in <5 min
-- ✅ `autoagent demo vp --web` auto-opens web console
+- ✅ `agentlab demo vp --no-pause` runs cleanly in <5 min
+- ✅ `agentlab demo vp --web` auto-opens web console
 - ✅ All pytest tests pass
 - ✅ Demo output matches brief's visual specifications
 - ✅ README has complete presenter script
@@ -185,7 +185,7 @@ def test_vp_demo_score_progression():
 feat: VP-ready demo — curated scenario, storytelling output, presenter script
 
 - Create evals/vp_demo_data.py with 41 hand-crafted conversations
-- Refactor 'autoagent demo' to group with 'quickstart' and 'vp' subcommands
+- Refactor 'agentlab demo' to group with 'quickstart' and 'vp' subcommands
 - Implement 5-act demo with dramatic CLI formatting and pauses
 - Add --web flag to auto-start server after demo
 - Document presenter script, talking points, and FAQ in README

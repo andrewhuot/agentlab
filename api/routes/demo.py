@@ -63,7 +63,7 @@ async def get_demo_scenario(request: Request) -> dict:
             {
                 "act": 2,
                 "title": "Diagnosis",
-                "description": "AutoAgent identifies routing keywords as the dominant failure family",
+                "description": "AgentLab identifies routing keywords as the dominant failure family",
                 "insight": "15 billing-related queries routed to tech_support_agent due to missing keyword mappings",
             },
             {

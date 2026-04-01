@@ -1,4 +1,4 @@
-"""CI/CD integration for AutoAgent."""
+"""CI/CD integration for AgentLab."""
 
 from cicd.gate import CICDGate
 

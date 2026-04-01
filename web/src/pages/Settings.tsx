@@ -43,7 +43,7 @@ export function Settings() {
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Reference paths, quick links, and operator shortcuts for the AutoAgent control plane."
+        description="Reference paths, quick links, and operator shortcuts for the AgentLab control plane."
       />
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -103,7 +103,7 @@ export function Settings() {
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
             <a
-              href="https://github.com/andrewhuot/autoagent-vnextcc"
+              href="https://github.com/andrewhuot/agentlab"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm text-blue-700 transition hover:bg-blue-50"
@@ -114,8 +114,8 @@ export function Settings() {
           </div>
 
           <p className="mt-4 text-xs text-gray-500">
-            Runtime values can be overridden with environment variables like `AUTOAGENT_DB`,
-            `AUTOAGENT_CONFIGS`, and `AUTOAGENT_MEMORY_DB`.
+            Runtime values can be overridden with environment variables like `AGENTLAB_DB`,
+            `AGENTLAB_CONFIGS`, and `AGENTLAB_MEMORY_DB`.
           </p>
         </div>
       </section>

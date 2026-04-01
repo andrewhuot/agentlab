@@ -1,4 +1,4 @@
-# AutoAgent VNext — Self-Healing, Self-Optimizing ADK Agent
+# AgentLab VNext — Self-Healing, Self-Optimizing ADK Agent
 
 ## Vision
 A Google ADK agent running on Google Cloud that watches itself, fixes itself, and improves itself — following the Karpathy autoresearch pattern applied to multi-agent systems.
@@ -199,7 +199,7 @@ def optimize(health_report, current_config, failure_samples, memory):
 
 ## File Structure
 ```
-AutoAgent-VNext/
+AgentLab-VNext/
 ├── agent/
 │   ├── __init__.py
 │   ├── root_agent.py          # ADK orchestrator

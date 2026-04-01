@@ -1,46 +1,46 @@
-"""CLI entry point for AutoAgent VNextCC.
+"""CLI entry point for AgentLab VNextCC.
 
 Full command set:
-  autoagent quickstart [--agent-name NAME] [--verbose]
-  autoagent demo quickstart [--dir PATH]
-  autoagent demo vp [--agent-name NAME] [--company NAME] [--no-pause] [--web]
-  autoagent init [--template NAME] [--agent-name NAME] [--with-synthetic-data]
-  autoagent connect openai-agents --path ./project
-  autoagent connect anthropic --path ./project
-  autoagent connect http --url https://agent.example.com
-  autoagent connect transcript --file conversations.jsonl
-  autoagent eval run [OPTIONS]
-  autoagent eval results [--run-id ID]
-  autoagent eval list
-  autoagent experiment log [OPTIONS]
-  autoagent optimize [--cycles N] [--mode standard|advanced|research]
-  autoagent config list
-  autoagent config diff V1 V2
-  autoagent config show [VERSION]
-  autoagent config migrate <input_file> [--output FILE]
-  autoagent deploy [--strategy canary|immediate]
-  autoagent loop [--max-cycles N] [--stop-on-plateau]
-  autoagent status
-  autoagent logs [--limit N] [--outcome fail|success]
-  autoagent server
-  autoagent review [list|show|apply|reject|export]
-  autoagent runbook [list|show|apply|create]
-  autoagent memory [show|add]
-  autoagent registry list [--type skills|policies|tools|handoffs]
-  autoagent registry show <type> <name> [--version N]
-  autoagent registry add <type> <name> --file <path>
-  autoagent registry diff <type> <name> <v1> <v2>
-  autoagent registry import <path>
-  autoagent trace grade <trace-id>
-  autoagent trace blame [--window 24h]
-  autoagent trace graph <trace-id>
-  autoagent scorer create "description" [--name NAME]
-  autoagent scorer create --from-file criteria.txt [--name NAME]
-  autoagent scorer list
-  autoagent scorer show <name>
-  autoagent scorer refine <name> "additional criteria"
-  autoagent scorer test <name> --trace <trace-id>
-  autoagent full-auto --yes [--cycles N] [--max-loop-cycles N]
+  agentlab quickstart [--agent-name NAME] [--verbose]
+  agentlab demo quickstart [--dir PATH]
+  agentlab demo vp [--agent-name NAME] [--company NAME] [--no-pause] [--web]
+  agentlab init [--template NAME] [--agent-name NAME] [--with-synthetic-data]
+  agentlab connect openai-agents --path ./project
+  agentlab connect anthropic --path ./project
+  agentlab connect http --url https://agent.example.com
+  agentlab connect transcript --file conversations.jsonl
+  agentlab eval run [OPTIONS]
+  agentlab eval results [--run-id ID]
+  agentlab eval list
+  agentlab experiment log [OPTIONS]
+  agentlab optimize [--cycles N] [--mode standard|advanced|research]
+  agentlab config list
+  agentlab config diff V1 V2
+  agentlab config show [VERSION]
+  agentlab config migrate <input_file> [--output FILE]
+  agentlab deploy [--strategy canary|immediate]
+  agentlab loop [--max-cycles N] [--stop-on-plateau]
+  agentlab status
+  agentlab logs [--limit N] [--outcome fail|success]
+  agentlab server
+  agentlab review [list|show|apply|reject|export]
+  agentlab runbook [list|show|apply|create]
+  agentlab memory [show|add]
+  agentlab registry list [--type skills|policies|tools|handoffs]
+  agentlab registry show <type> <name> [--version N]
+  agentlab registry add <type> <name> --file <path>
+  agentlab registry diff <type> <name> <v1> <v2>
+  agentlab registry import <path>
+  agentlab trace grade <trace-id>
+  agentlab trace blame [--window 24h]
+  agentlab trace graph <trace-id>
+  agentlab scorer create "description" [--name NAME]
+  agentlab scorer create --from-file criteria.txt [--name NAME]
+  agentlab scorer list
+  agentlab scorer show <name>
+  agentlab scorer refine <name> "additional criteria"
+  agentlab scorer test <name> --trace <trace-id>
+  agentlab full-auto --yes [--cycles N] [--max-loop-cycles N]
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ from cli.bootstrap import bootstrap_workspace, seed_demo_workspace
 from cli.branding import (
     banner_enabled,
     echo_startup_banner,
-    get_autoagent_version,
+    get_agentlab_version,
     render_startup_banner,
 )
 from cli.config_resolve import (
@@ -116,7 +116,7 @@ from cli.templates import (
     apply_template_to_workspace,
     list_templates,
 )
-from cli.workspace import AutoAgentWorkspace, discover_workspace
+from cli.workspace import AgentLabWorkspace, discover_workspace
 from deployer import Deployer
 from evals import EvalRunner
 from evals.execution_mode import (
@@ -159,13 +159,13 @@ LOG = logging.getLogger(__name__)
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-DB_PATH = os.environ.get("AUTOAGENT_DB", "conversations.db")
-CONFIGS_DIR = os.environ.get("AUTOAGENT_CONFIGS", "configs")
-MEMORY_DB = os.environ.get("AUTOAGENT_MEMORY_DB", "optimizer_memory.db")
-REGISTRY_DB = os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db")
-TRACE_DB = os.environ.get("AUTOAGENT_TRACE_DB", ".autoagent/traces.db")
-SCORER_SPECS_DIR = os.environ.get("AUTOAGENT_SCORER_SPECS_DIR", ".autoagent/scorers")
-AUTOAGENT_VERSION = get_autoagent_version()
+DB_PATH = os.environ.get("AGENTLAB_DB", "conversations.db")
+CONFIGS_DIR = os.environ.get("AGENTLAB_CONFIGS", "configs")
+MEMORY_DB = os.environ.get("AGENTLAB_MEMORY_DB", "optimizer_memory.db")
+REGISTRY_DB = os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db")
+TRACE_DB = os.environ.get("AGENTLAB_TRACE_DB", ".agentlab/traces.db")
+SCORER_SPECS_DIR = os.environ.get("AGENTLAB_SCORER_SPECS_DIR", ".agentlab/scorers")
+AGENTLAB_VERSION = get_agentlab_version()
 EVAL_METRIC_NAMES = ("quality", "safety", "latency", "cost", "composite")
 
 
@@ -201,7 +201,7 @@ def _banner_flag_options(command):
     return command
 
 
-class AutoAgentGroup(click.Group):
+class AgentLabGroup(click.Group):
     """Prepend the branded splash to top-level help to make entry into the CLI distinct."""
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
@@ -252,13 +252,13 @@ class AutoAgentGroup(click.Group):
                 grouped += "\n".join(primary_block) + "\n"
                 grouped += "\nSecondary Commands:\n"
                 grouped += "\n".join(secondary_block) + "\n"
-                grouped += "\n  Run `autoagent advanced` to see all commands.\n"
+                grouped += "\n  Run `agentlab advanced` to see all commands.\n"
 
                 help_text = before_commands + grouped
 
         show_banner = ctx.meta.get("banner_enabled", banner_enabled(ctx))
         if ctx.parent is None and show_banner:
-            return f"{render_startup_banner(AUTOAGENT_VERSION)}\n{help_text}"
+            return f"{render_startup_banner(AGENTLAB_VERSION)}\n{help_text}"
         return help_text
 
 
@@ -300,7 +300,7 @@ def _load_config_dict(config_path: str) -> dict:
 
 
 def _resolve_instruction_config_path(config_path: str | None) -> Path:
-    """Resolve the config file targeted by `autoagent instruction` commands."""
+    """Resolve the config file targeted by `agentlab instruction` commands."""
     if config_path is not None:
         return _resolve_invocation_input_path(Path(config_path))
 
@@ -388,7 +388,7 @@ def _instruction_agent_name(config: dict[str, Any]) -> str | None:
     return None
 
 
-def _enter_discovered_workspace(command_name: str | None) -> AutoAgentWorkspace | None:
+def _enter_discovered_workspace(command_name: str | None) -> AgentLabWorkspace | None:
     """Switch cwd to the nearest discovered workspace for workspace-aware commands."""
     if command_name in {"init", "new"}:
         return None
@@ -403,13 +403,13 @@ def _is_tty() -> bool:
     return hasattr(sys.stdin, "isatty") and sys.stdin.isatty()
 
 
-def _require_workspace(command_name: str | None = None) -> AutoAgentWorkspace:
+def _require_workspace(command_name: str | None = None) -> AgentLabWorkspace:
     """Return the current workspace or raise a helpful CLI error."""
     from cli.errors import click_error
 
     workspace = _enter_discovered_workspace(command_name)
     if workspace is None:
-        raise click_error("No AutoAgent workspace found. Run autoagent init to create one.")
+        raise click_error("No AgentLab workspace found. Run agentlab init to create one.")
     return workspace
 
 
@@ -437,7 +437,7 @@ def _ensure_active_config(deployer: Deployer) -> dict:
     return config
 
 
-def _workspace_for_configs_dir(configs_dir: str) -> AutoAgentWorkspace | None:
+def _workspace_for_configs_dir(configs_dir: str) -> AgentLabWorkspace | None:
     """Return the discovered workspace when `configs_dir` points at its config directory."""
     workspace = discover_workspace()
     if workspace is None:
@@ -481,14 +481,14 @@ def _create_workspace(
     with_synthetic_data: bool,
     demo: bool,
     runtime_mode: str = "auto",
-) -> tuple[AutoAgentWorkspace, dict]:
+) -> tuple[AgentLabWorkspace, dict]:
     """Create or update a workspace using the shared bootstrap path."""
     base_dir = Path(target_dir).resolve()
     workspace_root = (base_dir / name) if name else base_dir
     workspace_root.mkdir(parents=True, exist_ok=True)
 
     workspace_name = name or workspace_root.name
-    workspace = AutoAgentWorkspace.create(
+    workspace = AgentLabWorkspace.create(
         workspace_root,
         name=workspace_name,
         template=template,
@@ -521,13 +521,13 @@ def _resolve_workspace_bootstrap_mode(ctx: click.Context, mode: str) -> str:
     return mode
 
 
-def _doctor_fix_workspace(workspace: AutoAgentWorkspace) -> list[str]:
+def _doctor_fix_workspace(workspace: AgentLabWorkspace) -> list[str]:
     """Repair fixable workspace issues for `doctor --fix`."""
     fixes: list[str] = []
 
-    if not workspace.autoagent_dir.exists():
-        workspace.autoagent_dir.mkdir(parents=True, exist_ok=True)
-        fixes.append("Created .autoagent/")
+    if not workspace.agentlab_dir.exists():
+        workspace.agentlab_dir.mkdir(parents=True, exist_ok=True)
+        fixes.append("Created .agentlab/")
     if not workspace.configs_dir.exists():
         workspace.configs_dir.mkdir(parents=True, exist_ok=True)
         fixes.append("Created configs/")
@@ -536,14 +536,14 @@ def _doctor_fix_workspace(workspace: AutoAgentWorkspace) -> list[str]:
         fixes.append("Created evals/cases/")
     if not workspace.scorer_specs_dir.exists():
         workspace.scorer_specs_dir.mkdir(parents=True, exist_ok=True)
-        fixes.append("Created .autoagent/scorers/")
-    logs_dir = workspace.autoagent_dir / "logs"
+        fixes.append("Created .agentlab/scorers/")
+    logs_dir = workspace.agentlab_dir / "logs"
     if not logs_dir.exists():
         logs_dir.mkdir(parents=True, exist_ok=True)
-        fixes.append("Created .autoagent/logs/")
+        fixes.append("Created .agentlab/logs/")
     if not workspace.best_score_file.exists():
         workspace.best_score_file.touch()
-        fixes.append("Created .autoagent/best_score.txt")
+        fixes.append("Created .agentlab/best_score.txt")
 
     if workspace.metadata.active_config_version is None or workspace.metadata.active_config_file is None:
         resolved = workspace.resolve_active_config()
@@ -720,8 +720,8 @@ def _latest_eval_output_path() -> Path:
     """Return the default path used to persist the latest eval result snapshot."""
     workspace = discover_workspace()
     if workspace is not None:
-        workspace.autoagent_dir.mkdir(parents=True, exist_ok=True)
-        return workspace.autoagent_dir / "eval_results_latest.json"
+        workspace.agentlab_dir.mkdir(parents=True, exist_ok=True)
+        return workspace.agentlab_dir / "eval_results_latest.json"
     return Path("eval_results_latest.json")
 
 
@@ -760,9 +760,9 @@ def _eval_result_search_roots() -> list[Path]:
     """Return unique search roots for eval result files from cwd and invocation cwd."""
     roots = [
         Path.cwd(),
-        Path.cwd() / ".autoagent",
+        Path.cwd() / ".agentlab",
         _resolve_invocation_input_path(Path(".")),
-        _resolve_invocation_input_path(Path(".autoagent")),
+        _resolve_invocation_input_path(Path(".agentlab")),
     ]
     unique_roots: list[Path] = []
     seen: set[Path] = set()
@@ -799,7 +799,7 @@ def _load_eval_result(ref: str) -> tuple[Path, dict]:
 
 
 def _latest_eval_result_file() -> Path | None:
-    """Return the newest eval result JSON from cwd or `.autoagent/`."""
+    """Return the newest eval result JSON from cwd or `.agentlab/`."""
     candidates: dict[Path, Path] = {}
     for root in _eval_result_search_roots():
         if not root.exists():
@@ -882,14 +882,14 @@ def _pairwise_store_for_cli():
     """Return the default on-disk store for CLI pairwise comparisons."""
     from evals.pairwise import PairwiseComparisonStore
 
-    return PairwiseComparisonStore(base_dir=".autoagent/pairwise")
+    return PairwiseComparisonStore(base_dir=".agentlab/pairwise")
 
 
 def _results_store_for_cli():
     """Return the default on-disk store for structured eval results."""
     from evals.results_store import EvalResultsStore
 
-    return EvalResultsStore(db_path=".autoagent/eval_results.db")
+    return EvalResultsStore(db_path=".agentlab/eval_results.db")
 
 
 def _render_pairwise_comparison(result) -> None:
@@ -952,7 +952,7 @@ def _build_eval_breakdown() -> dict:
     """Build a metric and failure-cluster breakdown for the latest eval result."""
     latest = _latest_eval_result_file()
     if latest is None:
-        raise click.ClickException("No eval results found. Run `autoagent eval run --output eval_results.json` first.")
+        raise click.ClickException("No eval results found. Run `agentlab eval run --output eval_results.json` first.")
 
     try:
         data = json.loads(latest.read_text(encoding="utf-8"))
@@ -1178,7 +1178,7 @@ def _auto_open_console(port: int = 8080, block: bool | None = None) -> None:
         sock.close()
         click.echo(
             "\n  Could not start web console. Run "
-            + click.style("autoagent server", bold=True)
+            + click.style("agentlab server", bold=True)
             + " to open it manually."
         )
 
@@ -1242,7 +1242,7 @@ SOUL_LINES: dict[str, str] = {
 
 def _soul_line(context: str) -> str:
     """Return a short personality line for a CLI context."""
-    return SOUL_LINES.get(context, "AutoAgent is online.")
+    return SOUL_LINES.get(context, "AgentLab is online.")
 
 
 def _score_status_label(score: float | None) -> str:
@@ -1290,7 +1290,7 @@ def _generate_recommendations(report, score) -> list[str]:  # noqa: ANN001
         runbook = FAILURE_TO_RUNBOOK.get(bucket, "improve-response-quality")
         recs.append(
             f"  {i}. {bucket} is {pct}% of failures"
-            f" → autoagent runbook apply {runbook}"
+            f" → agentlab runbook apply {runbook}"
         )
     return recs
 
@@ -1299,15 +1299,15 @@ def _status_next_action(report, attempts_count: int, accepted_count: int) -> str
     """Return a single next-best-action command for status/UX surfaces."""
     total_failures = sum(report.failure_buckets.values()) if report.failure_buckets else 0
     if attempts_count == 0:
-        return "autoagent eval run" if _latest_eval_result_file() is None else "autoagent optimize --cycles 3"
+        return "agentlab eval run" if _latest_eval_result_file() is None else "agentlab optimize --cycles 3"
     if total_failures > 0:
         recs = _generate_recommendations(report, None)
         if recs:
             return recs[0].split("→")[-1].strip()
-        return "autoagent runbook list"
+        return "agentlab runbook list"
     if accepted_count >= 3:
-        return "autoagent optimize --continuous"
-    return "autoagent optimize --cycles 3"
+        return "agentlab optimize --continuous"
+    return "agentlab optimize --cycles 3"
 
 
 def _stream_cycle_output(
@@ -1359,7 +1359,7 @@ def _stream_cycle_output(
             ))
             click.echo(click.style("    → Accepted", fg="green"))
 
-            resolved_best_score_file = best_score_file or Path(".autoagent/best_score.txt")
+            resolved_best_score_file = best_score_file or Path(".agentlab/best_score.txt")
             _persist_best_score(
                 score_after,
                 all_time_best,
@@ -1382,7 +1382,7 @@ def _stream_cycle_output(
         click.echo(click.style(f"    → {proposal_desc}", fg="cyan"))
 
 
-def _build_skill_components(db_path: str = ".autoagent/core_skills.db") -> tuple[SkillStore, SkillEngine]:
+def _build_skill_components(db_path: str = ".agentlab/core_skills.db") -> tuple[SkillStore, SkillEngine]:
     """Create skill store and skill engine for optimization."""
     skill_store = SkillStore(db_path=db_path)
     skill_engine = SkillEngine(store=skill_store)
@@ -1392,19 +1392,19 @@ def _build_skill_components(db_path: str = ".autoagent/core_skills.db") -> tuple
 def _workspace_state_paths(target_dir: str) -> dict[str, Path]:
     """Return workspace-scoped state paths for quickstart/demo flows."""
     workspace = Path(target_dir).resolve()
-    autoagent_dir = workspace / ".autoagent"
-    autoagent_dir.mkdir(parents=True, exist_ok=True)
+    agentlab_dir = workspace / ".agentlab"
+    agentlab_dir.mkdir(parents=True, exist_ok=True)
     return {
         "workspace": workspace,
-        "autoagent_dir": autoagent_dir,
+        "agentlab_dir": agentlab_dir,
         "configs_dir": workspace / "configs",
         "conversation_db": workspace / "conversations.db",
         "memory_db": workspace / "optimizer_memory.db",
         "eval_history_db": workspace / "eval_history.db",
-        "eval_cache_db": autoagent_dir / "eval_cache.db",
-        "trace_db": autoagent_dir / "traces.db",
-        "skill_db": autoagent_dir / "core_skills.db",
-        "best_score_file": autoagent_dir / "best_score.txt",
+        "eval_cache_db": agentlab_dir / "eval_cache.db",
+        "trace_db": agentlab_dir / "traces.db",
+        "skill_db": agentlab_dir / "core_skills.db",
+        "best_score_file": agentlab_dir / "best_score.txt",
         "cases_dir": workspace / "evals" / "cases",
     }
 
@@ -1462,7 +1462,7 @@ def _build_eval_runner(
     eval_runner.eval_agent = eval_agent
     eval_runner.requested_live = bool(requested_real_agent)
     eval_runner.require_live = bool(require_live)
-    trace_store = TraceStore(db_path=trace_db_path or os.environ.get("AUTOAGENT_TRACE_DB", TRACE_DB))
+    trace_store = TraceStore(db_path=trace_db_path or os.environ.get("AGENTLAB_TRACE_DB", TRACE_DB))
     instrument_eval_runner(eval_runner, trace_store, agent_path="eval", branch="cli")
     eval_runner.mock_mode_messages = (
         list(getattr(eval_agent, "mock_mode_messages", []))
@@ -1546,7 +1546,7 @@ def _proposer_total_cost(proposer: Proposer) -> float:
 def _runtime_budget_config(runtime: object) -> tuple[str, float, float, int]:
     """Return budget tracker settings, tolerating lightweight test doubles."""
     budget = getattr(runtime, "budget", None)
-    tracker_db_path = str(getattr(budget, "tracker_db_path", ".autoagent/cost_tracker.db"))
+    tracker_db_path = str(getattr(budget, "tracker_db_path", ".agentlab/cost_tracker.db"))
     per_cycle_dollars = float(getattr(budget, "per_cycle_dollars", 1.0))
     daily_dollars = float(getattr(budget, "daily_dollars", 10.0))
     stall_threshold_cycles = int(getattr(budget, "stall_threshold_cycles", 5))
@@ -1676,7 +1676,7 @@ def _next_built_config_path(configs_dir: Path) -> Path:
 
 
 def _artifact_to_seed_config(prompt: str, artifact: dict) -> dict:
-    """Map a prompt-built artifact into an AutoAgent config scaffold."""
+    """Map a prompt-built artifact into an AgentLab config scaffold."""
     base_path = Path(__file__).parent / "agent" / "config" / "base_config.yaml"
     config = load_config(str(base_path)).model_dump()
 
@@ -1692,7 +1692,7 @@ def _artifact_to_seed_config(prompt: str, artifact: dict) -> dict:
     guardrail_text = " ".join(str(item) for item in guardrails)
 
     config["prompts"]["root"] = (
-        "You are AutoAgent, a production customer support orchestrator. "
+        "You are AgentLab, a production customer support orchestrator. "
         f"Primary intents: {intent_human or 'general support'}. "
         f"Follow these guardrails: {guardrail_text or 'standard policy controls'}. "
         "Escalate with verified context when self-service cannot resolve safely."
@@ -1796,12 +1796,12 @@ def _load_versioned_config(configs_dir: str, config_version: int | None) -> tupl
 # Root CLI group
 # ---------------------------------------------------------------------------
 
-@click.group(cls=AutoAgentGroup, invoke_without_command=True)
-@click.version_option(version=AUTOAGENT_VERSION, prog_name="autoagent")
+@click.group(cls=AgentLabGroup, invoke_without_command=True)
+@click.version_option(version=AGENTLAB_VERSION, prog_name="agentlab")
 @_banner_flag_options
 @click.pass_context
 def cli(ctx: click.Context, quiet: bool, no_banner: bool) -> None:
-    """AutoAgent VNextCC — agent optimization platform.
+    """AgentLab VNextCC — agent optimization platform.
 
     A product-grade platform for iterating ADK agent quality.
     CLI-first, API-ready, with a web console for visual insight.
@@ -1870,7 +1870,7 @@ usage_command.hidden = True
 @click.pass_context
 def advanced_commands(ctx: click.Context) -> None:
     """Show all available commands, including hidden power-user commands."""
-    click.echo(click.style("\n✦ AutoAgent — All Commands", fg="cyan", bold=True))
+    click.echo(click.style("\n✦ AgentLab — All Commands", fg="cyan", bold=True))
     click.echo("")
     click.echo("These commands are available but hidden from default --help output.")
     click.echo("They are fully functional — use them when you need advanced control.\n")
@@ -1895,13 +1895,13 @@ def advanced_commands(ctx: click.Context) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent shell — interactive REPL
+# agentlab shell — interactive REPL
 # ---------------------------------------------------------------------------
 
 @cli.command("shell")
 @click.pass_context
 def shell_command(ctx: click.Context) -> None:
-    """Launch the interactive AutoAgent shell."""
+    """Launch the interactive AgentLab shell."""
     from cli.repl import run_shell
 
     workspace = ctx.obj.get("workspace")
@@ -1909,7 +1909,7 @@ def shell_command(ctx: click.Context) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent continue — resume last session
+# agentlab continue — resume last session
 # ---------------------------------------------------------------------------
 
 @cli.command("continue")
@@ -1921,7 +1921,7 @@ def continue_command(ctx: click.Context) -> None:
 
     workspace = ctx.obj.get("workspace")
     if workspace is None:
-        raise click.ClickException("No workspace found. Run: autoagent init")
+        raise click.ClickException("No workspace found. Run: agentlab init")
 
     store = SessionStore(workspace.root)
     latest = store.latest()
@@ -1938,7 +1938,7 @@ def continue_command(ctx: click.Context) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent session — session management
+# agentlab session — session management
 # ---------------------------------------------------------------------------
 
 @cli.group("session", hidden=True)
@@ -1958,7 +1958,7 @@ def session_list(ctx: click.Context, limit: int, json_output: bool) -> None:
 
     workspace = ctx.obj.get("workspace")
     if workspace is None:
-        raise click.ClickException("No workspace found. Run: autoagent init")
+        raise click.ClickException("No workspace found. Run: agentlab init")
 
     store = SessionStore(workspace.root)
     sessions = store.list_sessions(limit=limit)
@@ -1989,7 +1989,7 @@ def session_resume(ctx: click.Context, session_id: str) -> None:
 
     workspace = ctx.obj.get("workspace")
     if workspace is None:
-        raise click.ClickException("No workspace found. Run: autoagent init")
+        raise click.ClickException("No workspace found. Run: agentlab init")
 
     store = SessionStore(workspace.root)
     session = store.get(session_id)
@@ -2011,7 +2011,7 @@ def session_delete(ctx: click.Context, session_id: str) -> None:
 
     workspace = ctx.obj.get("workspace")
     if workspace is None:
-        raise click.ClickException("No workspace found. Run: autoagent init")
+        raise click.ClickException("No workspace found. Run: agentlab init")
 
     store = SessionStore(workspace.root)
     if store.delete(session_id):
@@ -2021,7 +2021,7 @@ def session_delete(ctx: click.Context, session_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent init
+# agentlab init
 # ---------------------------------------------------------------------------
 
 @cli.command("init", hidden=True)
@@ -2033,9 +2033,9 @@ def session_delete(ctx: click.Context, session_id: str) -> None:
 @click.option("--name", default=None,
               help="Optional workspace folder name to create inside --dir.")
 @click.option("--agent-name", default="My Agent", show_default=True,
-              help="Agent name for AUTOAGENT.md.")
+              help="Agent name for AGENTLAB.md.")
 @click.option("--platform", default="Google ADK", show_default=True,
-              help="Platform for AUTOAGENT.md.")
+              help="Platform for AGENTLAB.md.")
 @click.option("--with-synthetic-data/--no-synthetic-data", default=True,
               show_default=True, help="Seed synthetic conversations and evals.")
 @click.option("--demo/--no-demo", default=False, show_default=True,
@@ -2059,7 +2059,7 @@ def init_project(
     demo: bool,
     mode: str,
 ) -> None:
-    """Scaffold a new AutoAgent workspace with workspace metadata and starter data."""
+    """Scaffold a new AgentLab workspace with workspace metadata and starter data."""
     runtime_mode = _resolve_workspace_bootstrap_mode(ctx, mode.lower())
     workspace, summary = _create_workspace(
         template=template,
@@ -2073,15 +2073,15 @@ def init_project(
     )
     workspace_root = workspace.root
 
-    click.echo(click.style("\n✦ AutoAgent Init", fg="cyan", bold=True))
+    click.echo(click.style("\n✦ AgentLab Init", fg="cyan", bold=True))
     click.echo("")
-    click.echo(click.style("  ✓ ", fg="green") + f"Initialized AutoAgent project in {workspace_root}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Initialized AgentLab project in {workspace_root}")
     click.echo(click.style("  ✓ ", fg="green") + f"Workspace: {workspace.workspace_label}")
     click.echo(click.style("  ✓ ", fg="green") + f"Active config: v{workspace.metadata.active_config_version or 1:03d}")
     click.echo(click.style("  ✓ ", fg="green") + f"Config: {workspace.configs_dir / 'v001.yaml'}")
     click.echo(click.style("  ✓ ", fg="green") + f"Base config: {workspace.configs_dir / 'v001_base.yaml'}")
     click.echo(click.style("  ✓ ", fg="green") + f"Evals: {workspace.cases_dir}")
-    click.echo(click.style("  ✓ ", fg="green") + f"Memory: {workspace.root / 'AUTOAGENT.md'}")
+    click.echo(click.style("  ✓ ", fg="green") + f"Memory: {workspace.root / 'AGENTLAB.md'}")
     click.echo(click.style("  ✓ ", fg="green") + f"Runtime config: {workspace.runtime_config_path}")
 
     synthetic_summary = summary.get("synthetic_summary", {}) or {}
@@ -2114,9 +2114,9 @@ def init_project(
     click.echo(f"  Platform:   {platform}")
     click.echo("")
     click.echo(click.style("  Next step:", bold=True))
-    click.echo("    autoagent status")
-    click.echo("    autoagent build \"Build a support agent for order tracking\"")
-    click.echo("    autoagent eval run")
+    click.echo("    agentlab status")
+    click.echo("    agentlab build \"Build a support agent for order tracking\"")
+    click.echo("    agentlab eval run")
     click.echo("")
 
 
@@ -2154,7 +2154,7 @@ def new_workspace(ctx: click.Context, name: str, template: str, demo: bool, mode
     mode_summary = summarize_mode_state(str(workspace.runtime_config_path))
     template_summary = summary.get("template_summary", {}) or {}
 
-    click.echo(click.style("\n✦ AutoAgent New", fg="cyan", bold=True))
+    click.echo(click.style("\n✦ AgentLab New", fg="cyan", bold=True))
     click.echo("")
     click.echo(click.style("  ✓ ", fg="green") + f"Created workspace: {workspace.root}")
     click.echo(click.style("  ✓ ", fg="green") + f"Template: {template}")
@@ -2175,12 +2175,12 @@ def new_workspace(ctx: click.Context, name: str, template: str, demo: bool, mode
     click.echo("")
     click.echo(f"  Mode: {mode_summary['message']}")
     if "mock" in mode_summary.get("message", "").lower():
-        click.echo("  Live setup: run `autoagent provider configure` when you are ready to use real models.")
+        click.echo("  Live setup: run `agentlab provider configure` when you are ready to use real models.")
     click.echo("")
     click.echo(click.style("  Next 3 commands:", bold=True))
     click.echo(f"    cd {name}")
-    click.echo("    autoagent status")
-    click.echo("    autoagent eval run")
+    click.echo("    agentlab status")
+    click.echo("    agentlab eval run")
     click.echo("")
 
 
@@ -2215,11 +2215,11 @@ def template_apply(name: str) -> None:
 
 @cli.group("connect")
 def connect_group() -> None:
-    """Connect existing agent runtimes and transcript exports into AutoAgent."""
+    """Connect existing agent runtimes and transcript exports into AgentLab."""
 
 
 def _print_connect_result(result) -> None:
-    """Render a consistent summary for `autoagent connect` commands."""
+    """Render a consistent summary for `agentlab connect` commands."""
 
     click.echo(click.style(f"\n  ✓ Connected: {result.agent_name}", fg="green"))
     click.echo(f"    Adapter:   {result.adapter}")
@@ -2236,8 +2236,8 @@ def _print_connect_result(result) -> None:
     click.echo("")
     click.echo("  Next steps:")
     click.echo(f"    cd {result.workspace_path}")
-    click.echo("    autoagent eval run")
-    click.echo("    autoagent optimize --cycles 1")
+    click.echo("    agentlab eval run")
+    click.echo("    agentlab optimize --cycles 1")
 
 
 @connect_group.command("openai-agents")
@@ -2245,7 +2245,7 @@ def _print_connect_result(result) -> None:
 @click.option("--output-dir", default=".", show_default=True, help="Directory to create the workspace in.")
 @click.option("--name", default=None, help="Optional workspace folder name.")
 def connect_openai_agents(source_path: str, output_dir: str, name: str | None) -> None:
-    """Create an AutoAgent workspace from an OpenAI Agents project."""
+    """Create an AgentLab workspace from an OpenAI Agents project."""
 
     from adapters import OpenAIAgentsAdapter, create_connected_workspace
 
@@ -2259,7 +2259,7 @@ def connect_openai_agents(source_path: str, output_dir: str, name: str | None) -
 @click.option("--output-dir", default=".", show_default=True, help="Directory to create the workspace in.")
 @click.option("--name", default=None, help="Optional workspace folder name.")
 def connect_anthropic(source_path: str, output_dir: str, name: str | None) -> None:
-    """Create an AutoAgent workspace from an Anthropic SDK project."""
+    """Create an AgentLab workspace from an Anthropic SDK project."""
 
     from adapters import AnthropicClaudeAdapter, create_connected_workspace
 
@@ -2273,7 +2273,7 @@ def connect_anthropic(source_path: str, output_dir: str, name: str | None) -> No
 @click.option("--output-dir", default=".", show_default=True, help="Directory to create the workspace in.")
 @click.option("--name", default=None, help="Optional workspace folder name.")
 def connect_http(url: str, output_dir: str, name: str | None) -> None:
-    """Create an AutoAgent workspace that proxies an HTTP agent endpoint."""
+    """Create an AgentLab workspace that proxies an HTTP agent endpoint."""
 
     from adapters import HttpWebhookAdapter, create_connected_workspace
 
@@ -2287,7 +2287,7 @@ def connect_http(url: str, output_dir: str, name: str | None) -> None:
 @click.option("--output-dir", default=".", show_default=True, help="Directory to create the workspace in.")
 @click.option("--name", default=None, help="Optional workspace folder name.")
 def connect_transcript(source_file: str, output_dir: str, name: str | None) -> None:
-    """Create an AutoAgent workspace from imported conversation transcripts."""
+    """Create an AgentLab workspace from imported conversation transcripts."""
 
     from adapters import TranscriptAdapter, create_connected_workspace
 
@@ -2352,7 +2352,7 @@ def provider_configure(provider_name: str | None, model: str | None, api_key_env
     click.echo(click.style(f"Applied: provider {resolved_provider}:{normalized_model}", fg="green"))
     click.echo(f"  Registry: {registry_path}")
     click.echo(f"  Runtime:  {workspace.runtime_config_path}")
-    click.echo(f"  Next:     export {resolved_env}=... && autoagent provider test")
+    click.echo(f"  Next:     export {resolved_env}=... && agentlab provider test")
 
 
 @provider_group.command("list")
@@ -2361,7 +2361,7 @@ def provider_list() -> None:
     workspace = _require_workspace("provider")
     providers = configured_providers(providers_file_path(workspace))
     if not providers:
-        click.echo("No providers configured. Run `autoagent provider configure`.")
+        click.echo("No providers configured. Run `agentlab provider configure`.")
         return
 
     click.echo("\nConfigured providers")
@@ -2377,7 +2377,7 @@ def provider_test() -> None:
     workspace = _require_workspace("provider")
     checks = provider_health_checks(providers_file_path(workspace))
     if not checks:
-        raise click.ClickException("No providers configured. Run `autoagent provider configure` first.")
+        raise click.ClickException("No providers configured. Run `agentlab provider configure` first.")
 
     failures = [check for check in checks if not check["credential_present"]]
     for check in checks:
@@ -2390,7 +2390,7 @@ def provider_test() -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent build
+# agentlab build
 # ---------------------------------------------------------------------------
 
 @cli.group("build", cls=DefaultCommandGroup, default_command="run")
@@ -2398,8 +2398,8 @@ def build_group() -> None:
     """Build agent artifacts or inspect the latest build output.
 
     Examples:
-      autoagent build "Build a support agent for order tracking"
-      autoagent build show latest
+      agentlab build "Build a support agent for order tracking"
+      agentlab build show latest
     """
 
 
@@ -2440,7 +2440,7 @@ def build_agent(
     workspace = discover_workspace()
     register_in_workspace = workspace is not None and target == workspace.root
     target.mkdir(parents=True, exist_ok=True)
-    (target / ".autoagent").mkdir(parents=True, exist_ok=True)
+    (target / ".agentlab").mkdir(parents=True, exist_ok=True)
     (target / "configs").mkdir(parents=True, exist_ok=True)
     (target / "evals" / "cases").mkdir(parents=True, exist_ok=True)
 
@@ -2476,14 +2476,14 @@ def build_agent(
     _write_generated_eval_cases(eval_path, artifact)
     progress.artifact_written("evals", path=str(eval_path))
 
-    artifact_path = target / ".autoagent" / "build_artifact_latest.json"
+    artifact_path = target / ".agentlab" / "build_artifact_latest.json"
     artifact_path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
     progress.artifact_written("artifact", path=str(artifact_path))
 
     prompt_summary = " ".join(prompt.split())
     title = prompt_summary[:72] if len(prompt_summary) <= 72 else f"{prompt_summary[:69]}..."
     build_artifact_store = BuildArtifactStore(
-        path=target / ".autoagent" / "build_artifacts.json",
+        path=target / ".agentlab" / "build_artifacts.json",
         latest_path=artifact_path,
     )
     build_artifact_store.save_latest(
@@ -2513,7 +2513,7 @@ def build_agent(
         legacy_payload=artifact,
     )
     progress.phase_completed("build", message="Build artifact ready")
-    progress.next_action("autoagent eval run")
+    progress.next_action("agentlab eval run")
 
     if resolved_output_format == "stream-json":
         return
@@ -2522,7 +2522,7 @@ def build_agent(
         click.echo(json.dumps(artifact, indent=2))
         return
 
-    click.echo(click.style("\n✦ AutoAgent Build", fg="cyan", bold=True))
+    click.echo(click.style("\n✦ AgentLab Build", fg="cyan", bold=True))
     click.echo(f"Prompt: {prompt}")
     click.echo(f"Connectors: {', '.join(artifact.get('connectors', [])) or 'None'}")
     click.echo("")
@@ -2542,16 +2542,16 @@ def build_agent(
     click.echo("")
     click.echo(click.style("Next step:", bold=True))
     if register_in_workspace:
-        click.echo("  autoagent eval run")
+        click.echo("  agentlab eval run")
     else:
-        click.echo(f"  autoagent eval run --config {config_path}")
-    click.echo("  autoagent optimize --cycles 3")
-    click.echo("  autoagent deploy canary --yes")
-    click.echo("  autoagent review show pending")
+        click.echo(f"  agentlab eval run --config {config_path}")
+    click.echo("  agentlab optimize --cycles 3")
+    click.echo("  agentlab deploy canary --yes")
+    click.echo("  agentlab review show pending")
 
 
 # ---------------------------------------------------------------------------
-# autoagent build show (FR-13: inspect without knowing .autoagent paths)
+# agentlab build show (FR-13: inspect without knowing .agentlab paths)
 # ---------------------------------------------------------------------------
 
 def _build_show_impl(
@@ -2569,10 +2569,10 @@ def _build_show_impl(
             click.echo(json_response("error", {"message": "No build artifact found"}))
         else:
             click.echo("No build artifact found.")
-            click.echo("Run: autoagent build \"Describe your agent\"")
+            click.echo("Run: agentlab build \"Describe your agent\"")
         return
 
-    artifact_path = Path(".autoagent") / "build_artifact_latest.json"
+    artifact_path = Path(".agentlab") / "build_artifact_latest.json"
     artifact_id = artifact.get("artifact_id") or artifact.get("id") or selector
     if id_only:
         click.echo(str(artifact_id))
@@ -2582,7 +2582,7 @@ def _build_show_impl(
         return
 
     if json_output:
-        click.echo(json_response("ok", artifact, next_cmd="autoagent eval run"))
+        click.echo(json_response("ok", artifact, next_cmd="agentlab eval run"))
         return
 
     click.echo(click.style("\n✦ Latest Build Artifact", fg="cyan", bold=True))
@@ -2603,8 +2603,8 @@ def build_show(selector: str, id_only: bool, path_only: bool, json_output: bool 
     """Show build output. Currently supports 'latest'.
 
     Examples:
-      autoagent build show latest
-      autoagent build show latest --json
+      agentlab build show latest
+      agentlab build show latest --json
     """
     _build_show_impl(selector, json_output=json_output, id_only=id_only, path_only=path_only)
 
@@ -2615,14 +2615,14 @@ def build_show(selector: str, id_only: bool, path_only: bool, json_output: bool 
 @click.option("--path-only", is_flag=True, help="Print only the resolved artifact path.")
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def build_show_alias(selector: str, id_only: bool, path_only: bool, json_output: bool = False) -> None:
-    """Deprecated alias for `autoagent build show`."""
+    """Deprecated alias for `agentlab build show`."""
     if not json_output:
-        _echo_deprecation(f"autoagent build-show {selector}", f"autoagent build show {selector}")
+        _echo_deprecation(f"agentlab build-show {selector}", f"agentlab build show {selector}")
     _build_show_impl(selector, json_output=json_output, id_only=id_only, path_only=path_only)
 
 
 # ---------------------------------------------------------------------------
-# autoagent eval (subgroup)
+# agentlab eval (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("eval", cls=DefaultCommandGroup, default_command="run", default_on_empty=True)
@@ -2630,11 +2630,11 @@ def eval_group() -> None:
     """Evaluate agent configs against test suites.
 
     Examples:
-      autoagent eval run
-      autoagent eval show latest
-      autoagent eval compare left.json right.json
-      autoagent eval breakdown
-      autoagent eval generate --config configs/v001.yaml --output generated_eval_suite.json
+      agentlab eval run
+      agentlab eval show latest
+      agentlab eval compare left.json right.json
+      agentlab eval breakdown
+      agentlab eval generate --config configs/v001.yaml --output generated_eval_suite.json
     """
     return None
 
@@ -2683,10 +2683,10 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
     """Run eval suite against a config.
 
     Examples:
-      autoagent eval run
-      autoagent eval run --config configs/v003.yaml
-      autoagent eval run --config configs/v003.yaml --category safety
-      autoagent eval run --output results.json
+      agentlab eval run
+      agentlab eval run --config configs/v003.yaml
+      agentlab eval run --config configs/v003.yaml --category safety
+      agentlab eval run --output results.json
     """
     from agent.eval_agent import LiveEvalRequiredError
     from cli.stream2_helpers import json_response
@@ -2752,12 +2752,12 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         if category:
             score = runner.run_category(category, config=config, dataset_path=dataset, split=dataset_split)
             progress.phase_completed("eval", message=f"Category '{category}' complete")
-            progress.next_action("autoagent improve")
+            progress.next_action("agentlab improve")
             score_heading = f"Category: {category}"
         else:
             score = runner.run(config=config, dataset_path=dataset, split=dataset_split)
             progress.phase_completed("eval", message="Full eval suite complete")
-            progress.next_action("autoagent improve")
+            progress.next_action("agentlab improve")
             score_heading = "Full eval suite"
     except LiveEvalRequiredError as exc:
         raise click.ClickException(str(exc)) from exc
@@ -2811,14 +2811,14 @@ def eval_run(config_path: str | None, suite: str | None, dataset: str | None, da
         payload = _score_to_dict(score)
         payload["mode"] = eval_mode
         payload["run_id"] = score.run_id
-        click.echo(json_response("ok", payload, next_cmd="autoagent improve"))
+        click.echo(json_response("ok", payload, next_cmd="agentlab improve"))
         return
 
     click.echo(click.style(f"\n  Status: {_score_status_label(score.composite)}", fg="magenta"))
     _print_next_actions(
         [
-            "autoagent optimize --cycles 3",
-            "autoagent status",
+            "agentlab optimize --cycles 3",
+            "agentlab status",
         ],
     )
 
@@ -2837,10 +2837,10 @@ def eval_results(
     """Inspect structured eval results from the CLI Results Explorer.
 
     Examples:
-      autoagent eval results
-      autoagent eval results --run-id eval-123
-      autoagent eval results --failures
-      autoagent eval results export eval-123 --format markdown
+      agentlab eval results
+      agentlab eval results --run-id eval-123
+      agentlab eval results --failures
+      agentlab eval results export eval-123 --format markdown
     """
     if ctx.invoked_subcommand is not None:
         return
@@ -2862,7 +2862,7 @@ def eval_results(
     resolved_run_id = run_id or store.latest_run_id()
     if resolved_run_id is None:
         click.echo("No structured eval results found.")
-        click.echo("Run: autoagent eval run")
+        click.echo("Run: agentlab eval run")
         return
 
     result_set = store.get_run(resolved_run_id)
@@ -2951,9 +2951,9 @@ def eval_show(selector: str, results_file: str | None, json_output: bool = False
     """Show eval results. Supports selectors: latest.
 
     Examples:
-      autoagent eval show latest
-      autoagent eval show latest --json
-      autoagent eval show --file results.json
+      agentlab eval show latest
+      agentlab eval show latest --json
+      agentlab eval show --file results.json
     """
     from cli.stream2_helpers import json_response
 
@@ -2967,11 +2967,11 @@ def eval_show(selector: str, results_file: str | None, json_output: bool = False
             click.echo(json_response("error", {"message": "No eval results found"}))
         else:
             click.echo("No eval results found.")
-            click.echo("Run: autoagent eval run")
+            click.echo("Run: agentlab eval run")
         return
 
     if json_output:
-        click.echo(json_response("ok", data, next_cmd="autoagent optimize"))
+        click.echo(json_response("ok", data, next_cmd="agentlab optimize"))
         return
 
     payload = _unwrap_eval_payload(data)
@@ -3002,7 +3002,7 @@ def eval_list() -> None:
     results_files = _list_eval_result_files()
     if not results_files:
         click.echo("No local eval result files found.")
-        click.echo("Run: autoagent eval run --output results.json")
+        click.echo("Run: agentlab eval run --output results.json")
         return
 
     click.echo(f"\nLocal eval results ({len(results_files)} files):")
@@ -3038,10 +3038,10 @@ def eval_generate(
     """AI-generate a comprehensive eval suite from agent config.
 
     Examples:
-      autoagent eval generate
-      autoagent eval generate --config agent_config.yaml
-      autoagent eval generate --config agent_config.yaml --output evals.json
-      autoagent eval generate --provider mock --agent-name "My Agent"
+      agentlab eval generate
+      agentlab eval generate --config agent_config.yaml
+      agentlab eval generate --config agent_config.yaml --output evals.json
+      agentlab eval generate --provider mock --agent-name "My Agent"
     """
     from evals.auto_generator import AutoEvalGenerator
 
@@ -3071,12 +3071,12 @@ def eval_generate(
         if not json_output:
             click.echo(f"  Loaded config: {config_path}")
     else:
-        # Try loading default autoagent.yaml
-        default_config = Path("autoagent.yaml")
+        # Try loading default agentlab.yaml
+        default_config = Path("agentlab.yaml")
         if default_config.exists():
             agent_config = yaml.safe_load(default_config.read_text(encoding="utf-8")) or {}
             if not json_output:
-                click.echo("  Loaded default config: autoagent.yaml")
+                click.echo("  Loaded default config: agentlab.yaml")
         else:
             if not json_output:
                 click.echo("  No config provided — using empty config (mock cases)")
@@ -3110,8 +3110,8 @@ def eval_generate(
         click.echo(f"\n  Safety probes: {summary.get('safety_probes', 0)}")
         click.echo(click.style(f"\n  Status: {_score_status_label(0.85)}", fg="magenta"))
         _print_next_actions([
-            "autoagent eval run --suite <generated_cases>",
-            "autoagent eval generate --output evals.json",
+            "agentlab eval run --suite <generated_cases>",
+            "agentlab eval generate --output evals.json",
         ])
 
     if output:
@@ -3384,7 +3384,7 @@ def _run_optimize_cycle(
             entry = make_experiment_log_entry(
                 cycle=cycle_number,
                 status="skip",
-                description="No eval results found for the active config. Run `autoagent eval run` first.",
+                description="No eval results found for the active config. Run `agentlab eval run` first.",
                 score_before=None,
                 score_after=None,
             )
@@ -3392,7 +3392,7 @@ def _run_optimize_cycle(
             if not json_output and not continuous and display_total is not None:
                 click.echo(
                     f"\n  Cycle {display_cycle}/{display_total} — No eval results found for the active config. "
-                    "Run `autoagent eval run` first."
+                    "Run `agentlab eval run` first."
                 )
             return (
                 {
@@ -3589,7 +3589,7 @@ def _run_optimize_cycle(
 
 
 # ---------------------------------------------------------------------------
-# autoagent optimize
+# agentlab optimize
 # ---------------------------------------------------------------------------
 
 @cli.command("optimize")
@@ -3630,10 +3630,10 @@ def optimize(
     """Run optimization cycles to improve agent config.
 
     Examples:
-      autoagent optimize
-      autoagent optimize --cycles 5
-      autoagent optimize --continuous
-      autoagent optimize --mode advanced --cycles 3
+      agentlab optimize
+      agentlab optimize --cycles 5
+      agentlab optimize --continuous
+      agentlab optimize --mode advanced --cycles 3
     """
     from cli.output import resolve_output_format
     from cli.progress import ProgressRenderer
@@ -3689,7 +3689,7 @@ def optimize(
             "max_budget_usd": max_budget_usd,
         }
         if resolved_output_format == "json":
-            click.echo(json_response("ok", preview, next_cmd="autoagent optimize"))
+            click.echo(json_response("ok", preview, next_cmd="agentlab optimize"))
         else:
             click.echo("Dry run: optimization would execute with the following plan:")
             click.echo(f"  cycles:      {cycles}")
@@ -3705,7 +3705,7 @@ def optimize(
         if resolved_output_format == "json":
             from cli.stream2_helpers import json_response
 
-            click.echo(json_response("ok", {"message": budget_message, "usage": budget_snapshot}, next_cmd="autoagent usage"))
+            click.echo(json_response("ok", {"message": budget_message, "usage": budget_snapshot}, next_cmd="agentlab usage"))
             return
         click.echo(budget_message)
         return
@@ -3750,7 +3750,7 @@ def optimize(
     )
 
     # Track all-time best score
-    best_score_file = Path(".autoagent/best_score.txt")
+    best_score_file = Path(".agentlab/best_score.txt")
     all_time_best = _read_best_score(best_score_file)
     log_path = default_experiment_log_path()
     next_cycle_number = next_experiment_log_cycle_number(log_path)
@@ -3815,7 +3815,7 @@ def optimize(
 
                     click.echo(json_response("ok", cycle_result))
                 elif resolved_output_format == "stream-json":
-                    progress.next_action("autoagent status")
+                    progress.next_action("agentlab status")
                 else:
                     click.echo(
                         _continuous_status_line(
@@ -3842,12 +3842,12 @@ def optimize(
                     f"{kept_count} kept, {discarded_count} discarded, {skipped_count} skipped. "
                     f"Best score: {best_score:.2f}"
                 )
-                click.echo("Experiment log saved to .autoagent/experiment_log.tsv")
+                click.echo("Experiment log saved to .agentlab/experiment_log.tsv")
             return
         raise
 
     progress.phase_completed("optimize", message="Optimization run complete")
-    progress.next_action("autoagent status")
+    progress.next_action("agentlab status")
 
     if resolved_output_format == "stream-json":
         return
@@ -3855,7 +3855,7 @@ def optimize(
     if resolved_output_format == "json":
         from cli.stream2_helpers import json_response
 
-        click.echo(json_response("ok", json_cycle_results, next_cmd="autoagent status"))
+        click.echo(json_response("ok", json_cycle_results, next_cmd="agentlab status"))
         return
 
     if cycles > 1 and not continuous:
@@ -3865,9 +3865,9 @@ def optimize(
     click.echo(click.style(f"  Status: {_score_status_label(latest_score)}", fg="magenta"))
     _print_next_actions(
         [
-            "autoagent status",
-            "autoagent runbook list",
-            "autoagent optimize --continuous",
+            "agentlab status",
+            "agentlab runbook list",
+            "agentlab optimize --continuous",
         ],
     )
 
@@ -3903,7 +3903,7 @@ def improve_group() -> None:
 def improve_run(auto: bool, json_output: bool = False) -> None:
     """Run the eval -> diagnose -> suggest -> optional apply improvement flow."""
     click.echo(click.style(
-        "Tip: use `autoagent optimize --cycles 1` for the same result.",
+        "Tip: use `agentlab optimize --cycles 1` for the same result.",
         fg="yellow",
     ))
     from cli.stream2_helpers import apply_autofix_to_config, json_response
@@ -3981,9 +3981,9 @@ def improve_run(auto: bool, json_output: bool = False) -> None:
         "applied": applied,
     }
     if json_output:
-        next_cmd = "autoagent status"
+        next_cmd = "agentlab status"
         if applied and applied.get("config_path"):
-            next_cmd = f"autoagent eval run --config {applied['config_path']}"
+            next_cmd = f"agentlab eval run --config {applied['config_path']}"
         click.echo(json_response("ok", payload, next_cmd=next_cmd))
         return
 
@@ -4010,7 +4010,7 @@ def improve_run(auto: bool, json_output: bool = False) -> None:
     else:
         click.echo("")
         click.echo("Next step:")
-        click.echo("  autoagent autofix suggest")
+        click.echo("  agentlab autofix suggest")
 
 
 @improve_group.command("optimize")
@@ -4040,7 +4040,7 @@ def improve_optimize(
     dry_run: bool,
     json_output: bool = False,
 ) -> None:
-    """Compatibility alias for `autoagent optimize`."""
+    """Compatibility alias for `agentlab optimize`."""
     ctx.invoke(
         optimize,
         cycles=cycles,
@@ -4057,7 +4057,7 @@ def improve_optimize(
 
 
 # ---------------------------------------------------------------------------
-# autoagent compare (subgroup)
+# agentlab compare (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("compare")
@@ -4168,7 +4168,7 @@ def compare_candidates(configs_dir: str, json_output: bool = False) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent instruction (subgroup)
+# agentlab instruction (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("instruction")
@@ -4308,7 +4308,7 @@ def instruction_migrate(config_path: str | None, specialist: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent config (subgroup)
+# agentlab config (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("config")
@@ -4316,9 +4316,9 @@ def config_group() -> None:
     """Manage agent config versions and related edit, pin, and unpin workflows.
 
     Examples:
-      autoagent config list
-      autoagent config show active
-      autoagent config diff 1 2
+      agentlab config list
+      agentlab config show active
+      agentlab config diff 1 2
     """
 
 
@@ -4331,7 +4331,7 @@ def config_resolve(
     runtime_config: str | None,
     json_output: bool = False,
 ) -> None:
-    """Resolve the effective workspace config and persist an `autoagent.lock` snapshot."""
+    """Resolve the effective workspace config and persist an `agentlab.lock` snapshot."""
     from cli.stream2_helpers import json_response
 
     resolved_config_path = (
@@ -4353,7 +4353,7 @@ def config_resolve(
     payload = resolution.to_dict()
 
     if json_output:
-        click.echo(json_response("ok", payload, next_cmd="autoagent eval run"))
+        click.echo(json_response("ok", payload, next_cmd="agentlab eval run"))
         return
 
     click.echo(click.style("\n✦ Config Resolve", fg="cyan", bold=True))
@@ -4361,8 +4361,8 @@ def config_resolve(
     click.echo("")
     _print_next_actions(
         [
-            "autoagent eval run",
-            "autoagent optimize --cycles 1",
+            "agentlab eval run",
+            "agentlab optimize --cycles 1",
         ],
     )
 
@@ -4376,8 +4376,8 @@ def config_list(configs_dir: str, id_only: bool, path_only: bool, json_output: b
     """List all config versions.
 
     Examples:
-      autoagent config list
-      autoagent config list --json
+      agentlab config list
+      agentlab config list --json
     """
     from cli.stream2_helpers import json_response
 
@@ -4390,7 +4390,7 @@ def config_list(configs_dir: str, id_only: bool, path_only: bool, json_output: b
             click.echo(json_response("ok", []))
         else:
             click.echo("No config versions found.")
-            click.echo("Run: autoagent init")
+            click.echo("Run: agentlab init")
         return
 
     if id_only:
@@ -4417,7 +4417,7 @@ def config_list(configs_dir: str, id_only: bool, path_only: bool, json_output: b
             entry["is_active"] = v["version"] == active
             entry["is_canary"] = v["version"] == canary
             data.append(entry)
-        click.echo(json_response("ok", data, next_cmd="autoagent config show <version>"))
+        click.echo(json_response("ok", data, next_cmd="agentlab config show <version>"))
         return
 
     click.echo(f"\nConfig versions ({len(history)} total):")
@@ -4452,10 +4452,10 @@ def config_show(version: str | None, configs_dir: str, id_only: bool, path_only:
     Supports standard selectors: latest, active, current.
 
     Examples:
-      autoagent config show
-      autoagent config show 3
-      autoagent config show active
-      autoagent config show latest --json
+      agentlab config show
+      agentlab config show 3
+      agentlab config show active
+      agentlab config show latest --json
     """
     from cli.stream2_helpers import is_selector, json_response
 
@@ -4496,7 +4496,7 @@ def config_show(version: str | None, configs_dir: str, id_only: bool, path_only:
                 if json_output:
                     click.echo(json_response("error", {"message": "No active config"}))
                 else:
-                    click.echo("No active config. Run: autoagent init")
+                    click.echo("No active config. Run: agentlab init")
                 return
             if id_only:
                 click.echo(f"v{resolved.version:03d}")
@@ -4516,7 +4516,7 @@ def config_show(version: str | None, configs_dir: str, id_only: bool, path_only:
             if json_output:
                 click.echo(json_response("error", {"message": "No active config"}))
             else:
-                click.echo("No active config. Run: autoagent init")
+                click.echo("No active config. Run: agentlab init")
             return
         active_ver = deployer.version_manager.manifest.get("active_version", "?")
         if id_only:
@@ -4577,7 +4577,7 @@ def config_set_active(version: int) -> None:
     """Set the workspace default config version.
 
     Examples:
-      autoagent config set-active 2
+      agentlab config set-active 2
     """
     workspace = _require_workspace("config")
     resolved = workspace.resolve_config_path(version)
@@ -4589,7 +4589,7 @@ def config_set_active(version: int) -> None:
     click.echo(f"Workspace: {workspace.root}")
     click.echo(f"Config path: {resolved}")
     click.echo("Next step:")
-    click.echo("  autoagent config show")
+    click.echo("  agentlab config show")
 
 
 @config_group.command("diff")
@@ -4600,7 +4600,7 @@ def config_diff(v1: int, v2: int, configs_dir: str) -> None:
     """Diff two config versions.
 
     Examples:
-      autoagent config diff 1 3
+      agentlab config diff 1 3
     """
     store = ConversationStore(db_path=DB_PATH)
     deployer = Deployer(configs_dir=configs_dir, store=store)
@@ -4642,8 +4642,8 @@ def config_import(file_path: str, configs_dir: str, dry_run: bool, json_output: 
     ``config show``, and ``config diff``.
 
     Examples:
-      autoagent config import my_config.yaml
-      autoagent config import agent.json --json
+      agentlab config import my_config.yaml
+      agentlab config import agent.json --json
     """
     from cli.stream2_helpers import ConfigImporter, json_response
 
@@ -4658,7 +4658,7 @@ def config_import(file_path: str, configs_dir: str, dry_run: bool, json_output: 
             "dest_path": str(Path(configs_dir) / f"v{next_version:03d}_imported.yaml"),
         }
         if json_output:
-            click.echo(json_response("ok", preview, next_cmd="autoagent config import <file>"))
+            click.echo(json_response("ok", preview, next_cmd="agentlab config import <file>"))
         else:
             click.echo("Dry run: config import preview")
             click.echo(f"  Source:  {preview['source_file']}")
@@ -4676,7 +4676,7 @@ def config_import(file_path: str, configs_dir: str, dry_run: bool, json_output: 
         raise SystemExit(1)
 
     if json_output:
-        click.echo(json_response("ok", result, next_cmd=f"autoagent config show {result['version']}"))
+        click.echo(json_response("ok", result, next_cmd=f"agentlab config show {result['version']}"))
         return
 
     click.echo(click.style("\n✦ Config Imported", fg="cyan", bold=True))
@@ -4687,9 +4687,9 @@ def config_import(file_path: str, configs_dir: str, dry_run: bool, json_output: 
     click.echo(f"  Path:    {result['dest_path']}")
     click.echo("")
     _print_next_actions([
-        f"autoagent config show {result['version']}",
-        f"autoagent eval run --config {result['dest_path']}",
-        "autoagent config list",
+        f"agentlab config show {result['version']}",
+        f"agentlab eval run --config {result['dest_path']}",
+        "agentlab config list",
     ])
 
 
@@ -4734,8 +4734,8 @@ def config_migrate(input_file: str, output: str | None) -> None:
     into the new optimization.mode / budget / autonomy format.
 
     Examples:
-      autoagent config migrate autoagent.yaml
-      autoagent config migrate autoagent.yaml --output autoagent_v2.yaml
+      agentlab config migrate agentlab.yaml
+      agentlab config migrate agentlab.yaml --output agentlab_v2.yaml
     """
     from optimizer.mode_router import ModeRouter
 
@@ -4758,7 +4758,7 @@ def config_edit() -> None:
     workspace = _require_workspace("config")
     active = workspace.resolve_active_config()
     if active is None:
-        raise click.ClickException("No active config. Run: autoagent init")
+        raise click.ClickException("No active config. Run: agentlab init")
     _open_in_editor(active.path)
 
 
@@ -4781,7 +4781,7 @@ def _open_in_editor(file_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent deploy
+# agentlab deploy
 # ---------------------------------------------------------------------------
 
 @cli.command("deploy")
@@ -4794,15 +4794,15 @@ def _open_in_editor(file_path: Path) -> None:
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation store DB.")
 @click.option(
     "--target",
-    type=click.Choice(["autoagent", "cx-studio"]),
-    default="autoagent",
+    type=click.Choice(["agentlab", "cx-studio"]),
+    default="agentlab",
     show_default=True,
     help="Deployment target.",
 )
 @click.option("--project", default=None, help="GCP project ID (required for CX push).")
 @click.option("--location", default="global", show_default=True, help="CX agent location.")
 @click.option("--agent-id", default=None, help="CX agent ID (required for CX push).")
-@click.option("--snapshot", default=None, help="CX snapshot JSON path from `autoagent cx import`.")
+@click.option("--snapshot", default=None, help="CX snapshot JSON path from `agentlab cx import`.")
 @click.option("--credentials", default=None, help="Path to service account JSON for CX calls.")
 @click.option("--output", default=None, help="Output path for CX export package JSON.")
 @click.option("--push/--no-push", default=False, show_default=True, help="Push to CX now (otherwise package only).")
@@ -4841,11 +4841,11 @@ def deploy(
     """Deploy a config version with canary, release, and rollback-friendly workflows.
 
     Examples:
-      autoagent deploy canary
-      autoagent deploy --config-version 5 --strategy canary
-      autoagent deploy --strategy immediate
-      autoagent deploy canary --yes
-      autoagent deploy --target cx-studio
+      agentlab deploy canary
+      agentlab deploy --config-version 5 --strategy canary
+      agentlab deploy --strategy immediate
+      agentlab deploy canary --yes
+      agentlab deploy --target cx-studio
     """
     if auto_review:
         try:
@@ -4877,10 +4877,10 @@ def deploy(
             selected_version, config, selected_path = _load_versioned_config(configs_dir, config_version)
         except FileNotFoundError as exc:
             click.echo(str(exc))
-            click.echo("Run: autoagent build \"Describe your agent\" or autoagent init")
+            click.echo("Run: agentlab build \"Describe your agent\" or agentlab init")
             return
 
-        package_dir = Path(".autoagent")
+        package_dir = Path(".agentlab")
         package_dir.mkdir(parents=True, exist_ok=True)
         output_path = Path(output) if output else package_dir / f"cx_export_v{selected_version:03d}.json"
         package = {
@@ -4920,13 +4920,13 @@ def deploy(
 
         if not push:
             progress.phase_completed("deploy", message="CX package ready")
-            progress.next_action("autoagent cx export --project <project> --location <location> --agent <agent-id> --config <config> --snapshot <snapshot>")
+            progress.next_action("agentlab cx export --project <project> --location <location> --agent <agent-id> --config <config> --snapshot <snapshot>")
             if resolved_output_format == "stream-json":
                 return
             click.echo("No remote CX push performed (`--no-push`).")
             click.echo("Next step:")
             click.echo(
-                "  autoagent cx export --project <project> --location "
+                "  agentlab cx export --project <project> --location "
                 f"{location} --agent <agent-id> --config {selected_path} --snapshot <snapshot>"
             )
             return
@@ -4944,7 +4944,7 @@ def deploy(
         ref = CxAgentRef(project=project, location=location, agent_id=agent_id)
         result = exporter.export_agent(config, ref, snapshot_path=snapshot, dry_run=False)
         progress.phase_completed("deploy", message="CX export pushed")
-        progress.next_action("autoagent status")
+        progress.next_action("agentlab status")
         if resolved_output_format == "stream-json":
             return
         click.echo(f"CX export pushed: {result.resources_updated} resource(s) updated")
@@ -4959,7 +4959,7 @@ def deploy(
     if workflow == "status":
         snapshot = deployer.status()
         if json_output:
-            click.echo(json_response("ok", snapshot, next_cmd="autoagent status"))
+            click.echo(json_response("ok", snapshot, next_cmd="agentlab status"))
         else:
             active_version = snapshot.get("active_version")
             canary_version = snapshot.get("canary_version")
@@ -4973,7 +4973,7 @@ def deploy(
         if json_output:
             click.echo(json_response("error", {"message": "No config versions available"}))
         else:
-            click.echo("No config versions available. Run: autoagent optimize")
+            click.echo("No config versions available. Run: agentlab optimize")
         return
 
     if workflow == "rollback":
@@ -4987,7 +4987,7 @@ def deploy(
         if dry_run:
             payload = {"version": rollback_version, "strategy": "rollback", "target": target}
             if json_output:
-                click.echo(json_response("ok", payload, next_cmd="autoagent deploy rollback"))
+                click.echo(json_response("ok", payload, next_cmd="agentlab deploy rollback"))
             else:
                 click.echo("Dry run: deployment rollback preview")
                 click.echo(f"  Version: {rollback_version}")
@@ -4995,7 +4995,7 @@ def deploy(
             return
         deployer.version_manager.rollback(rollback_version)
         if json_output:
-            click.echo(json_response("ok", {"version": rollback_version, "strategy": "rollback", "status": "rolled_back"}, next_cmd="autoagent status"))
+            click.echo(json_response("ok", {"version": rollback_version, "strategy": "rollback", "status": "rolled_back"}, next_cmd="agentlab status"))
         else:
             click.echo(click.style(f"Applied: rolled back canary v{rollback_version:03d}", fg="green"))
         return
@@ -5012,7 +5012,7 @@ def deploy(
             if not deployable_candidates:
                 raise click.ClickException(
                     "No candidate config version available to deploy. "
-                    "Run `autoagent optimize --cycles 1`, review/apply a candidate, "
+                    "Run `agentlab optimize --cycles 1`, review/apply a candidate, "
                     "or pass --config-version."
                 )
             config_version = max(deployable_candidates)
@@ -5049,11 +5049,11 @@ def deploy(
     if dry_run:
         payload = {"version": config_version, "strategy": strategy, "target": target}
         progress.phase_completed("deploy", message="Dry-run deployment preview ready")
-        progress.next_action("autoagent deploy")
+        progress.next_action("agentlab deploy")
         if resolved_output_format == "stream-json":
             return
         if resolved_output_format == "json":
-            click.echo(json_response("ok", payload, next_cmd="autoagent deploy"))
+            click.echo(json_response("ok", payload, next_cmd="agentlab deploy"))
         else:
             click.echo("Dry run: deployment preview")
             click.echo(f"  Version:  v{config_version:03d}")
@@ -5080,14 +5080,14 @@ def deploy(
     if strategy == "immediate":
         deployer.version_manager.promote(config_version)
         progress.phase_completed("deploy", message=f"Deployed v{config_version:03d} immediately")
-        progress.next_action("autoagent status")
+        progress.next_action("agentlab status")
         if resolved_output_format == "stream-json":
             return
         if resolved_output_format == "json":
             payload = {"version": config_version, "strategy": "immediate", "status": "active"}
             if created_release is not None:
                 payload["release"] = created_release
-            click.echo(json_response("ok", payload, next_cmd="autoagent status"))
+            click.echo(json_response("ok", payload, next_cmd="agentlab status"))
         else:
             if created_release is not None:
                 click.echo(click.style(f"Applied: created release {created_release['release_id']}", fg="green"))
@@ -5096,14 +5096,14 @@ def deploy(
         deployer.version_manager.mark_canary(config_version)
         result = f"Deployed v{config_version:03d} as canary (10% traffic)"
         progress.phase_completed("deploy", message=f"Deployed v{config_version:03d} as canary")
-        progress.next_action("autoagent status")
+        progress.next_action("agentlab status")
         if resolved_output_format == "stream-json":
             return
         if resolved_output_format == "json":
             payload = {"version": config_version, "strategy": "canary", "result": str(result)}
             if created_release is not None:
                 payload["release"] = created_release
-            click.echo(json_response("ok", payload, next_cmd="autoagent status"))
+            click.echo(json_response("ok", payload, next_cmd="agentlab status"))
         else:
             if created_release is not None:
                 click.echo(click.style(f"Applied: created release {created_release['release_id']}", fg="green"))
@@ -5112,7 +5112,7 @@ def deploy(
 
 
 # ---------------------------------------------------------------------------
-# autoagent loop
+# agentlab loop
 # ---------------------------------------------------------------------------
 
 @cli.group("loop", cls=DefaultCommandGroup, default_command="run", default_on_empty=True, hidden=True)
@@ -5120,10 +5120,10 @@ def loop_group() -> None:
     """Run the optimization loop or control its execution state.
 
     Examples:
-      autoagent loop
-      autoagent loop --max-cycles 20
-      autoagent loop pause
-      autoagent loop resume
+      agentlab loop
+      agentlab loop --max-cycles 20
+      agentlab loop pause
+      agentlab loop resume
     """
 
 
@@ -5134,13 +5134,13 @@ def loop_group() -> None:
 @click.option("--delay", default=1.0, show_default=True, type=float, help="Seconds between cycles.")
 @click.option("--schedule", "schedule_mode", default=None,
               type=click.Choice(["continuous", "interval", "cron"]),
-              help="Scheduling mode. Defaults to autoagent.yaml loop.schedule_mode.")
+              help="Scheduling mode. Defaults to agentlab.yaml loop.schedule_mode.")
 @click.option("--interval-minutes", default=None, type=float,
               help="Interval minutes for --schedule interval.")
 @click.option("--cron", "cron_expression", default=None,
               help="Cron expression for --schedule cron (5-field UTC).")
 @click.option("--checkpoint-file", default=None,
-              help="Checkpoint file path. Defaults to autoagent.yaml loop.checkpoint_path.")
+              help="Checkpoint file path. Defaults to agentlab.yaml loop.checkpoint_path.")
 @click.option("--resume/--no-resume", default=True, show_default=True,
               help="Resume from checkpoint when available.")
 @click.option("--full-auto", is_flag=True, default=False,
@@ -5166,11 +5166,11 @@ def loop_run(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode
     accepted changes — automatically, cycle after cycle.
 
     Examples:
-      autoagent loop
-      autoagent loop --max-cycles 100 --stop-on-plateau
+      agentlab loop
+      agentlab loop --max-cycles 100 --stop-on-plateau
     """
     click.echo(click.style(
-        "Tip: use `autoagent optimize --continuous` for the same result.",
+        "Tip: use `agentlab optimize --continuous` for the same result.",
         fg="yellow",
     ))
     from cli.output import resolve_output_format
@@ -5441,13 +5441,13 @@ def loop_run(max_cycles: int, stop_on_plateau: bool, delay: float, schedule_mode
         )
     )
     progress.phase_completed("loop", message=f"{completed_cycles} cycle(s) executed ({final_status})")
-    progress.next_action("autoagent status")
+    progress.next_action("agentlab status")
     if resolved_output_format == "text":
         click.echo(f"\nLoop complete. {completed_cycles} cycles executed ({final_status}).")
 
 
 # ---------------------------------------------------------------------------
-# autoagent status
+# agentlab status
 # ---------------------------------------------------------------------------
 
 @cli.command("status")
@@ -5460,7 +5460,7 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False,
     """Show system health, config versions, and recent activity.
 
     Examples:
-      autoagent status
+      agentlab status
     """
     workspace = _require_workspace("status")
     from cli.mcp_runtime import mcp_status_snapshot
@@ -5567,7 +5567,7 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False,
             "budget_remaining_usd": usage_snapshot.get("budget_remaining_usd"),
             "next_action": next_action,
         }
-        click.echo(json_response("ok", data, next_cmd="autoagent explain --json"))
+        click.echo(json_response("ok", data, next_cmd="agentlab explain --json"))
         return
 
     snapshot = StatusSnapshot(
@@ -5611,7 +5611,7 @@ def status(db: str, configs_dir: str, memory_db: str, json_output: bool = False,
 
 
 # ---------------------------------------------------------------------------
-# autoagent logs
+# agentlab logs
 # ---------------------------------------------------------------------------
 
 @cli.command("logs")
@@ -5623,8 +5623,8 @@ def logs(limit: int, outcome: str | None, db: str) -> None:
     """Browse conversation logs.
 
     Examples:
-      autoagent logs
-      autoagent logs --limit 50 --outcome fail
+      agentlab logs
+      agentlab logs --limit 50 --outcome fail
     """
     store = ConversationStore(db_path=db)
 
@@ -5649,11 +5649,11 @@ def logs(limit: int, outcome: str | None, db: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent doctor
+# agentlab doctor
 # ---------------------------------------------------------------------------
 
 @cli.command("doctor")
-@click.option("--config", "config_path", default="autoagent.yaml", show_default=True,
+@click.option("--config", "config_path", default="agentlab.yaml", show_default=True,
               help="Path to runtime config YAML.")
 @click.option("--fix", is_flag=True, help="Automatically repair fixable workspace issues.")
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
@@ -5663,7 +5663,7 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
     Reports on API keys, mock mode, data stores, eval cases, and config versions.
 
     Examples:
-      autoagent doctor
+      agentlab doctor
     """
     import sqlite3
 
@@ -5688,7 +5688,7 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
         )
         mcp_snapshot = mcp_status_snapshot(workspace.root if workspace is not None else Path("."))
         if workspace is None:
-            issues.append("No AutoAgent workspace found")
+            issues.append("No AgentLab workspace found")
         data = {
             "workspace": str(workspace.root) if workspace is not None else None,
             "issues": issues,
@@ -5697,10 +5697,10 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
             "memory": memory_snapshot,
             "mcp": mcp_snapshot,
         }
-        click.echo(json_response("ok", data, next_cmd="autoagent status"))
+        click.echo(json_response("ok", data, next_cmd="agentlab status"))
         return
 
-    click.echo("\nAutoAgent Doctor")
+    click.echo("\nAgentLab Doctor")
     click.echo("================")
 
     # ------------------------------------------------------------------
@@ -5708,10 +5708,10 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
     # ------------------------------------------------------------------
     click.echo("\nWorkspace")
     if workspace is None:
-        issues.append("No AutoAgent workspace found")
+        issues.append("No AgentLab workspace found")
         click.echo(
             "  Workspace:          "
-            + click.style("\u2717 Not found (run autoagent init or autoagent new)", fg="red")
+            + click.style("\u2717 Not found (run agentlab init or agentlab new)", fg="red")
         )
     else:
         click.echo("  Workspace:          " + click.style(str(workspace.root), fg="green"))
@@ -5754,7 +5754,7 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
         click.echo(
             "  Mock mode:          "
             + click.style(
-                "\u26a0 Enabled (set optimizer.use_mock: false in autoagent.yaml for production)",
+                "\u26a0 Enabled (set optimizer.use_mock: false in agentlab.yaml for production)",
                 fg="yellow",
             )
         )
@@ -5807,7 +5807,7 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
         click.echo(
             "  Registry:           "
             + click.style(
-                "\u26a0 Not configured (run autoagent provider configure when you are ready for live providers)",
+                "\u26a0 Not configured (run agentlab provider configure when you are ready for live providers)",
                 fg="yellow",
             )
         )
@@ -5818,7 +5818,7 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
     click.echo("\nData Stores")
 
     # Traces DB
-    traces_db = Path(".autoagent") / "traces.db"
+    traces_db = Path(".agentlab") / "traces.db"
     if traces_db.exists():
         try:
             with sqlite3.connect(str(traces_db)) as conn:
@@ -5960,7 +5960,7 @@ def doctor(config_path: str, fix: bool, json_output: bool = False) -> None:
                 ("Workspace root", workspace.root),
                 ("Configs", workspace.configs_dir),
                 ("Eval cases", workspace.cases_dir),
-                ("AutoAgent state", workspace.autoagent_dir),
+                ("AgentLab state", workspace.agentlab_dir),
             ]
         )
     for label, path in writable_targets:
@@ -6012,7 +6012,7 @@ def _pause_optimizer_impl() -> None:
     store = _control_store()
     store.pause()
     _event_log().append(event_type="human_pause", payload={"paused": True})
-    click.echo("Optimizer paused. Run 'autoagent loop resume' to continue. Legacy alias: 'autoagent resume'.")
+    click.echo("Optimizer paused. Run 'agentlab loop resume' to continue. Legacy alias: 'agentlab resume'.")
 
 
 @loop_group.command("pause")
@@ -6026,9 +6026,9 @@ def pause_optimizer() -> None:
     """Pause the optimization loop (human escape hatch).
 
     Examples:
-      autoagent pause
+      agentlab pause
     """
-    _echo_deprecation("autoagent pause", "autoagent loop pause")
+    _echo_deprecation("agentlab pause", "agentlab loop pause")
     _pause_optimizer_impl()
 
 
@@ -6050,9 +6050,9 @@ def resume_optimizer() -> None:
     """Resume the optimization loop after a pause.
 
     Examples:
-      autoagent resume
+      agentlab resume
     """
-    _echo_deprecation("autoagent resume", "autoagent loop resume")
+    _echo_deprecation("agentlab resume", "agentlab loop resume")
     _resume_optimizer_impl()
 
 
@@ -6064,7 +6064,7 @@ def reject_experiment(experiment_id: str, configs_dir: str, db: str) -> None:
     """Reject a promoted experiment and rollback any active canary.
 
     Examples:
-      autoagent reject abc12345
+      agentlab reject abc12345
     """
     store = _control_store()
     store.reject_experiment(experiment_id)
@@ -6096,8 +6096,8 @@ def pin_surface(surface: str) -> None:
     """Mark a config surface as immutable (e.g. prompts.root, safety_instructions).
 
     Examples:
-      autoagent pin safety_instructions
-      autoagent pin prompts.root
+      agentlab pin safety_instructions
+      agentlab pin prompts.root
     """
     store = _control_store()
     store.pin_surface(surface)
@@ -6110,7 +6110,7 @@ def unpin_surface(surface: str) -> None:
     """Remove immutable marking from a config surface.
 
     Examples:
-      autoagent unpin safety_instructions
+      agentlab unpin safety_instructions
     """
     store = _control_store()
     store.unpin_surface(surface)
@@ -6118,7 +6118,7 @@ def unpin_surface(surface: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent autofix (subgroup)
+# agentlab autofix (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("autofix", invoke_without_command=True)
@@ -6127,9 +6127,9 @@ def autofix_group(ctx: click.Context) -> None:
     """AutoFix Copilot — reviewable improvement proposals.
 
     Examples:
-      autoagent autofix suggest
-      autoagent autofix show pending
-      autoagent autofix apply pending
+      agentlab autofix suggest
+      agentlab autofix show pending
+      agentlab autofix apply pending
     """
     if ctx.invoked_subcommand is not None:
         return
@@ -6162,8 +6162,8 @@ def autofix_suggest(json_output: bool = False) -> None:
     """Generate AutoFix proposals without applying them.
 
     Examples:
-      autoagent autofix suggest
-      autoagent autofix suggest --json
+      agentlab autofix suggest
+      agentlab autofix suggest --json
     """
     from cli.stream2_helpers import json_response
     from optimizer.autofix import AutoFixEngine, AutoFixStore
@@ -6205,7 +6205,7 @@ def autofix_suggest(json_output: bool = False) -> None:
             }
             for p in proposals
         ]
-        click.echo(json_response("ok", data, next_cmd="autoagent autofix apply <proposal_id>"))
+        click.echo(json_response("ok", data, next_cmd="agentlab autofix apply <proposal_id>"))
         return
 
     click.echo(f"\n{len(proposals)} proposal(s) generated:\n")
@@ -6227,8 +6227,8 @@ def autofix_apply(proposal_id: str, dry_run: bool, json_output: bool = False) ->
     """Apply a specific AutoFix proposal and write a new config version.
 
     Examples:
-      autoagent autofix apply abc123
-      autoagent autofix apply pending
+      agentlab autofix apply abc123
+      agentlab autofix apply pending
     """
     from cli.stream2_helpers import apply_autofix_to_config, is_selector, json_response
     from optimizer.autofix import AutoFixEngine, AutoFixStore
@@ -6265,7 +6265,7 @@ def autofix_apply(proposal_id: str, dry_run: bool, json_output: bool = False) ->
             "current_active_version": deployer.version_manager.manifest.get("active_version"),
         }
         if json_output:
-            click.echo(json_response("ok", preview, next_cmd=f"autoagent autofix apply {proposal_id}"))
+            click.echo(json_response("ok", preview, next_cmd=f"agentlab autofix apply {proposal_id}"))
         else:
             click.echo("Dry run: autofix apply preview")
             click.echo(f"  Proposal: {proposal_id}")
@@ -6282,12 +6282,12 @@ def autofix_apply(proposal_id: str, dry_run: bool, json_output: bool = False) ->
                     "status": status_msg,
                     "config_version": version_info["version"],
                     "config_path": version_info["path"],
-                }, next_cmd=f"autoagent eval run --config {version_info['path']}"))
+                }, next_cmd=f"agentlab eval run --config {version_info['path']}"))
             else:
                 click.echo(f"Applied: {status_msg}")
                 click.echo(f"  New config version: v{version_info['version']:03d}")
                 click.echo(f"  Path: {version_info['path']}")
-                _print_next_actions([f"autoagent eval run --config {version_info['path']}"])
+                _print_next_actions([f"agentlab eval run --config {version_info['path']}"])
         else:
             if json_output:
                 click.echo(json_response("ok", {"proposal_id": proposal_id, "status": status_msg, "config_version": None}))
@@ -6334,8 +6334,8 @@ def autofix_history(limit: int, json_output: bool = False) -> None:
     """Show past AutoFix proposals and outcomes.
 
     Examples:
-      autoagent autofix history
-      autoagent autofix history --json
+      agentlab autofix history
+      agentlab autofix history --json
     """
     from cli.stream2_helpers import json_response
     from optimizer.autofix import AutoFixEngine, AutoFixStore
@@ -6376,7 +6376,7 @@ def autofix_history(limit: int, json_output: bool = False) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent judges (subgroup)
+# agentlab judges (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("judges")
@@ -6384,9 +6384,9 @@ def judges_group() -> None:
     """Judge Ops — monitoring, calibration, and human feedback.
 
     Examples:
-      autoagent judges list
-      autoagent judges calibrate --sample 10
-      autoagent judges drift
+      agentlab judges list
+      agentlab judges calibrate --sample 10
+      agentlab judges drift
     """
 
 
@@ -6395,7 +6395,7 @@ def judges_list() -> None:
     """Show active judges with version and agreement stats.
 
     Examples:
-      autoagent judges list
+      agentlab judges list
     """
     from judges.versioning import GraderVersionStore
     from judges.human_feedback import HumanFeedbackStore
@@ -6425,8 +6425,8 @@ def judges_calibrate(sample: int, judge_id: str | None) -> None:
     """Sample cases for human calibration review.
 
     Examples:
-      autoagent judges calibrate --sample 50
-      autoagent judges calibrate --judge-id llm_judge
+      agentlab judges calibrate --sample 50
+      agentlab judges calibrate --judge-id llm_judge
     """
     from judges.human_feedback import HumanFeedbackStore
 
@@ -6455,7 +6455,7 @@ def judges_drift() -> None:
     """Show drift report for all judges.
 
     Examples:
-      autoagent judges drift
+      agentlab judges drift
     """
     from judges.drift_monitor import DriftMonitor
 
@@ -6476,7 +6476,7 @@ def judges_drift() -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent context (subgroup)
+# agentlab context (subgroup)
 # ---------------------------------------------------------------------------
 
 @cli.group("context")
@@ -6484,9 +6484,9 @@ def context_group() -> None:
     """Context Engineering Workbench — diagnose and tune agent context.
 
     Examples:
-      autoagent context simulate --strategy balanced
-      autoagent context report
-      autoagent context analyze --trace trace_demo_fail_001
+      agentlab context simulate --strategy balanced
+      agentlab context report
+      agentlab context analyze --trace trace_demo_fail_001
     """
 
 
@@ -6496,12 +6496,12 @@ def context_analyze(trace_id: str) -> None:
     """Analyze context utilization for a trace.
 
     Examples:
-      autoagent context analyze --trace abc123
+      agentlab context analyze --trace abc123
     """
     from context.analyzer import ContextAnalyzer
     from observer.traces import TraceStore
 
-    trace_store = TraceStore(db_path=".autoagent/traces.db")
+    trace_store = TraceStore(db_path=".agentlab/traces.db")
     analyzer = ContextAnalyzer(trace_store=trace_store)
 
     events = trace_store.get_trace(trace_id=trace_id)
@@ -6543,7 +6543,7 @@ def context_simulate(strategy: str) -> None:
     """Simulate a compaction strategy.
 
     Examples:
-      autoagent context simulate --strategy aggressive
+      agentlab context simulate --strategy aggressive
     """
     from context.simulator import CompactionSimulator
 
@@ -6567,7 +6567,7 @@ def context_report() -> None:
     """Show aggregate context health report.
 
     Examples:
-      autoagent context report
+      agentlab context report
     """
     click.echo("\nContext Health Report")
     click.echo("=" * 40)
@@ -6575,11 +6575,11 @@ def context_report() -> None:
     click.echo("  Compaction loss:     — (no trace data)")
     click.echo("  Handoff fidelity:    — (no trace data)")
     click.echo("  Memory staleness:    — (no trace data)")
-    click.echo("\n  Run 'autoagent context analyze --trace <id>' for per-trace analysis.")
+    click.echo("\n  Run 'agentlab context analyze --trace <id>' for per-trace analysis.")
 
 
 # ---------------------------------------------------------------------------
-# autoagent review (change cards)
+# agentlab review (change cards)
 # ---------------------------------------------------------------------------
 
 
@@ -6635,12 +6635,12 @@ def _apply_change_card_to_workspace(card_id: str):
 def review_group(ctx: click.Context) -> None:
     """Review proposed change cards from the optimizer.
 
-    Running `autoagent review` opens an interactive approval prompt.
+    Running `agentlab review` opens an interactive approval prompt.
 
     Examples:
-      autoagent review
-      autoagent review list
-      autoagent review show pending
+      agentlab review
+      agentlab review list
+      agentlab review show pending
     """
     if ctx.invoked_subcommand is not None:
         return
@@ -6673,9 +6673,9 @@ def review_list(limit: int = 20, json_output: bool = False) -> None:
     """List pending change cards.
 
     Examples:
-      autoagent review
-      autoagent review list
-      autoagent review list --json
+      agentlab review
+      agentlab review list
+      agentlab review list --json
     """
     from cli.stream2_helpers import json_response
     from optimizer.change_card import ChangeCardStore
@@ -6700,7 +6700,7 @@ def review_list(limit: int = 20, json_output: bool = False) -> None:
             }
             for card in cards
         ]
-        click.echo(json_response("ok", data, next_cmd="autoagent review show <card_id>"))
+        click.echo(json_response("ok", data, next_cmd="agentlab review show <card_id>"))
         return
 
     click.echo(f"\nPending change cards ({len(cards)}):\n")
@@ -6720,9 +6720,9 @@ def review_show(card_id: str, json_output: bool = False) -> None:
     Supports selectors: pending, latest.
 
     Examples:
-      autoagent review show abc12345
-      autoagent review show pending
-      autoagent review show pending --json
+      agentlab review show abc12345
+      agentlab review show pending
+      agentlab review show pending --json
     """
     from cli.stream2_helpers import is_selector, json_response
     from optimizer.change_card import ChangeCardStore
@@ -6754,7 +6754,7 @@ def review_show(card_id: str, json_output: bool = False) -> None:
             "title": card.title,
             "risk_class": card.risk_class,
             "status": card.status,
-        }, next_cmd=f"autoagent review apply {card.card_id}"))
+        }, next_cmd=f"agentlab review apply {card.card_id}"))
     else:
         click.echo(card.to_terminal())
 
@@ -6774,8 +6774,8 @@ def review_apply(card_id: str, output_format: str = "text") -> None:
     Supports selectors: pending, latest.
 
     Examples:
-      autoagent review apply abc12345
-      autoagent review apply pending
+      agentlab review apply abc12345
+      agentlab review apply pending
     """
     from cli.output import resolve_output_format
     from cli.permissions import PermissionManager
@@ -6810,7 +6810,7 @@ def review_apply(card_id: str, output_format: str = "text") -> None:
     )
     applied_card, candidate_version, candidate_path = _apply_change_card_to_workspace(card_id)
     progress.phase_completed("review-apply", message=f"Applied change card {card_id}")
-    progress.next_action("autoagent eval run")
+    progress.next_action("agentlab eval run")
     if resolved_output_format == "stream-json":
         return
     click.echo(f"Applied change card {applied_card.card_id}: {applied_card.title}")
@@ -6828,8 +6828,8 @@ def review_reject(card_id: str, reason: str) -> None:
     Supports selectors: pending, latest.
 
     Examples:
-      autoagent review reject abc12345 --reason "Too risky"
-      autoagent review reject pending
+      agentlab review reject abc12345 --reason "Too risky"
+      agentlab review reject pending
     """
     from cli.stream2_helpers import is_selector
     from optimizer.change_card import ChangeCardStore
@@ -6864,7 +6864,7 @@ def review_export(card_id: str) -> None:
     """Export a change card as markdown.
 
     Examples:
-      autoagent review export abc12345
+      agentlab review export abc12345
     """
     from optimizer.change_card import ChangeCardStore
 
@@ -6877,7 +6877,7 @@ def review_export(card_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent changes (aliases for review)
+# agentlab changes (aliases for review)
 # ---------------------------------------------------------------------------
 
 @cli.group("changes", invoke_without_command=True)
@@ -6891,10 +6891,10 @@ def changes_group(ctx: click.Context) -> None:
 @changes_group.command("list")
 @click.option("--limit", default=20, show_default=True, type=int, help="Number of cards to show.")
 def changes_list(limit: int = 20) -> None:
-    """List pending change cards (alias for `autoagent review list`)."""
+    """List pending change cards (alias for `agentlab review list`)."""
     from optimizer.change_card import ChangeCardStore
 
-    Path(".autoagent").mkdir(parents=True, exist_ok=True)
+    Path(".agentlab").mkdir(parents=True, exist_ok=True)
     store = ChangeCardStore()
     cards = store.list_pending(limit=limit)
 
@@ -6913,10 +6913,10 @@ def changes_list(limit: int = 20) -> None:
 @changes_group.command("show")
 @click.argument("card_id")
 def changes_show(card_id: str) -> None:
-    """Show a specific change card (alias for `autoagent review show`)."""
+    """Show a specific change card (alias for `agentlab review show`)."""
     from optimizer.change_card import ChangeCardStore
 
-    Path(".autoagent").mkdir(parents=True, exist_ok=True)
+    Path(".agentlab").mkdir(parents=True, exist_ok=True)
     store = ChangeCardStore()
     card = store.get(card_id)
     if card is None:
@@ -6928,7 +6928,7 @@ def changes_show(card_id: str) -> None:
 @changes_group.command("approve")
 @click.argument("card_id")
 def changes_approve(card_id: str) -> None:
-    """Approve/apply a change card (alias for `autoagent review apply`)."""
+    """Approve/apply a change card (alias for `agentlab review apply`)."""
     try:
         card, candidate_version, candidate_path = _apply_change_card_to_workspace(card_id)
     except click.ClickException as exc:
@@ -6947,10 +6947,10 @@ def changes_approve(card_id: str) -> None:
 @click.argument("card_id")
 @click.option("--reason", default="", help="Reason for rejection.")
 def changes_reject(card_id: str, reason: str) -> None:
-    """Reject a change card (alias for `autoagent review reject`)."""
+    """Reject a change card (alias for `agentlab review reject`)."""
     from optimizer.change_card import ChangeCardStore
 
-    Path(".autoagent").mkdir(parents=True, exist_ok=True)
+    Path(".agentlab").mkdir(parents=True, exist_ok=True)
     store = ChangeCardStore()
     card = store.get(card_id)
     if card is None:
@@ -6969,10 +6969,10 @@ def changes_reject(card_id: str, reason: str) -> None:
 @changes_group.command("export")
 @click.argument("card_id")
 def changes_export(card_id: str) -> None:
-    """Export a change card markdown (alias for `autoagent review export`)."""
+    """Export a change card markdown (alias for `agentlab review export`)."""
     from optimizer.change_card import ChangeCardStore
 
-    Path(".autoagent").mkdir(parents=True, exist_ok=True)
+    Path(".agentlab").mkdir(parents=True, exist_ok=True)
     store = ChangeCardStore()
     card = store.get(card_id)
     if card is None:
@@ -6982,7 +6982,7 @@ def changes_export(card_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent experiment
+# agentlab experiment
 # ---------------------------------------------------------------------------
 
 @cli.group("experiment")
@@ -6990,9 +6990,9 @@ def experiment_group() -> None:
     """Inspect optimization experiment history.
 
     Examples:
-      autoagent experiment log
-      autoagent experiment log --tail 10
-      autoagent experiment log --summary
+      agentlab experiment log
+      agentlab experiment log --tail 10
+      agentlab experiment log --summary
     """
 
 
@@ -7004,14 +7004,14 @@ def experiment_log(tail: int | None, json_output: bool, summary: bool) -> None:
     """View optimize experiment history from the append-only TSV log.
 
     Examples:
-      autoagent experiment log
-      autoagent experiment log --tail 5
-      autoagent experiment log --json
-      autoagent experiment log --summary
+      agentlab experiment log
+      agentlab experiment log --tail 5
+      agentlab experiment log --json
+      agentlab experiment log --summary
     """
     entries = read_experiment_log_entries()
     if not entries:
-        click.echo("No experiments yet. Run: autoagent optimize --continuous")
+        click.echo("No experiments yet. Run: agentlab optimize --continuous")
         return
 
     if summary:
@@ -7027,7 +7027,7 @@ def experiment_log(tail: int | None, json_output: bool, summary: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent runbook
+# agentlab runbook
 # ---------------------------------------------------------------------------
 
 @cli.group("runbook")
@@ -7041,7 +7041,7 @@ def runbook_list(db: str) -> None:
     """List all runbooks.
 
     Examples:
-      autoagent runbook list
+      agentlab runbook list
     """
     from registry.runbooks import RunbookStore
 
@@ -7068,7 +7068,7 @@ def runbook_show(name: str, db: str) -> None:
     """Show runbook details.
 
     Examples:
-      autoagent runbook show fix-retrieval-grounding
+      agentlab runbook show fix-retrieval-grounding
     """
     from registry.runbooks import RunbookStore
 
@@ -7102,7 +7102,7 @@ def runbook_apply(name: str, db: str) -> None:
     """Apply a runbook — registers its skills, policies, and tool contracts.
 
     Examples:
-      autoagent runbook apply fix-retrieval-grounding
+      agentlab runbook apply fix-retrieval-grounding
     """
     from registry.runbooks import RunbookStore
 
@@ -7131,7 +7131,7 @@ def runbook_create(name: str, file_path: str, db: str) -> None:
     """Create a runbook from a YAML file.
 
     Examples:
-      autoagent runbook create --name my-runbook --file runbook.yaml
+      agentlab runbook create --name my-runbook --file runbook.yaml
     """
     from registry.runbooks import Runbook, RunbookStore
 
@@ -7149,26 +7149,26 @@ def runbook_create(name: str, file_path: str, db: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent memory
+# agentlab memory
 # ---------------------------------------------------------------------------
 
 @cli.group("memory")
 def memory_group() -> None:
-    """Project memory — manage AUTOAGENT.md persistent context."""
+    """Project memory — manage AGENTLAB.md persistent context."""
 
 
 @memory_group.command("show")
 def memory_show() -> None:
-    """Show AUTOAGENT.md contents.
+    """Show AGENTLAB.md contents.
 
     Examples:
-      autoagent memory show
+      agentlab memory show
     """
     from core.project_memory import ProjectMemory
 
     mem = ProjectMemory.load()
     if mem is None:
-        click.echo("No AUTOAGENT.md found. Run: autoagent init")
+        click.echo("No AGENTLAB.md found. Run: agentlab init")
         return
 
     click.echo(mem.raw_content)
@@ -7220,7 +7220,7 @@ def memory_edit(target: str, append_text: str | None) -> None:
         return
     memory_path = resolve_memory_target(".", target)
     if not memory_path.exists():
-        raise click.ClickException(f"No memory file found at {memory_path}. Use --append or run autoagent init")
+        raise click.ClickException(f"No memory file found at {memory_path}. Use --append or run agentlab init")
     _open_in_editor(memory_path)
 
 
@@ -7228,7 +7228,7 @@ def memory_edit(target: str, append_text: str | None) -> None:
 @click.argument("summary")
 @click.option("--title", default="Session Summary", show_default=True, help="Title for the generated summary file.")
 def memory_summarize_session(summary: str, title: str) -> None:
-    """Write a generated session summary into `.autoagent/memory/`."""
+    """Write a generated session summary into `.agentlab/memory/`."""
     from cli.permissions import PermissionManager
     from core.project_memory import write_session_summary
 
@@ -7247,11 +7247,11 @@ def memory_summarize_session(summary: str, title: str) -> None:
               type=click.Choice(["good", "bad", "preference", "constraint"]),
               help="Section to add the note to.")
 def memory_add(note: str, section: str) -> None:
-    """Add a note to a section of AUTOAGENT.md.
+    """Add a note to a section of AGENTLAB.md.
 
     Examples:
-      autoagent memory add "Prefer instruction edits over model swaps" --section preference
-      autoagent memory add "Never use gpt-3.5 for safety checks" --section bad
+      agentlab memory add "Prefer instruction edits over model swaps" --section preference
+      agentlab memory add "Never use gpt-3.5 for safety checks" --section bad
     """
     from core.project_memory import ProjectMemory
     from cli.permissions import PermissionManager
@@ -7263,7 +7263,7 @@ def memory_add(note: str, section: str) -> None:
     )
     mem = ProjectMemory.load()
     if mem is None:
-        click.echo("No AUTOAGENT.md found. Creating one first...")
+        click.echo("No AGENTLAB.md found. Creating one first...")
         mem = ProjectMemory(
             agent_name="My Agent",
             platform="Google ADK",
@@ -7277,7 +7277,7 @@ def memory_add(note: str, section: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent server
+# agentlab server
 # ---------------------------------------------------------------------------
 
 @cli.command("server")
@@ -7293,14 +7293,14 @@ def server(ctx: click.Context, quiet: bool, no_banner: bool, host: str, port: in
     API docs available at http://localhost:8000/docs
 
     Examples:
-      autoagent server
-      autoagent server --port 3000 --reload
+      agentlab server
+      agentlab server --port 3000 --reload
     """
     import uvicorn
 
     del quiet, no_banner
     echo_startup_banner(ctx)
-    click.echo(f"Starting AutoAgent VNextCC server on {host}:{port}")
+    click.echo(f"Starting AgentLab VNextCC server on {host}:{port}")
     click.echo(f"  API docs:     http://localhost:{port}/docs")
     click.echo(f"  Web console:  http://localhost:{port}")
     click.echo(f"  WebSocket:    ws://localhost:{port}/ws")
@@ -7314,7 +7314,7 @@ def server(ctx: click.Context, quiet: bool, no_banner: bool, host: str, port: in
 
 
 # ---------------------------------------------------------------------------
-# autoagent mcp-server
+# agentlab mcp-server
 # ---------------------------------------------------------------------------
 
 @cli.command("mcp-server")
@@ -7329,7 +7329,7 @@ def mcp_server_cmd(host: str, port: int | None) -> None:
     Setup for Claude Code (project-scoped .mcp.json example):
       {
         "mcpServers": {
-          "autoagent": {
+          "agentlab": {
             "command": "python3",
             "args": ["-m", "mcp_server"]
           }
@@ -7337,8 +7337,8 @@ def mcp_server_cmd(host: str, port: int | None) -> None:
       }
 
     Examples:
-      autoagent mcp-server                         # Stdio mode (default)
-      autoagent mcp-server --host 127.0.0.1 --port 8081
+      agentlab mcp-server                         # Stdio mode (default)
+      agentlab mcp-server --host 127.0.0.1 --port 8081
     """
     from mcp_server.server import run_http
     from mcp_server.server import run_stdio
@@ -7349,7 +7349,7 @@ def mcp_server_cmd(host: str, port: int | None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Legacy: autoagent run (kept for backward compatibility)
+# Legacy: agentlab run (kept for backward compatibility)
 # ---------------------------------------------------------------------------
 
 @cli.group("run", hidden=True)
@@ -7366,7 +7366,7 @@ def run_agent(host: str, port: int) -> None:
 
     from agent.server import app
 
-    click.echo(f"Starting AutoAgent server on {host}:{port}")
+    click.echo(f"Starting AgentLab server on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
 
 
@@ -7374,7 +7374,7 @@ def run_agent(host: str, port: int) -> None:
 @click.option("--config-path", default=None, help="Path to config YAML.")
 @click.option("--category", default=None, help="Run only a specific category.")
 def run_eval(config_path: str | None, category: str | None) -> None:
-    """Run eval suite (legacy). Use: autoagent eval run"""
+    """Run eval suite (legacy). Use: agentlab eval run"""
     config = None
     if config_path:
         config = _load_config_dict(config_path)
@@ -7392,7 +7392,7 @@ def run_eval(config_path: str | None, category: str | None) -> None:
 @click.option("--db", default=DB_PATH, show_default=True)
 @click.option("--window", default=100, show_default=True, type=int)
 def run_observe(db: str, window: int) -> None:
-    """Run observer (legacy). Use: autoagent status"""
+    """Run observer (legacy). Use: agentlab status"""
     store = ConversationStore(db_path=db)
     observer = Observer(store)
     report = observer.observe(window=window)
@@ -7410,7 +7410,7 @@ def run_observe(db: str, window: int) -> None:
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True)
 @click.option("--memory-db", default=MEMORY_DB, show_default=True)
 def run_optimize(db: str, configs_dir: str, memory_db: str) -> None:
-    """Run optimize (legacy). Use: autoagent optimize"""
+    """Run optimize (legacy). Use: agentlab optimize"""
     (
         runtime,
         eval_runner,
@@ -7461,7 +7461,7 @@ def run_optimize(db: str, configs_dir: str, memory_db: str) -> None:
 @click.option("--memory-db", default=MEMORY_DB, show_default=True)
 @click.option("--delay", default=1.0, show_default=True, type=float)
 def run_loop(cycles: int, db: str, configs_dir: str, memory_db: str, delay: float) -> None:
-    """Run loop (legacy). Use: autoagent loop"""
+    """Run loop (legacy). Use: agentlab loop"""
     (
         runtime,
         eval_runner,
@@ -7518,7 +7518,7 @@ def run_loop(cycles: int, db: str, configs_dir: str, memory_db: str, delay: floa
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True)
 @click.option("--memory-db", default=MEMORY_DB, show_default=True)
 def run_status(db: str, configs_dir: str, memory_db: str) -> None:
-    """Show status (legacy). Use: autoagent status"""
+    """Show status (legacy). Use: agentlab status"""
     store = ConversationStore(db_path=db)
     total = store.count()
     click.echo(f"\nConversations: {total} total")
@@ -7538,7 +7538,7 @@ def run_status(db: str, configs_dir: str, memory_db: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent registry ...
+# agentlab registry ...
 # ---------------------------------------------------------------------------
 
 REGISTRY_TYPES = ("skills", "policies", "tools", "handoffs")
@@ -7579,9 +7579,9 @@ def registry_group() -> None:
     """Modular registry — skills, policies, tool contracts, handoff schemas.
 
     Examples:
-      autoagent registry list
-      autoagent registry list --type skills
-      autoagent registry import registry_export.yaml
+      agentlab registry list
+      agentlab registry list --type skills
+      agentlab registry import registry_export.yaml
     """
 
 
@@ -7594,8 +7594,8 @@ def registry_list(registry_type: str | None, db: str) -> None:
     """List registered items.
 
     Examples:
-      autoagent registry list
-      autoagent registry list --type skills
+      agentlab registry list
+      agentlab registry list --type skills
     """
     from registry import RegistryStore
 
@@ -7624,8 +7624,8 @@ def registry_show(registry_type: str, name: str, version: int | None, db: str) -
     """Show details for a registry item.
 
     Examples:
-      autoagent registry show skills returns_handling
-      autoagent registry show tools order_lookup --version 2
+      agentlab registry show skills returns_handling
+      agentlab registry show tools order_lookup --version 2
     """
     from registry import RegistryStore
 
@@ -7649,7 +7649,7 @@ def registry_add(registry_type: str, name: str, file_path: str, db: str) -> None
     """Add a new item (or new version) to the registry.
 
     Examples:
-      autoagent registry add skills returns_handling --file skill.yaml
+      agentlab registry add skills returns_handling --file skill.yaml
     """
     from registry import RegistryStore
 
@@ -7686,7 +7686,7 @@ def registry_diff(registry_type: str, name: str, v1: int, v2: int, db: str) -> N
     """Diff two versions of a registry item.
 
     Examples:
-      autoagent registry diff skills returns_handling 1 2
+      agentlab registry diff skills returns_handling 1 2
     """
     from registry import RegistryStore
 
@@ -7703,7 +7703,7 @@ def registry_import(path: str, db: str) -> None:
     """Bulk-import registry items from a YAML/JSON file.
 
     Examples:
-      autoagent registry import registry_export.yaml
+      agentlab registry import registry_export.yaml
     """
     from registry import RegistryStore
     from registry.importer import import_from_file
@@ -7716,9 +7716,9 @@ def registry_import(path: str, db: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent skill — executable skills registry
+# agentlab skill — executable skills registry
 # ---------------------------------------------------------------------------
-# autoagent skill ... (unified skills from core.skills)
+# agentlab skill ... (unified skills from core.skills)
 # ---------------------------------------------------------------------------
 
 @cli.group("skill")
@@ -7726,9 +7726,9 @@ def skill_group() -> None:
     """Unified skill management — build-time and run-time skills.
 
     Examples:
-      autoagent skill list
-      autoagent skill recommend --json
-      autoagent skill show returns_handling
+      agentlab skill list
+      agentlab skill recommend --json
+      agentlab skill show returns_handling
     """
 
 
@@ -7740,7 +7740,7 @@ register_skill_commands(skill_group)
 @skill_group.command("export-md")
 @click.argument("skill_name")
 @click.option("--output", default=None, help="Destination file or directory.")
-@click.option("--db", default=".autoagent/skills.db", show_default=True, help="Skills database path.")
+@click.option("--db", default=".agentlab/skills.db", show_default=True, help="Skills database path.")
 def skill_export_md(skill_name: str, output: str | None, db: str) -> None:
     """Export a skill as SKILL.md."""
     from registry.skill_md import SkillMdSerializer
@@ -7820,7 +7820,7 @@ def skill_export_md(skill_name: str, output: str | None, db: str) -> None:
 
 @skill_group.command("import-md")
 @click.argument("path")
-@click.option("--db", default=".autoagent/skills.db", show_default=True, help="Skills database path.")
+@click.option("--db", default=".agentlab/skills.db", show_default=True, help="Skills database path.")
 def skill_import_md(path: str, db: str) -> None:
     """Import a skill from SKILL.md file."""
     import re
@@ -7922,7 +7922,7 @@ def skill_import_md(path: str, db: str) -> None:
             "trust_level": frontmatter.get("trust_level", "unverified"),
             "references": parsed.get("references", ""),
         },
-        author=str(frontmatter.get("author", "autoagent")),
+        author=str(frontmatter.get("author", "agentlab")),
         status="active",
     )
 
@@ -7940,7 +7940,7 @@ def skill_import_md(path: str, db: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent curriculum ... (self-play curriculum generator)
+# agentlab curriculum ... (self-play curriculum generator)
 # ---------------------------------------------------------------------------
 
 @cli.group("curriculum")
@@ -7953,7 +7953,7 @@ def curriculum_group() -> None:
 @click.option("--prompts-per-cluster", default=3, show_default=True, help="Prompts to generate per cluster")
 @click.option("--adversarial-ratio", default=0.2, show_default=True, help="Ratio of adversarial variants")
 @click.option("--db", default=DB_PATH, show_default=True, help="Conversation database path")
-@click.option("--output-dir", default=".autoagent/curriculum", show_default=True, help="Output directory")
+@click.option("--output-dir", default=".agentlab/curriculum", show_default=True, help="Output directory")
 def curriculum_generate(
     limit: int,
     prompts_per_cluster: int,
@@ -7964,8 +7964,8 @@ def curriculum_generate(
     """Generate a new curriculum batch from recent failures.
 
     Examples:
-      autoagent curriculum generate
-      autoagent curriculum generate --limit 20 --prompts-per-cluster 5
+      agentlab curriculum generate
+      agentlab curriculum generate --limit 20 --prompts-per-cluster 5
     """
     from optimizer.curriculum_generator import CurriculumGenerator, CurriculumStore, FailureCluster
     from observer.classifier import FailureClassifier
@@ -8035,14 +8035,14 @@ def curriculum_generate(
 
 @curriculum_group.command("list")
 @click.option("--limit", default=20, show_default=True, help="Max batches to list")
-@click.option("--output-dir", default=".autoagent/curriculum", show_default=True, help="Curriculum directory")
+@click.option("--output-dir", default=".agentlab/curriculum", show_default=True, help="Curriculum directory")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 def curriculum_list(limit: int, output_dir: str, json_output: bool) -> None:
     """List generated curriculum batches.
 
     Examples:
-      autoagent curriculum list
-      autoagent curriculum list --json
+      agentlab curriculum list
+      agentlab curriculum list --json
     """
     from optimizer.curriculum_generator import CurriculumStore
 
@@ -8086,13 +8086,13 @@ def curriculum_list(limit: int, output_dir: str, json_output: bool) -> None:
 
 @curriculum_group.command("apply")
 @click.argument("batch_id")
-@click.option("--output-dir", default=".autoagent/curriculum", show_default=True, help="Curriculum directory")
+@click.option("--output-dir", default=".agentlab/curriculum", show_default=True, help="Curriculum directory")
 @click.option("--eval-cases-dir", default="evals/cases", show_default=True, help="Eval cases directory")
 def curriculum_apply(batch_id: str, output_dir: str, eval_cases_dir: str) -> None:
     """Apply a curriculum batch to the active eval set.
 
     Examples:
-      autoagent curriculum apply curriculum_abc123
+      agentlab curriculum apply curriculum_abc123
     """
     from optimizer.curriculum_generator import CurriculumStore
 
@@ -8117,7 +8117,7 @@ def curriculum_apply(batch_id: str, output_dir: str, eval_cases_dir: str) -> Non
 
 
 # ---------------------------------------------------------------------------
-# autoagent trace ...
+# agentlab trace ...
 # ---------------------------------------------------------------------------
 
 def _parse_window(window: str) -> float:
@@ -8136,9 +8136,9 @@ def trace_group() -> None:
     """Trace analysis — grading, blame maps, and graphs.
 
     Examples:
-      autoagent trace show latest
-      autoagent trace blame --window 24h
-      autoagent trace promote latest
+      agentlab trace show latest
+      agentlab trace blame --window 24h
+      agentlab trace promote latest
     """
 
 
@@ -8150,9 +8150,9 @@ def trace_show(trace_id: str, db: str, json_output: bool = False) -> None:
     """Show trace details. Supports selectors: latest.
 
     Examples:
-      autoagent trace show abc-123
-      autoagent trace show latest
-      autoagent trace show latest --json
+      agentlab trace show abc-123
+      agentlab trace show latest
+      agentlab trace show latest --json
     """
     from cli.stream2_helpers import json_response
     from observer.traces import TraceStore
@@ -8190,7 +8190,7 @@ def trace_show(trace_id: str, db: str, json_output: bool = False) -> None:
             "total_latency_ms": total_latency,
             "errors": len(errors),
         }
-        click.echo(json_response("ok", data, next_cmd=f"autoagent trace grade {trace_id}"))
+        click.echo(json_response("ok", data, next_cmd=f"agentlab trace grade {trace_id}"))
     else:
         click.echo(f"\nTrace: {trace_id}")
         click.echo(f"  Events:      {len(events)}")
@@ -8209,7 +8209,7 @@ def trace_grade(trace_id: str, db: str) -> None:
     """Grade all spans in a trace.
 
     Examples:
-      autoagent trace grade abc-123
+      agentlab trace grade abc-123
     """
     from observer.trace_grading import TraceGrader
     from observer.traces import TraceStore
@@ -8240,8 +8240,8 @@ def trace_blame(window: str, top_n: int, db: str) -> None:
     """Build a blame map of failure clusters.
 
     Examples:
-      autoagent trace blame --window 24h
-      autoagent trace blame --window 7d --top 5
+      agentlab trace blame --window 24h
+      agentlab trace blame --window 7d --top 5
     """
     from observer.blame_map import BlameMap
     from observer.trace_grading import TraceGrader
@@ -8274,7 +8274,7 @@ def trace_graph(trace_id: str, db: str) -> None:
     """Render a trace as a dependency graph with critical-path analysis.
 
     Examples:
-      autoagent trace graph abc-123
+      agentlab trace graph abc-123
     """
     from observer.trace_grading import TraceGrader
     from observer.trace_graph import TraceGraph
@@ -8316,8 +8316,8 @@ def trace_promote(trace_id: str, eval_cases_dir: str, db: str, json_output: bool
     """Promote a trace to an eval case file in the active eval set.
 
     Examples:
-      autoagent trace promote abc-123
-      autoagent trace promote latest
+      agentlab trace promote abc-123
+      agentlab trace promote latest
     """
     from cli.stream2_helpers import json_response, write_trace_eval_case
     from observer.trace_promoter import TraceCandidate, TracePromoter
@@ -8351,15 +8351,15 @@ def trace_promote(trace_id: str, eval_cases_dir: str, db: str, json_output: bool
             "trace_id": trace_id,
             "eval_case": eval_case,
             "file_path": file_path,
-        }, next_cmd="autoagent eval run"))
+        }, next_cmd="agentlab eval run"))
     else:
         click.echo(click.style("  ✓ ", fg="green") + f"Promoted trace {trace_id} to eval case")
         click.echo(f"  File: {file_path}")
-        _print_next_actions(["autoagent eval run"])
+        _print_next_actions(["agentlab eval run"])
 
 
 # ---------------------------------------------------------------------------
-# autoagent scorer ...
+# agentlab scorer ...
 # ---------------------------------------------------------------------------
 
 @cli.group("scorer")
@@ -8367,9 +8367,9 @@ def scorer_group() -> None:
     """NL Scorer — create eval scorers from natural language descriptions.
 
     Examples:
-      autoagent scorer create "Reward verified account changes" --name account_safety
-      autoagent scorer list
-      autoagent scorer show account_safety
+      agentlab scorer create "Reward verified account changes" --name account_safety
+      agentlab scorer list
+      agentlab scorer show account_safety
     """
 
 
@@ -8382,8 +8382,8 @@ def scorer_create(description: str | None, from_file: str | None, name: str | No
     """Create a scorer from a natural language description.
 
     Examples:
-      autoagent scorer create "The agent should respond within 5 seconds"
-      autoagent scorer create --from-file criteria.txt --name latency_check
+      agentlab scorer create "The agent should respond within 5 seconds"
+      agentlab scorer create --from-file criteria.txt --name latency_check
     """
     if from_file:
         nl_text = Path(from_file).read_text(encoding="utf-8").strip()
@@ -8408,8 +8408,8 @@ def scorer_list(json_output: bool = False) -> None:
     """List all scorer specs in memory.
 
     Examples:
-      autoagent scorer list
-      autoagent scorer list --json
+      agentlab scorer list
+      agentlab scorer list --json
     """
     from cli.stream2_helpers import json_response
 
@@ -8419,7 +8419,7 @@ def scorer_list(json_output: bool = False) -> None:
         if json_output:
             click.echo(json_response("ok", []))
         else:
-            click.echo("No scorers found. Create one with: autoagent scorer create")
+            click.echo("No scorers found. Create one with: agentlab scorer create")
         return
     if json_output:
         data = [{"name": s.name, "version": s.version, "dimensions": len(s.dimensions)} for s in specs]
@@ -8436,7 +8436,7 @@ def scorer_show(name: str) -> None:
     """Show a scorer spec in detail.
 
     Examples:
-      autoagent scorer show latency_check
+      agentlab scorer show latency_check
     """
     scorer = _make_nl_scorer()
     spec = scorer.get(name)
@@ -8457,7 +8457,7 @@ def scorer_refine(name: str, additional_nl: str) -> None:
     """Refine an existing scorer with additional criteria.
 
     Examples:
-      autoagent scorer refine latency_check "Also check for empathy"
+      agentlab scorer refine latency_check "Also check for empathy"
     """
     scorer = _make_nl_scorer()
     try:
@@ -8479,7 +8479,7 @@ def scorer_test(name: str, trace_id: str, db: str) -> None:
     """Test a scorer against a trace.
 
     Examples:
-      autoagent scorer test latency_check --trace abc-123
+      agentlab scorer test latency_check --trace abc-123
     """
     from evals.scorer import EvalResult
     from observer.traces import TraceStore
@@ -8534,7 +8534,7 @@ def scorer_test(name: str, trace_id: str, db: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent quickstart
+# agentlab quickstart
 # ---------------------------------------------------------------------------
 
 @cli.command("full-auto")
@@ -8555,7 +8555,7 @@ def full_auto(ctx: click.Context, cycles: int, max_loop_cycles: int, acknowledge
     if not acknowledge and PermissionManager().decision_for("full_auto.run") != "allow":
         click.echo(click.style(
             "Refusing to run full-auto without explicit acknowledgement.\n"
-            "Re-run with: autoagent full-auto --yes",
+            "Re-run with: agentlab full-auto --yes",
             fg="red",
         ))
         raise SystemExit(1)
@@ -8619,7 +8619,7 @@ def autonomous(scope: str, yes: bool, cycles: int, max_loop_cycles: int) -> None
 @cli.command("quickstart")
 @_banner_flag_options
 @click.option("--agent-name", default="My Agent", show_default=True,
-              help="Agent name for AUTOAGENT.md.")
+              help="Agent name for AGENTLAB.md.")
 @click.option("--verbose", is_flag=True, default=False, help="Show detailed output.")
 @click.option("--dir", "target_dir", default=".", show_default=True,
               help="Directory to initialize in.")
@@ -8639,12 +8639,12 @@ def quickstart(
     A single command that takes you from zero to optimized agent in minutes.
 
     Examples:
-      autoagent quickstart
-      autoagent quickstart --agent-name "Support Bot" --verbose
+      agentlab quickstart
+      agentlab quickstart --agent-name "Support Bot" --verbose
     """
     del quiet, no_banner
     echo_startup_banner(ctx)
-    click.echo(click.style("\n✦ AutoAgent Quickstart", fg="cyan", bold=True))
+    click.echo(click.style("\n✦ AgentLab Quickstart", fg="cyan", bold=True))
     click.echo(click.style(f"  {_soul_line('quickstart')}", fg="cyan"))
     click.echo(click.style("  Running the full golden path...\n", fg="white"))
     _print_cli_plan(
@@ -8778,7 +8778,7 @@ def quickstart(
             click.echo(rec)
 
     click.echo(click.style("\n  ✦ Quickstart complete!", fg="cyan", bold=True))
-    click.echo("    Next: " + click.style("autoagent server", bold=True)
+    click.echo("    Next: " + click.style("agentlab server", bold=True)
                + " to explore results in the web console\n")
 
     if auto_open:
@@ -8792,7 +8792,7 @@ def observer_mod_observe(store: ConversationStore):
 
 
 # ---------------------------------------------------------------------------
-# autoagent demo
+# agentlab demo
 # ---------------------------------------------------------------------------
 
 @cli.group("demo", invoke_without_command=True)
@@ -8825,12 +8825,12 @@ def demo_quickstart(
     More visual and concise than quickstart — designed for presentations.
 
     Examples:
-      autoagent demo quickstart
+      agentlab demo quickstart
     """
     del quiet, no_banner
     echo_startup_banner(ctx)
     click.echo(click.style("\n╔══════════════════════════════════════╗", fg="cyan"))
-    click.echo(click.style("║       AutoAgent Demo Mode            ║", fg="cyan"))
+    click.echo(click.style("║       AgentLab Demo Mode            ║", fg="cyan"))
     click.echo(click.style("╚══════════════════════════════════════╝\n", fg="cyan"))
 
     # Init + seed
@@ -8933,9 +8933,9 @@ def demo_quickstart(
 
     # Done
     click.echo(click.style("\n▸ Demo complete!", fg="cyan", bold=True))
-    click.echo("  Run " + click.style("autoagent server", bold=True)
+    click.echo("  Run " + click.style("agentlab server", bold=True)
                + " to open the web console")
-    click.echo("  Run " + click.style("autoagent quickstart", bold=True)
+    click.echo("  Run " + click.style("agentlab quickstart", bold=True)
                + " for the full multi-cycle experience\n")
 
     if auto_open:
@@ -8975,13 +8975,13 @@ def demo_vp(
 ) -> None:
     """VP-ready demo with 5-act storytelling structure.
 
-    A polished, rehearsed demo flow that showcases AutoAgent's power in under 5 minutes.
+    A polished, rehearsed demo flow that showcases AgentLab's power in under 5 minutes.
     Uses curated synthetic data to tell a compelling story about agent self-healing.
 
     Examples:
-      autoagent demo vp
-      autoagent demo vp --agent-name "Support Bot" --company "Acme Inc"
-      autoagent demo vp --no-pause --web
+      agentlab demo vp
+      agentlab demo vp --agent-name "Support Bot" --company "Acme Inc"
+      agentlab demo vp --no-pause --web
     """
     del quiet, no_banner
     echo_startup_banner(ctx)
@@ -9209,9 +9209,9 @@ def demo_vp(
 
     # Next steps
     click.echo(click.style("Next steps:", fg="white", bold=True))
-    click.echo("  " + click.style("autoagent server", fg="cyan", bold=True) + "    → Open web console to explore details")
-    click.echo("  " + click.style("autoagent cx deploy", fg="cyan", bold=True) + " → Deploy to CX Agent Studio")
-    click.echo("  " + click.style("autoagent replay", fg="cyan", bold=True) + "    → See full optimization history")
+    click.echo("  " + click.style("agentlab server", fg="cyan", bold=True) + "    → Open web console to explore details")
+    click.echo("  " + click.style("agentlab cx deploy", fg="cyan", bold=True) + " → Deploy to CX Agent Studio")
+    click.echo("  " + click.style("agentlab replay", fg="cyan", bold=True) + "    → See full optimization history")
     click.echo()
 
     # Auto-start web console if requested
@@ -9222,11 +9222,11 @@ def demo_vp(
 
 
 # ---------------------------------------------------------------------------
-# autoagent edit — Natural Language Config Editing
+# agentlab edit — Natural Language Config Editing
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# autoagent build show (FR-13: inspect commands)
+# agentlab build show (FR-13: inspect commands)
 # ---------------------------------------------------------------------------
 
 @cli.group("build-inspect", hidden=True)
@@ -9236,11 +9236,11 @@ def build_inspect_group() -> None:
 
 # We add "show" as a subcommand of "build" by converting build to a group isn't
 # feasible without breaking the existing positional-arg command.
-# Instead, add a top-level `autoagent build-show` command.
+# Instead, add a top-level `agentlab build-show` command.
 
 
 # ---------------------------------------------------------------------------
-# autoagent policy (FR-13: inspect commands)
+# agentlab policy (FR-13: inspect commands)
 # ---------------------------------------------------------------------------
 
 @cli.group("policy")
@@ -9254,8 +9254,8 @@ def policy_list(json_output: bool = False) -> None:
     """List all policy artifacts.
 
     Examples:
-      autoagent policy list
-      autoagent policy list --json
+      agentlab policy list
+      agentlab policy list --json
     """
     from cli.stream2_helpers import json_response, list_policies
 
@@ -9265,7 +9265,7 @@ def policy_list(json_output: bool = False) -> None:
         return
     if not policies:
         click.echo("No policy artifacts found.")
-        click.echo("Create one with: autoagent rl train")
+        click.echo("Create one with: agentlab rl train")
         return
     click.echo(f"\nPolicy artifacts ({len(policies)}):\n")
     click.echo(f"{'Policy ID':<16}  {'Name':<20}  {'Version':>8}  {'Status':<10}  {'Mode'}")
@@ -9283,8 +9283,8 @@ def policy_show(policy_id_or_name: str, json_output: bool = False) -> None:
     Supports selectors: latest, active.
 
     Examples:
-      autoagent policy show my_policy
-      autoagent policy show latest --json
+      agentlab policy show my_policy
+      agentlab policy show latest --json
     """
     from cli.stream2_helpers import get_policy, is_selector, json_response, list_policies
 
@@ -9318,7 +9318,7 @@ def policy_show(policy_id_or_name: str, json_output: bool = False) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent autofix show (FR-13: inspect commands)
+# agentlab autofix show (FR-13: inspect commands)
 # ---------------------------------------------------------------------------
 
 @autofix_group.command("show")
@@ -9328,8 +9328,8 @@ def autofix_show(proposal_id: str, json_output: bool = False) -> None:
     """Show details for an autofix proposal.
 
     Examples:
-      autoagent autofix show abc123
-      autoagent autofix show latest --json
+      agentlab autofix show abc123
+      agentlab autofix show latest --json
     """
     from cli.stream2_helpers import is_selector, json_response
     from optimizer.autofix import AutoFixStore
@@ -9403,9 +9403,9 @@ def edit(description: str | None, interactive: bool, dry_run: bool, json_output:
     """Apply natural language edits to agent config.
 
     Examples:
-      autoagent edit "Make the billing agent more empathetic"
-      autoagent edit "Reduce response verbosity" --dry-run
-      autoagent edit --interactive
+      agentlab edit "Make the billing agent more empathetic"
+      agentlab edit "Reduce response verbosity" --dry-run
+      agentlab edit --interactive
     """
     from optimizer.nl_editor import NLEditor
 
@@ -9416,7 +9416,7 @@ def edit(description: str | None, interactive: bool, dry_run: bool, json_output:
 
     if interactive:
         workspace = discover_workspace()
-        click.echo("AutoAgent Edit")
+        click.echo("AgentLab Edit")
         click.echo(f"Workspace: {workspace.root if workspace is not None else Path.cwd()}")
         click.echo("Type 'help' for examples, or 'quit' to exit.")
         while True:
@@ -9446,7 +9446,7 @@ def edit(description: str | None, interactive: bool, dry_run: bool, json_output:
         return
 
     if not description:
-        click.echo("Usage: autoagent edit \"description\" or autoagent edit --interactive")
+        click.echo("Usage: agentlab edit \"description\" or agentlab edit --interactive")
         return
 
     result = editor.apply_and_eval(description, current_config)
@@ -9536,7 +9536,7 @@ def explain(verbose: bool, db: str, configs_dir: str, memory_db: str, json_outpu
             "cycle_count": cycle_count,
             "config_version": dep_status.get("active_version"),
         }
-        click.echo(json_response("ok", data, next_cmd="autoagent status"))
+        click.echo(json_response("ok", data, next_cmd="agentlab status"))
         return
 
     click.echo(click.style(header, bold=True))
@@ -9626,13 +9626,13 @@ def explain(verbose: bool, db: str, configs_dir: str, memory_db: str, json_outpu
     click.echo(click.style("Recommendation:", bold=True))
     if top_bucket:
         click.echo(f"  Focus on {top_bucket.replace('_', ' ')} accuracy. Run:")
-        click.echo("  " + click.style("autoagent runbook apply fix-retrieval-grounding", bold=True))
+        click.echo("  " + click.style("agentlab runbook apply fix-retrieval-grounding", bold=True))
     elif metrics.success_rate < 0.75:
         click.echo("  Run an optimization cycle to improve overall quality:")
-        click.echo("  " + click.style("autoagent optimize --cycles 3", bold=True))
+        click.echo("  " + click.style("agentlab optimize --cycles 3", bold=True))
     else:
         click.echo("  Agent is performing well. Continue monitoring with:")
-        click.echo("  " + click.style("autoagent status", bold=True))
+        click.echo("  " + click.style("agentlab status", bold=True))
 
     # Verbose: per-bucket details and full score history
     if verbose:
@@ -9686,7 +9686,7 @@ def diagnose(interactive: bool, json_output: bool, db: str, configs_dir: str, me
     summary = session.start()
 
     if json_output:
-        click.echo(json_response("ok", session.to_dict(), next_cmd="autoagent explain"))
+        click.echo(json_response("ok", session.to_dict(), next_cmd="agentlab explain"))
         return
 
     click.echo(summary)
@@ -9695,7 +9695,7 @@ def diagnose(interactive: bool, json_output: bool, db: str, configs_dir: str, me
         return
 
     # Interactive REPL
-    click.echo("\nAutoAgent Diagnosis")
+    click.echo("\nAgentLab Diagnosis")
     click.echo(f"Workspace: {workspace.root if workspace is not None else Path.cwd()}")
     click.echo("Type 'help' for guidance, or 'quit' to exit.")
     while True:
@@ -9738,17 +9738,17 @@ def replay(limit: int, memory_db: str, json_output: bool = False) -> None:
             }
             for i, attempt in enumerate(reversed(attempts))
         ]
-        click.echo(json_response("ok", data, next_cmd="autoagent status"))
+        click.echo(json_response("ok", data, next_cmd="agentlab status"))
         return
 
-    click.echo(click.style("AutoAgent Optimization History", bold=True))
+    click.echo(click.style("AgentLab Optimization History", bold=True))
     click.echo(click.style("━" * 30, fg="cyan"))
     click.echo()
 
     if not attempts:
         click.echo(click.style("  No optimization history yet.", fg="yellow"))
         click.echo()
-        click.echo("  Run " + click.style("autoagent optimize", bold=True) + " to start the first cycle.")
+        click.echo("  Run " + click.style("agentlab optimize", bold=True) + " to start the first cycle.")
         return
 
     # reverse to chronological order (recent() returns newest first)
@@ -9779,15 +9779,15 @@ def replay(limit: int, memory_db: str, json_output: bool = False) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent cx (CX Agent Studio)
+# agentlab cx (CX Agent Studio)
 # ---------------------------------------------------------------------------
 
-def _load_cx_manifest(workspace: AutoAgentWorkspace | None) -> dict[str, object]:
+def _load_cx_manifest(workspace: AgentLabWorkspace | None) -> dict[str, object]:
     """Load the CX manifest for the current workspace when present."""
 
     if workspace is None:
         return {}
-    manifest_path = workspace.autoagent_dir / "cx" / "manifest.json"
+    manifest_path = workspace.agentlab_dir / "cx" / "manifest.json"
     if not manifest_path.exists():
         return {}
     try:
@@ -9843,7 +9843,7 @@ def _resolve_cx_config_and_snapshot(
     resolved_snapshot_path = snapshot_path or str(manifest.get("snapshot_path") or "")
 
     if not resolved_config_path:
-        raise click_error("Config path is required. Pass --config or run inside an AutoAgent workspace.")
+        raise click_error("Config path is required. Pass --config or run inside an AgentLab workspace.")
     if not resolved_snapshot_path:
         raise click_error("Snapshot path is required. Pass --snapshot or run inside a CX-imported workspace.")
 
@@ -9912,7 +9912,7 @@ def cx_import_cmd(
     credentials: str | None,
     include_test_cases: bool,
 ) -> None:
-    """Import a CX agent into AutoAgent format."""
+    """Import a CX agent into AgentLab format."""
     from cx_studio import CxAuth, CxClient, CxImporter
     from cx_studio.types import CxAgentRef
 
@@ -9942,7 +9942,7 @@ def cx_import_cmd(
 @click.option("--project", default=None, help="GCP project ID.")
 @click.option("--location", default=None, help="Agent location.")
 @click.option("--agent", "agent_option", default=None, help="CX agent ID.")
-@click.option("--config", "config_path", default=None, help="AutoAgent config YAML path.")
+@click.option("--config", "config_path", default=None, help="AgentLab config YAML path.")
 @click.option("--snapshot", "snapshot_path", default=None, help="CX snapshot JSON from import.")
 @click.option("--credentials", default=None, help="Path to service account JSON.")
 @click.option("--dry-run", is_flag=True, help="Preview changes without pushing.")
@@ -10005,7 +10005,7 @@ def cx_export_cmd(
 @click.option("--project", default=None, help="GCP project ID.")
 @click.option("--location", default=None, help="Agent location.")
 @click.option("--agent", "agent_option", default=None, help="CX agent ID.")
-@click.option("--config", "config_path", default=None, help="AutoAgent config YAML path.")
+@click.option("--config", "config_path", default=None, help="AgentLab config YAML path.")
 @click.option("--snapshot", "snapshot_path", default=None, help="CX snapshot JSON from import.")
 @click.option("--credentials", default=None, help="Path to service account JSON.")
 def cx_diff_cmd(
@@ -10059,7 +10059,7 @@ def cx_diff_cmd(
 @click.option("--project", default=None, help="GCP project ID.")
 @click.option("--location", default=None, help="Agent location.")
 @click.option("--agent", "agent_option", default=None, help="CX agent ID.")
-@click.option("--config", "config_path", default=None, help="AutoAgent config YAML path.")
+@click.option("--config", "config_path", default=None, help="AgentLab config YAML path.")
 @click.option("--snapshot", "snapshot_path", default=None, help="CX snapshot JSON from import.")
 @click.option("--credentials", default=None, help="Path to service account JSON.")
 @click.option(
@@ -10204,7 +10204,7 @@ def cx_status_cmd(project: str, location: str, agent_id: str, credentials: str |
 
 
 # ---------------------------------------------------------------------------
-# autoagent adk (Agent Development Kit)
+# agentlab adk (Agent Development Kit)
 # ---------------------------------------------------------------------------
 @cli.group("adk")
 def adk_group() -> None:
@@ -10370,7 +10370,7 @@ def adk_diff_cmd(path: str, snapshot: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent dataset ...
+# agentlab dataset ...
 # ---------------------------------------------------------------------------
 
 @cli.group()
@@ -10431,7 +10431,7 @@ def dataset_stats(dataset_id: str, json_output: bool = False) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent outcomes ...
+# agentlab outcomes ...
 # ---------------------------------------------------------------------------
 
 @cli.group()
@@ -10455,7 +10455,7 @@ def outcomes_import(source: str, file_path: str | None) -> None:
 
 
 # ---------------------------------------------------------------------------
-# autoagent release ...
+# agentlab release ...
 # ---------------------------------------------------------------------------
 
 @cli.group()
@@ -10463,8 +10463,8 @@ def release() -> None:
     """Manage signed release objects.
 
     Examples:
-      autoagent release create --experiment-id exp-demo
-      autoagent release list
+      agentlab release create --experiment-id exp-demo
+      agentlab release list
     """
     pass
 
@@ -10484,7 +10484,7 @@ def release_list(json_output: bool = False) -> None:
 
     if not releases:
         click.echo("No release objects found.")
-        click.echo("Create one with: autoagent release create --experiment-id <id>")
+        click.echo("Create one with: agentlab release create --experiment-id <id>")
         return
 
     click.echo(f"\nRelease objects ({len(releases)}):\n")
@@ -10507,10 +10507,10 @@ def release_create(
 ) -> None:
     """Create a new release object from an experiment.
 
-    Persists the release to .autoagent/releases/ as a JSON file.
+    Persists the release to .agentlab/releases/ as a JSON file.
 
     Examples:
-      autoagent release create --experiment-id exp-abc123
+      agentlab release create --experiment-id exp-abc123
     """
     from cli.stream2_helpers import ReleaseStore, json_response
 
@@ -10522,7 +10522,7 @@ def release_create(
             "status": "DRAFT",
         }
         if json_output:
-            click.echo(json_response("ok", preview, next_cmd="autoagent release create --experiment-id <id>"))
+            click.echo(json_response("ok", preview, next_cmd="agentlab release create --experiment-id <id>"))
         else:
             click.echo("Dry run: release create preview")
             click.echo(f"  Experiment: {experiment_id}")
@@ -10533,7 +10533,7 @@ def release_create(
     release = store.create(experiment_id, config_version=config_version)
 
     if json_output:
-        click.echo(json_response("ok", release, next_cmd=f"autoagent release list"))
+        click.echo(json_response("ok", release, next_cmd=f"agentlab release list"))
         return
 
     click.echo(click.style(f"Applied: created release {release['release_id']}", fg="green"))
@@ -10541,7 +10541,7 @@ def release_create(
     click.echo(f"  Experiment: {experiment_id}")
     click.echo(f"  Status:     {release['status']}")
     click.echo(f"  Created:    {release['created_at']}")
-    click.echo(f"  Path:       .autoagent/releases/{release['release_id']}.json")
+    click.echo(f"  Path:       .agentlab/releases/{release['release_id']}.json")
 
 
 @cli.command("ship", hidden=True)
@@ -10552,7 +10552,7 @@ def release_create(
 def ship(config_version: int | None, experiment_id: str | None, yes: bool, json_output: bool = False) -> None:
     """Create a release and deploy the selected config as a canary."""
     click.echo(click.style(
-        "Tip: use `autoagent deploy --auto-review` for the same result.",
+        "Tip: use `agentlab deploy --auto-review` for the same result.",
         fg="yellow",
     ))
     from cli.stream2_helpers import ReleaseStore, json_response
@@ -10579,7 +10579,7 @@ def ship(config_version: int | None, experiment_id: str | None, yes: bool, json_
     generated_experiment_id = experiment_id or f"ship-v{selected_version:03d}"
     if not yes and not json_output:
         click.confirm(
-            f"Ship v{selected_version:03d} to the autoagent canary target?",
+            f"Ship v{selected_version:03d} to the agentlab canary target?",
             abort=True,
         )
 
@@ -10593,23 +10593,23 @@ def ship(config_version: int | None, experiment_id: str | None, yes: bool, json_
         "release_id": release["release_id"],
         "experiment_id": generated_experiment_id,
         "pending_review_cards": pending_reviews,
-        "target": "autoagent",
+        "target": "agentlab",
         "deployment": "canary",
     }
     if json_output:
-        click.echo(json_response("ok", payload, next_cmd="autoagent status"))
+        click.echo(json_response("ok", payload, next_cmd="agentlab status"))
         return
 
     click.echo(click.style("\n✦ Ship", fg="cyan", bold=True))
     click.echo(f"  Pending review items: {pending_reviews}")
     click.echo(click.style(f"Applied: created release {release['release_id']}", fg="green"))
     click.echo(f"  Deploying: v{selected_version:03d} from {Path(CONFIGS_DIR) / selected['filename']}")
-    click.echo("  Target:    autoagent canary")
+    click.echo("  Target:    agentlab canary")
     click.echo(click.style(f"Applied: deployed v{selected_version:03d} as canary", fg="green"))
 
 
 # ---------------------------------------------------------------------------
-# autoagent benchmark ...
+# agentlab benchmark ...
 # ---------------------------------------------------------------------------
 
 @cli.group()
@@ -10758,7 +10758,7 @@ def rl_jobs(status):
 def rl_eval(policy_id, json_output: bool = False):
     """Evaluate a policy artifact offline.
 
-    Supports selectors: ``autoagent rl eval latest``
+    Supports selectors: ``agentlab rl eval latest``
     """
     from cli.stream2_helpers import is_selector, json_response
     from policy_opt.registry import PolicyArtifactRegistry
@@ -10918,10 +10918,10 @@ def import_group() -> None:
 @click.option("--configs-dir", default=CONFIGS_DIR, show_default=True, help="Configs directory.")
 @click.option("--json", "json_output", "-j", is_flag=True, help="Output as JSON.")
 def import_config_alias(file_path: str, configs_dir: str, json_output: bool = False) -> None:
-    """Alias for `autoagent config import`."""
+    """Alias for `agentlab config import`."""
     from cli.stream2_helpers import ConfigImporter, json_response
 
-    _echo_deprecation("autoagent import config", "autoagent config import")
+    _echo_deprecation("agentlab import config", "agentlab config import")
     importer = ConfigImporter(configs_dir=configs_dir)
     try:
         result = importer.import_config(file_path)
@@ -10933,7 +10933,7 @@ def import_config_alias(file_path: str, configs_dir: str, json_output: bool = Fa
         raise SystemExit(1)
 
     if json_output:
-        click.echo(json_response("ok", result, next_cmd=f"autoagent config show {result['version']}"))
+        click.echo(json_response("ok", result, next_cmd=f"agentlab config show {result['version']}"))
         return
 
     click.echo(click.style("\n✦ Config Imported", fg="cyan", bold=True))
@@ -10956,7 +10956,7 @@ def import_transcript_upload(archive: Path) -> None:
 
     from optimizer.transcript_intelligence import TranscriptIntelligenceService
 
-    _echo_deprecation("autoagent import transcript upload", "autoagent intelligence import")
+    _echo_deprecation("agentlab import transcript upload", "agentlab intelligence import")
     archive = _resolve_invocation_input_path(archive)
     if not archive.exists():
         raise click.ClickException(f"File does not exist: {archive}")
@@ -10979,7 +10979,7 @@ def import_transcript_upload(archive: Path) -> None:
 @click.argument("report_id")
 def import_transcript_report(report_id: str) -> None:
     """Show a stored transcript report as JSON for backward compatibility."""
-    _echo_deprecation("autoagent import transcript report", "autoagent intelligence report show")
+    _echo_deprecation("agentlab import transcript report", "agentlab intelligence report show")
     entry = TranscriptReportStore().get_report(report_id)
     if entry is None:
         raise click.ClickException(f"Unknown transcript intelligence report: {report_id}")
@@ -10993,8 +10993,8 @@ def import_transcript_report(report_id: str) -> None:
 def import_transcript_generate_agent(report_id: str, prompt: str | None, output_path: Path) -> None:
     """Generate an agent config from a stored transcript report."""
     _echo_deprecation(
-        "autoagent import transcript generate-agent",
-        "autoagent intelligence generate-agent",
+        "agentlab import transcript generate-agent",
+        "agentlab intelligence generate-agent",
     )
     entry = TranscriptReportStore().get_report(report_id)
     if entry is None:

@@ -1,7 +1,7 @@
 - generic [ref=e3]:
   - complementary [ref=e4]:
     - generic [ref=e5]:
-      - generic [ref=e6]: AutoAgent
+      - generic [ref=e6]: AgentLab
       - generic [ref=e7]: VNextCC
     - navigation [ref=e8]:
       - generic [ref=e9]:
@@ -202,4 +202,4 @@
           - img [ref=e269]
           - heading "No experiments yet" [level=3] [ref=e271]
           - paragraph [ref=e272]: Experiments appear after optimization cycles propose and evaluate config changes.
-          - code [ref=e273]: autoagent optimize --cycles 3
+          - code [ref=e273]: agentlab optimize --cycles 3

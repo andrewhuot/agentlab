@@ -1,4 +1,4 @@
-"""Adapter converting AutoAgent trace events to OpenTelemetry spans.
+"""Adapter converting AgentLab trace events to OpenTelemetry spans.
 
 Maps to GenAI semantic conventions (gen_ai.* namespace) per
 https://opentelemetry.io/docs/specs/semconv/gen-ai/
@@ -47,7 +47,7 @@ GENAI_ATTRIBUTES: dict[str, str] = {
     "tool.call.id": "gen_ai.tool.call.id",
 }
 
-# Map AutoAgent event_type values to span creation strategies
+# Map AgentLab event_type values to span creation strategies
 _EVENT_TYPE_MAP: dict[str, str] = {
     "model_call": "llm",
     "model_response": "llm",
@@ -63,11 +63,11 @@ _EVENT_TYPE_MAP: dict[str, str] = {
 
 
 class OtelSpanAdapter:
-    """Converts AutoAgent trace events into OTel spans with GenAI semantic attributes."""
+    """Converts AgentLab trace events into OTel spans with GenAI semantic attributes."""
 
     def __init__(
         self,
-        service_name: str = "autoagent",
+        service_name: str = "agentlab",
         service_version: str = "1.0.0",
     ) -> None:
         self.service_name = service_name
@@ -75,7 +75,7 @@ class OtelSpanAdapter:
         self._resource = OtelResource(
             service_name=service_name,
             service_version=service_version,
-            attributes={"gen_ai.system": "autoagent"},
+            attributes={"gen_ai.system": "agentlab"},
         )
 
     # ------------------------------------------------------------------
@@ -83,7 +83,7 @@ class OtelSpanAdapter:
     # ------------------------------------------------------------------
 
     def convert_trace_event(self, event: dict[str, Any]) -> OtelSpan:
-        """Convert a single AutoAgent trace event dict to an OtelSpan.
+        """Convert a single AgentLab trace event dict to an OtelSpan.
 
         The event dict is expected to carry the same fields as TraceEvent.
         """
@@ -141,7 +141,7 @@ class OtelSpanAdapter:
         end_nano = start_nano + latency_ns if latency_ns else start_nano
 
         attrs = self._extract_genai_attributes(event)
-        attrs["gen_ai.system"] = "autoagent"
+        attrs["gen_ai.system"] = "agentlab"
         tokens_in = event.get("tokens_in", 0) or 0
         tokens_out = event.get("tokens_out", 0) or 0
         if tokens_in:
@@ -197,7 +197,7 @@ class OtelSpanAdapter:
 
         attrs = self._extract_genai_attributes(event)
         attrs["gen_ai.tool.name"] = tool_name
-        attrs["gen_ai.system"] = "autoagent"
+        attrs["gen_ai.system"] = "agentlab"
         if event.get("agent_path"):
             attrs["gen_ai.agent.name"] = event["agent_path"]
         if event.get("tool_input"):
@@ -240,7 +240,7 @@ class OtelSpanAdapter:
         end_nano = start_nano
 
         attrs = self._extract_genai_attributes(event)
-        attrs["gen_ai.system"] = "autoagent"
+        attrs["gen_ai.system"] = "agentlab"
         attrs["gen_ai.agent.name"] = from_agent
         attrs["gen_ai.agent.transfer.destination"] = to_agent
         if event.get("agent_path"):
@@ -273,7 +273,7 @@ class OtelSpanAdapter:
         end_nano = start_nano + latency_ns if latency_ns else start_nano
 
         attrs = self._extract_genai_attributes(event)
-        attrs["gen_ai.system"] = "autoagent"
+        attrs["gen_ai.system"] = "agentlab"
         if event.get("session_id"):
             attrs["session.id"] = event["session_id"]
         if event.get("invocation_id"):
@@ -322,7 +322,7 @@ class OtelSpanAdapter:
         metadata = event.get("metadata") or {}
         for k, v in metadata.items():
             if isinstance(v, (str, int, float, bool)):
-                attrs[f"autoagent.{k}"] = v
+                attrs[f"agentlab.{k}"] = v
 
         return attrs
 

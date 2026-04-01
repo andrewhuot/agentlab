@@ -20,7 +20,7 @@ class TeamMember:
 class TeamManager:
     """Simple file-based team management."""
 
-    def __init__(self, config_path: str = ".autoagent/team.json"):
+    def __init__(self, config_path: str = ".agentlab/team.json"):
         self.config_path = Path(config_path)
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self._ensure_config()

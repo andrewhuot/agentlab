@@ -42,7 +42,7 @@ class AutoInstrumentor:
         self._resource = OtelResource(
             service_name=adapter.service_name,
             service_version=adapter.service_version,
-            attributes={"gen_ai.system": "autoagent"},
+            attributes={"gen_ai.system": "agentlab"},
         )
 
     # ------------------------------------------------------------------
@@ -87,7 +87,7 @@ class AutoInstrumentor:
         )
 
         attrs: dict[str, Any] = {
-            "gen_ai.system": "autoagent",
+            "gen_ai.system": "agentlab",
             "gen_ai.request.model": model,
             "gen_ai.response.model": model,
             "gen_ai.usage.input_tokens": input_tokens,
@@ -158,7 +158,7 @@ class AutoInstrumentor:
         )
 
         attrs: dict[str, Any] = {
-            "gen_ai.system": "autoagent",
+            "gen_ai.system": "agentlab",
             "gen_ai.tool.name": tool_name,
             "gen_ai.tool.input": str(parameters)[:2048],
         }
@@ -207,7 +207,7 @@ class AutoInstrumentor:
         now_ns = time.time_ns()
 
         attrs: dict[str, Any] = {
-            "gen_ai.system": "autoagent",
+            "gen_ai.system": "agentlab",
             "gen_ai.agent.name": agent_name,
             "gen_ai.agent.id": agent_id,
             "gen_ai.agent.event": event,
@@ -215,7 +215,7 @@ class AutoInstrumentor:
         if metadata:
             for k, v in metadata.items():
                 if isinstance(v, (str, int, float, bool)):
-                    attrs[f"autoagent.agent.{k}"] = v
+                    attrs[f"agentlab.agent.{k}"] = v
 
         span = OtelSpan(
             name=f"gen_ai.agent.{event}",
@@ -254,7 +254,7 @@ class AutoInstrumentor:
         now_ns = time.time_ns()
 
         attrs: dict[str, Any] = {
-            "gen_ai.system": "autoagent",
+            "gen_ai.system": "agentlab",
             "session.id": session_id,
             "session.event": event,
         }
@@ -304,7 +304,7 @@ class AutoInstrumentor:
         now_ns = time.time_ns()
 
         attrs: dict[str, Any] = {
-            "gen_ai.system": "autoagent",
+            "gen_ai.system": "agentlab",
             "callback.type": callback_type,
             "callback.name": callback_name,
             "callback.decision": decision,

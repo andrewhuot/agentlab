@@ -364,14 +364,14 @@ class DiagnoseSession:
         """Format the opening summary shown when a session starts."""
         if not self.clusters:
             return (
-                "AutoAgent Diagnosis\n"
+                "AgentLab Diagnosis\n"
                 "───────────────────\n"
                 "No failure patterns detected. Your agent looks healthy!"
             )
 
         total_failures = sum(c.count for c in self.clusters)
         lines = [
-            "AutoAgent Diagnosis",
+            "AgentLab Diagnosis",
             "───────────────────",
             f"Found {len(self.clusters)} failure cluster(s) across {total_failures} total failures.",
             "",

@@ -24,7 +24,7 @@ from policy_opt.types import PolicyArtifact, PolicyType, TrainingMode
 class RuntimeRLVR:
     """Build datasets and train runtime policies for verifiable subtasks."""
 
-    def __init__(self, output_dir: str = ".autoagent") -> None:
+    def __init__(self, output_dir: str = ".agentlab") -> None:
         self._output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 

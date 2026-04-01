@@ -1,6 +1,6 @@
-"""AutoAgent Assistant — conversational AI interface for the platform.
+"""AgentLab Assistant — conversational AI interface for the platform.
 
-This package provides a natural language interface to all AutoAgent capabilities:
+This package provides a natural language interface to all AgentLab capabilities:
 - Build agents from transcripts, documents, or guided conversation
 - Iterate on agents (diagnose, fix, optimize)
 - Explore conversations with semantic search and clustering

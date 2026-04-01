@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-The skills registry upgrades AutoAgent's skills from string names to executable optimization strategies. Skills become the core knowledge unit — code + knowledge that the optimizer consults before proposing changes.
+The skills registry upgrades AgentLab's skills from string names to executable optimization strategies. Skills become the core knowledge unit — code + knowledge that the optimizer consults before proposing changes.
 
 **New files**: `registry/skill_types.py`, `registry/skill_store.py`, `registry/skill_loader.py`, `registry/skill_learner.py`, `optimizer/skill_proposer.py`, `registry/packs/universal.yaml`, `registry/packs/cx_agent_studio.yaml`, `api/routes/skills.py`, `web/src/pages/Skills.tsx`
 
@@ -83,7 +83,7 @@ class Skill:
     guardrails: list[str]
     eval_criteria: list[EvalCriterion]
     triggers: list[TriggerCondition]
-    author: str = "autoagent-builtin"
+    author: str = "agentlab-builtin"
     tags: list[str] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     proven_improvement: float | None = None

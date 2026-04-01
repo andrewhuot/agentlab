@@ -1,13 +1,13 @@
 # Architecture
 
-This document describes the production backend architecture for AutoAgent VNextCC after backend hardening.
+This document describes the production backend architecture for AgentLab VNextCC after backend hardening.
 
 ## System Topology
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Operator Interfaces                         │
-│  CLI (`autoagent ...`)   REST (`/api/*`)   Web UI (`/`)           │
+│  CLI (`agentlab ...`)   REST (`/api/*`)   Web UI (`/`)           │
 └──────────────────────────────────┬──────────────────────────────────┘
                                    │
                             ┌──────▼──────┐
@@ -46,15 +46,15 @@ This document describes the production backend architecture for AutoAgent VNextC
                       │ optimizer_memory.db                           │
                       │ eval_history.db                               │
                       │ configs/*.yaml + manifest.json                │
-                      │ .autoagent/loop_checkpoint.json               │
-                      │ .autoagent/dead_letters.db                    │
-                      │ .autoagent/logs/backend.jsonl (+ rotation)    │
+                      │ .agentlab/loop_checkpoint.json               │
+                      │ .agentlab/dead_letters.db                    │
+                      │ .agentlab/logs/backend.jsonl (+ rotation)    │
                       └───────────────────────────────────────────────┘
 ```
 
-## Runtime Configuration (`autoagent.yaml`)
+## Runtime Configuration (`agentlab.yaml`)
 
-`autoagent.yaml` is now the runtime control file for provider, loop reliability, and eval significance behavior.
+`agentlab.yaml` is now the runtime control file for provider, loop reliability, and eval significance behavior.
 
 ### Key Sections
 
@@ -206,7 +206,7 @@ API endpoints:
 - `GracefulShutdown`
   - SIGINT/SIGTERM safe-stop for CLI loop
 
-### CLI Loop Behavior (`autoagent optimize --continuous`)
+### CLI Loop Behavior (`agentlab optimize --continuous`)
 
 The CLI loop is now production-oriented:
 
@@ -247,15 +247,15 @@ Optimization attempts and acceptance metadata including significance fields.
 
 Durable eval run history with provenance and case-level detail.
 
-### `.autoagent/loop_checkpoint.json`
+### `.agentlab/loop_checkpoint.json`
 
 Checkpoint state for cycle resume.
 
-### `.autoagent/dead_letters.db`
+### `.agentlab/dead_letters.db`
 
 Dead-letter queue for failed loop/eval events.
 
-### `.autoagent/logs/backend.jsonl`
+### `.agentlab/logs/backend.jsonl`
 
 Structured JSON logs with rotation.
 

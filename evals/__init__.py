@@ -1,4 +1,4 @@
-"""Eval framework for AutoAgent-VNext."""
+"""Eval framework for AgentLab-VNext."""
 
 from .combined_eval import CombinedEvalResult, CombinedEvaluator
 from .outcome import OutcomeCheck, OutcomeEvaluator, OutcomeResult

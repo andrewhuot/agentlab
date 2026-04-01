@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — Merge CC + Codex v4 Research Ports
+# AgentLab VNextCC — Merge CC + Codex v4 Research Ports
 
 ## Mission
 
@@ -13,11 +13,11 @@ You have two parallel implementations of the same v4 research port. Merge the be
 - `AdaptiveSearchEngine` subclass pattern
 - Loop.py is light (174 lines) — strategy routing not fully wired
 
-**Codex (at `/Users/andrew/Desktop/AutoAgent-VNextCC-Codex/`):**
+**Codex (at `/Users/andrew/Desktop/AgentLab-VNextCC-Codex/`):**
 - 208 tests passing
 - `evals/anti_goodhart.py` (145 lines) — clean single-class guard combining holdout rotation, drift detection, judge variance
 - `optimizer/loop.py` (494 lines) — fully wired strategy routing (simple/adaptive/full)
-- `autoagent.yaml` has all config knobs (search_strategy, bandit_policy, holdout thresholds, drift_threshold, max_judge_variance)
+- `agentlab.yaml` has all config knobs (search_strategy, bandit_policy, holdout thresholds, drift_threshold, max_judge_variance)
 - `CHANGELOG.md` — comprehensive v2.0.0 + v2.1.0 entries
 - New API endpoint: `GET /api/optimize/pareto`
 - Strategy diagnostics in optimize API responses
@@ -32,7 +32,7 @@ You have two parallel implementations of the same v4 research port. Merge the be
    - Anti-Goodhart guard integration in the loop
    - Wire it to use CC's existing `bandit.py`, `curriculum.py`, `holdout.py` modules (not Codex's inline versions)
 
-3. **`autoagent.yaml` config additions** — Add search_strategy, bandit_policy, search budget limits, anti-Goodhart thresholds to the config schema. Update `agent/config/runtime.py` and `agent/config/schema.py` as needed.
+3. **`agentlab.yaml` config additions** — Add search_strategy, bandit_policy, search budget limits, anti-Goodhart thresholds to the config schema. Update `agent/config/runtime.py` and `agent/config/schema.py` as needed.
 
 4. **`CHANGELOG.md`** — Copy Codex's changelog, update it to reflect the merged state.
 
@@ -55,7 +55,7 @@ You have two parallel implementations of the same v4 research port. Merge the be
 1. Read both codebases thoroughly — understand every difference
 2. Copy `evals/anti_goodhart.py` from Codex
 3. Rewrite `optimizer/loop.py` to incorporate Codex's strategy routing while using CC's modules
-4. Update config schema + autoagent.yaml
+4. Update config schema + agentlab.yaml
 5. Port Pareto API endpoint
 6. Port any frontend improvements from Codex
 7. Add CHANGELOG.md
@@ -70,7 +70,7 @@ You have two parallel implementations of the same v4 research port. Merge the be
 - No breaking changes to existing APIs
 - Gemini-first, single-process, SQLite, no new deps
 - Frontend must build clean (TypeScript strict)
-- `autoagent run` with `search_strategy: simple` must work identically to before
+- `agentlab run` with `search_strategy: simple` must work identically to before
 
 ## When Done
 

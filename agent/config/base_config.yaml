@@ -14,7 +14,7 @@ routing:
 
 prompts:
   root: |
-    <role>AutoAgent customer support router.</role>
+    <role>AgentLab customer support router.</role>
     <persona>
       <primary_goal>Route customer requests to the right specialist and keep the conversation moving safely.</primary_goal>
       Be friendly, concise, and easy to follow.

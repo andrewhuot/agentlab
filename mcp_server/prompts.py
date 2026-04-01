@@ -211,7 +211,7 @@ _PROMPT_MAP: dict[str, McpPrompt] = {p.name: p for p in _BUILTIN_PROMPTS}
 
 
 class PromptProvider:
-    """Provides MCP prompts for the AutoAgent system."""
+    """Provides MCP prompts for the AgentLab system."""
 
     def list_prompts(self) -> list[McpPrompt]:
         """Return all available prompts."""

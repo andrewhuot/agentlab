@@ -1,4 +1,4 @@
-"""Core domain objects for AutoAgent — CI/CD for agents.
+"""Core domain objects for AgentLab — CI/CD for agents.
 
 First-class objects: AgentGraphVersion, SkillVersion, ToolContractVersion,
 PolicyPackVersion, EnvironmentSnapshot, GraderBundle, EvalCase,

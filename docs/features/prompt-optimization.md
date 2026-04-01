@@ -10,7 +10,7 @@ The `ProSearchStrategy` orchestrates algorithm selection and execution, integrat
 
 ## Configuration
 
-Enable pro-mode in `autoagent.yaml`:
+Enable pro-mode in `agentlab.yaml`:
 
 ```yaml
 optimizer:
@@ -105,7 +105,7 @@ SIMBA is simple and effective for local refinement when you already have a good 
 
 ```bash
 # Run pro-mode optimization with auto algorithm selection
-autoagent optimize --cycles 5
+agentlab optimize --cycles 5
 
 # Or via the API
 curl -X POST http://localhost:8000/api/optimize/run \

@@ -1,9 +1,9 @@
-# AutoAgent Quality Gate GitHub Action
+# AgentLab Quality Gate GitHub Action
 # Reusable action for running agent quality gates in CI/CD
 
-name: 'AutoAgent Quality Gate'
-description: 'Run AutoAgent quality gate to detect agent regressions'
-author: 'AutoAgent'
+name: 'AgentLab Quality Gate'
+description: 'Run AgentLab quality gate to detect agent regressions'
+author: 'AgentLab'
 
 inputs:
   config_path:
@@ -37,7 +37,7 @@ runs:
       with:
         python-version: ${{ inputs.python_version }}
 
-    - name: Install AutoAgent
+    - name: Install AgentLab
       shell: bash
       run: |
         pip install -e .
@@ -65,7 +65,7 @@ runs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: autoagent-gate-results
+        name: agentlab-gate-results
         path: ${{ inputs.output_path }}
         retention-days: 30
 

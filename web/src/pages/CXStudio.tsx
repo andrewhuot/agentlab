@@ -227,7 +227,7 @@ export function CXStudio() {
     <div className="space-y-6">
       <PageHeader
         title="CX Studio"
-        description="Authenticate to Google Cloud, browse CX agents, import them into AutoAgent workspaces, and review export/sync diffs before pushing changes."
+        description="Authenticate to Google Cloud, browse CX agents, import them into AgentLab workspaces, and review export/sync diffs before pushing changes."
       />
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -238,10 +238,10 @@ export function CXStudio() {
                 Connection
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                Point AutoAgent at the exact CX workspace you want to govern.
+                Point AgentLab at the exact CX workspace you want to govern.
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                This page keeps the live CX agent, the imported snapshot, and the active AutoAgent config in one place so you can see what will change before any write-back happens.
+                This page keeps the live CX agent, the imported snapshot, and the active AgentLab config in one place so you can see what will change before any write-back happens.
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
@@ -408,7 +408,7 @@ export function CXStudio() {
             </div>
 
             <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              Import writes a full AutoAgent workspace, stores a CX snapshot in `.autoagent/cx/`, and links the active config so export, diff, and sync can stay incremental.
+              Import writes a full AgentLab workspace, stores a CX snapshot in `.agentlab/cx/`, and links the active config so export, diff, and sync can stay incremental.
             </div>
 
             {lastImport && (
@@ -460,7 +460,7 @@ export function CXStudio() {
                   aria-label="Snapshot path"
                   value={snapshotPath}
                   onChange={(event) => setSnapshotPath(event.target.value)}
-                  placeholder=".autoagent/cx/snapshot.json"
+                  placeholder=".agentlab/cx/snapshot.json"
                   className="mt-3 w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
                 />
               </label>

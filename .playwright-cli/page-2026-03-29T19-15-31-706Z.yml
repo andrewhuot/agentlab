@@ -1,7 +1,7 @@
 - generic [ref=e3]:
   - complementary [ref=e4]:
     - generic [ref=e5]:
-      - generic [ref=e6]: AutoAgent
+      - generic [ref=e6]: AgentLab
       - generic [ref=e7]: VNextCC
     - navigation [ref=e8]:
       - generic [ref=e9]:
@@ -285,13 +285,13 @@
             - generic [ref=e351]:
               - generic [ref=e352]:
                 - generic [ref=e353]:
-                  - paragraph [ref=e354]: AutoAgent
+                  - paragraph [ref=e354]: AgentLab
                   - paragraph [ref=e355]: Describe the change in plain language. I'll translate it into prompt edits, routing updates, and rollout checks.
                 - generic [ref=e356]:
                   - paragraph [ref=e357]: Change request
                   - paragraph [ref=e358]: Make BillingAgent verify invoices before answering and escalate VIP refund requests sooner.
                 - generic [ref=e359]:
-                  - paragraph [ref=e360]: AutoAgent
+                  - paragraph [ref=e360]: AgentLab
                   - paragraph [ref=e361]: Queued 3 changes for Billing Agent. I converted the request into prompt, policy, and rollout checks so the draft is ready for simulation.
               - generic [ref=e362]:
                 - generic [ref=e363]:

@@ -2220,7 +2220,7 @@ export function useCreateRunbook() {
 }
 
 // ---------------------------------------------------------------------------
-// Project Memory (AUTOAGENT.md)
+// Project Memory (AGENTLAB.md)
 // ---------------------------------------------------------------------------
 
 export function useProjectMemory() {

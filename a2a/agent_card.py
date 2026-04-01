@@ -17,7 +17,7 @@ from a2a.types import AgentCapabilities, AgentCard, AgentSkill
 
 _ARCHETYPES: dict[str, dict[str, Any]] = {
     "optimizer": {
-        "name": "AutoAgent Optimizer",
+        "name": "AgentLab Optimizer",
         "description": (
             "Continuously improves agent configurations through "
             "experiment-driven optimization cycles."
@@ -41,7 +41,7 @@ _ARCHETYPES: dict[str, dict[str, Any]] = {
         ],
     },
     "evaluator": {
-        "name": "AutoAgent Evaluator",
+        "name": "AgentLab Evaluator",
         "description": "Runs evaluation suites and reports graded results.",
         "version": "1.0",
         "skills": [
@@ -62,7 +62,7 @@ _ARCHETYPES: dict[str, dict[str, Any]] = {
         ],
     },
     "assistant": {
-        "name": "AutoAgent Assistant",
+        "name": "AgentLab Assistant",
         "description": "General-purpose agent assistant for conversational tasks.",
         "version": "1.0",
         "skills": [
@@ -79,7 +79,7 @@ _ARCHETYPES: dict[str, dict[str, Any]] = {
 
 
 class AgentCardGenerator:
-    """Generates A2A-compliant agent cards for AutoAgent agents."""
+    """Generates A2A-compliant agent cards for AgentLab agents."""
 
     def generate_card(
         self,
@@ -101,7 +101,7 @@ class AgentCardGenerator:
             A fully-populated AgentCard.
         """
         description = agent_config.get(
-            "description", f"AutoAgent: {agent_name}"
+            "description", f"AgentLab: {agent_name}"
         )
         version = agent_config.get("version", "1.0")
 

@@ -1,6 +1,6 @@
 # Core Concepts
 
-This guide explains the product concepts that show up across the AutoAgent CLI, API, and web console today.
+This guide explains the product concepts that show up across the AgentLab CLI, API, and web console today.
 
 If you are new to the project, start with these ideas:
 
@@ -25,25 +25,25 @@ What each step means in practice:
 - **Review** is where humans approve or reject proposed changes.
 - **Deploy** controls active and canary rollout state.
 
-This loop matters because AutoAgent is not just a prompt editor. It is a local system for iterating on agent behavior with evidence.
+This loop matters because AgentLab is not just a prompt editor. It is a local system for iterating on agent behavior with evidence.
 
 ## Workspace
 
-A workspace is the local directory where AutoAgent stores the things it needs to work on an agent over time.
+A workspace is the local directory where AgentLab stores the things it needs to work on an agent over time.
 
 Typical workspace contents include:
 
-- `autoagent.yaml` for workspace-level settings
+- `agentlab.yaml` for workspace-level settings
 - `configs/` for versioned configs such as `v001.yaml`
 - `evals/` for eval cases and generated suites
-- `.autoagent/` for operational state such as traces, deployment metadata, CX metadata, and local stores
-- `AUTOAGENT.md` for project memory
+- `.agentlab/` for operational state such as traces, deployment metadata, CX metadata, and local stores
+- `AGENTLAB.md` for project memory
 
-When the docs mention "the active workspace", they mean the directory AutoAgent discovered from your current working directory.
+When the docs mention "the active workspace", they mean the directory AgentLab discovered from your current working directory.
 
 ## Config Versions
 
-AutoAgent treats configs as versioned artifacts, not an untracked blob.
+AgentLab treats configs as versioned artifacts, not an untracked blob.
 
 Important terms:
 
@@ -55,31 +55,31 @@ Important terms:
 Common CLI surfaces:
 
 ```bash
-autoagent config list
-autoagent config show
-autoagent config set-active 3
-autoagent build show latest
+agentlab config list
+agentlab config show
+agentlab config set-active 3
+agentlab build show latest
 ```
 
 The web console exposes the same idea through Build, Configs, Compare, and Deploy.
 
 ## Modes: Mock, Live, and Auto
 
-AutoAgent supports three execution modes:
+AgentLab supports three execution modes:
 
 - **mock**: safe local/demo behavior, useful when provider credentials are missing
 - **live**: run against live providers and real integrations
-- **auto**: let AutoAgent choose based on what is configured
+- **auto**: let AgentLab choose based on what is configured
 
 This is why Setup shows both provider readiness and effective mode. A workspace can be healthy in mock mode even before real API keys are configured.
 
 Common CLI surfaces:
 
 ```bash
-autoagent mode show
-autoagent mode set mock
-autoagent mode set live
-autoagent doctor
+agentlab mode show
+agentlab mode set mock
+agentlab mode set live
+agentlab doctor
 ```
 
 ## Instructions
@@ -99,17 +99,17 @@ Why that matters:
 Common CLI surfaces:
 
 ```bash
-autoagent instruction show
-autoagent instruction validate
-autoagent instruction generate --brief "customer support agent for refunds"
-autoagent instruction migrate
+agentlab instruction show
+agentlab instruction validate
+agentlab instruction generate --brief "customer support agent for refunds"
+agentlab instruction migrate
 ```
 
 Plain-text prompts still load, but XML is now the default authoring format.
 
 ## Build Sources
 
-There is no single "one true" way to create an agent in AutoAgent.
+There is no single "one true" way to create an agent in AgentLab.
 
 The current build surface supports four main entry points:
 
@@ -179,16 +179,16 @@ The important concepts are:
 Common CLI surfaces:
 
 ```bash
-autoagent deploy --strategy canary --yes
-autoagent deploy status
-autoagent deploy rollback --yes
+agentlab deploy --strategy canary --yes
+agentlab deploy status
+agentlab deploy rollback --yes
 ```
 
 The review step and deploy step are intentionally separate. Accepting a change does not automatically mean it is fully promoted.
 
 ## Human Control
 
-AutoAgent can automate a lot, but it still exposes explicit human control points.
+AgentLab can automate a lot, but it still exposes explicit human control points.
 
 The most important ones today are:
 
@@ -201,19 +201,19 @@ The most important ones today are:
 Examples:
 
 ```bash
-autoagent review list
-autoagent review apply pending
-autoagent pause
-autoagent resume
-autoagent pin prompts.root
-autoagent unpin prompts.root
+agentlab review list
+agentlab review apply pending
+agentlab pause
+agentlab resume
+agentlab pin prompts.root
+agentlab unpin prompts.root
 ```
 
-These commands live in the advanced surface, so use `autoagent advanced` if you do not see them in the default help.
+These commands live in the advanced surface, so use `agentlab advanced` if you do not see them in the default help.
 
 ## Integrations
 
-AutoAgent now has multiple import and deployment surfaces:
+AgentLab now has multiple import and deployment surfaces:
 
 - **Connect** for OpenAI Agents, Anthropic projects, HTTP runtimes, and transcript imports
 - **CX Studio** for Google CX auth, import, diff, export, and sync workflows

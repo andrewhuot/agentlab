@@ -10,15 +10,15 @@ Provides commands for managing both build-time and run-time skills:
 - Track effectiveness metrics
 
 Usage:
-  autoagent skill list [--kind build|runtime] [--domain <domain>] [--tags <tag1,tag2>]
-  autoagent skill show <skill-id>
-  autoagent skill create --kind build|runtime --interactive
-  autoagent skill install <url-or-name>
-  autoagent skill test <skill-id>
-  autoagent skill compose <skill-ids...> --output skillset.yaml
-  autoagent skill publish <skill-id> [--api-key <key>]
-  autoagent skill effectiveness <skill-id>
-  autoagent skill search <query> [--kind build|runtime]
+  agentlab skill list [--kind build|runtime] [--domain <domain>] [--tags <tag1,tag2>]
+  agentlab skill show <skill-id>
+  agentlab skill create --kind build|runtime --interactive
+  agentlab skill install <url-or-name>
+  agentlab skill test <skill-id>
+  agentlab skill compose <skill-ids...> --output skillset.yaml
+  agentlab skill publish <skill-id> [--api-key <key>]
+  agentlab skill effectiveness <skill-id>
+  agentlab skill search <query> [--kind build|runtime]
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from core.skills.validator import SkillValidator
 from cli.workspace import DEFAULT_LIFECYCLE_SKILL_DB
 
 # Default database path
-DEFAULT_SKILLS_DB = os.environ.get("AUTOAGENT_SKILLS_DB", str(DEFAULT_LIFECYCLE_SKILL_DB))
+DEFAULT_SKILLS_DB = os.environ.get("AGENTLAB_SKILLS_DB", str(DEFAULT_LIFECYCLE_SKILL_DB))
 
 
 def _get_store(db_path: str | None = None) -> SkillStore:
@@ -84,10 +84,10 @@ def skill_list(
     """List all skills with optional filters.
 
     Examples:
-      autoagent skill list
-      autoagent skill list --kind build
-      autoagent skill list --domain customer-support --tags routing,safety
-      autoagent skill list --status active --json
+      agentlab skill list
+      agentlab skill list --kind build
+      agentlab skill list --domain customer-support --tags routing,safety
+      agentlab skill list --status active --json
     """
     store = _get_store(db)
 
@@ -160,8 +160,8 @@ def skill_show(skill_id: str, db: str, json_output: bool) -> None:
     """Show detailed information about a skill.
 
     Examples:
-      autoagent skill show keyword_expansion
-      autoagent skill show my-skill-123 --json
+      agentlab skill show keyword_expansion
+      agentlab skill show my-skill-123 --json
     """
     store = _get_store(db)
 
@@ -196,8 +196,8 @@ def skill_create(kind: str, interactive: bool, from_file: str | None, db: str) -
     """Create a new skill.
 
     Examples:
-      autoagent skill create --kind build --interactive
-      autoagent skill create --kind runtime --from-file my_skill.yaml
+      agentlab skill create --kind build --interactive
+      agentlab skill create --kind runtime --from-file my_skill.yaml
     """
     if from_file:
         # Load from YAML file
@@ -305,9 +305,9 @@ def skill_install(source: str, db: str) -> None:
     - Local file: ./skills/my_skill.yaml
 
     Examples:
-      autoagent skill install keyword_expansion
-      autoagent skill install https://example.com/skills/routing_fix.yaml
-      autoagent skill install ./my_custom_skill.yaml
+      agentlab skill install keyword_expansion
+      agentlab skill install https://example.com/skills/routing_fix.yaml
+      agentlab skill install ./my_custom_skill.yaml
     """
     store = _get_store(db)
     marketplace = _get_marketplace()
@@ -335,8 +335,8 @@ def skill_test(skill_id: str, db: str, full: bool) -> None:
     """Validate and test a skill.
 
     Examples:
-      autoagent skill test keyword_expansion
-      autoagent skill test my-skill --full
+      agentlab skill test keyword_expansion
+      agentlab skill test my-skill --full
     """
     store = _get_store(db)
     validator = _get_validator()
@@ -398,8 +398,8 @@ def skill_compose(skill_ids: tuple[str, ...], output: str, name: str, descriptio
     """Compose multiple skills into a skillset.
 
     Examples:
-      autoagent skill compose skill1 skill2 skill3 --output my_skillset.yaml
-      autoagent skill compose routing_fix safety_guard --name "Core Skillset" --output core.yaml
+      agentlab skill compose skill1 skill2 skill3 --output my_skillset.yaml
+      agentlab skill compose routing_fix safety_guard --name "Core Skillset" --output core.yaml
     """
     if not skill_ids:
         click.echo("Please provide at least one skill ID", err=True)
@@ -472,8 +472,8 @@ def skill_publish(skill_id: str, api_key: str | None, db: str) -> None:
     """Publish a skill to the marketplace.
 
     Examples:
-      autoagent skill publish my_skill
-      autoagent skill publish my_skill --api-key <key>
+      agentlab skill publish my_skill
+      agentlab skill publish my_skill --api-key <key>
     """
     store = _get_store(db)
     marketplace = _get_marketplace()
@@ -515,8 +515,8 @@ def skill_effectiveness(skill_id: str, db: str, json_output: bool) -> None:
     """Show effectiveness metrics for a skill.
 
     Examples:
-      autoagent skill effectiveness keyword_expansion
-      autoagent skill effectiveness my_skill --json
+      agentlab skill effectiveness keyword_expansion
+      agentlab skill effectiveness my_skill --json
     """
     store = _get_store(db)
 
@@ -579,9 +579,9 @@ def skill_search(query: str, kind: str | None, db: str, marketplace: bool, json_
     Searches across skill names, descriptions, capabilities, and tags.
 
     Examples:
-      autoagent skill search routing
-      autoagent skill search "safety policy" --kind build
-      autoagent skill search refund --marketplace
+      agentlab skill search routing
+      agentlab skill search "safety policy" --kind build
+      agentlab skill search refund --marketplace
     """
     if marketplace:
         mp = _get_marketplace()
@@ -676,9 +676,9 @@ def skill_recommend(
     """Recommend skills based on failure patterns or metrics.
 
     Examples:
-      autoagent skill recommend
-      autoagent skill recommend --failure-family routing_error
-      autoagent skill recommend --metric accuracy --json
+      agentlab skill recommend
+      agentlab skill recommend --failure-family routing_error
+      agentlab skill recommend --metric accuracy --json
     """
     store = _get_store(db)
 
@@ -750,9 +750,9 @@ def skill_review(db: str, json_output: bool, min_effectiveness: float | None) ->
     """Interactive review of draft skills for promotion.
 
     Examples:
-      autoagent skill review
-      autoagent skill review --min-effectiveness 0.5
-      autoagent skill review --json
+      agentlab skill review
+      agentlab skill review --min-effectiveness 0.5
+      agentlab skill review --json
     """
     from core.skills.promotion import SkillPromotionWorkflow
 
@@ -802,8 +802,8 @@ def skill_review(db: str, json_output: bool, min_effectiveness: float | None) ->
                 f"{success_rate:<10} {avg_improvement:<10}"
             )
 
-        click.echo("\nUse 'autoagent skill promote <id>' to promote a draft to active.")
-        click.echo("Use 'autoagent skill archive <id>' to archive (reject) a draft.")
+        click.echo("\nUse 'agentlab skill promote <id>' to promote a draft to active.")
+        click.echo("Use 'agentlab skill archive <id>' to archive (reject) a draft.")
 
     finally:
         store.close()
@@ -817,8 +817,8 @@ def skill_promote(skill_id: str, reason: str, db: str) -> None:
     """Promote a draft skill to active status.
 
     Examples:
-      autoagent skill promote autolearn-abc123
-      autoagent skill promote autolearn-abc123 --reason "Proven effective"
+      agentlab skill promote autolearn-abc123
+      agentlab skill promote autolearn-abc123 --reason "Proven effective"
     """
     from core.skills.promotion import SkillPromotionWorkflow
 
@@ -862,7 +862,7 @@ def skill_archive(skill_id: str, reason: str, db: str) -> None:
     """Archive (reject) a draft skill.
 
     Examples:
-      autoagent skill archive autolearn-abc123 --reason "Not effective enough"
+      agentlab skill archive autolearn-abc123 --reason "Not effective enough"
     """
     from core.skills.promotion import SkillPromotionWorkflow
 

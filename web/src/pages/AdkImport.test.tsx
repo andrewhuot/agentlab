@@ -59,7 +59,7 @@ describe('AdkImport', () => {
         options?.onSuccess?.({
           agent_name: 'order_router',
           config_path: 'configs/order_router.yaml',
-          snapshot_path: '.autoagent/order_router.snapshot.json',
+          snapshot_path: '.agentlab/order_router.snapshot.json',
           tools_imported: 3,
           surfaces_mapped: ['instructions', 'tools'],
         });
@@ -72,7 +72,7 @@ describe('AdkImport', () => {
       data: {
         agent_name: 'order_router',
         config_path: 'configs/order_router.yaml',
-        snapshot_path: '.autoagent/order_router.snapshot.json',
+        snapshot_path: '.agentlab/order_router.snapshot.json',
         tools_imported: 3,
         surfaces_mapped: ['instructions', 'tools'],
       },

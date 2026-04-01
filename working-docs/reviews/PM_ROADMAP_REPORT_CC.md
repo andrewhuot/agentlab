@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — PM Review: Product Assessment, Competitive Analysis & Roadmap
+# AgentLab VNextCC — PM Review: Product Assessment, Competitive Analysis & Roadmap
 
 **Reviewer:** Claude Sonnet 4.6 (Technical PM + Distinguished Engineer)
 **Date:** 2026-03-29
@@ -8,9 +8,9 @@
 
 ## Part 1: Product Assessment
 
-### What Is AutoAgent VNextCC?
+### What Is AgentLab VNextCC?
 
-AutoAgent is a continuous optimization platform for AI agents. The core thesis: instead of manually tuning agent prompts and configs, you point AutoAgent at a running agent, and it closes the loop autonomously — tracing failures, diagnosing root causes, generating typed mutations, running statistically-rigorous evals, gating on hard constraints, and deploying winners. The loop runs for hours or days unattended.
+AgentLab is a continuous optimization platform for AI agents. The core thesis: instead of manually tuning agent prompts and configs, you point AgentLab at a running agent, and it closes the loop autonomously — tracing failures, diagnosing root causes, generating typed mutations, running statistically-rigorous evals, gating on hard constraints, and deploying winners. The loop runs for hours or days unattended.
 
 ```
 TRACE → DIAGNOSE → SEARCH → EVAL → GATE → DEPLOY → LEARN → REPEAT
@@ -477,7 +477,7 @@ The system optimizes agents but doesn't **receive live telemetry from running ag
 
 | Platform | Autonomous Optimization | Agent-Specific Evals | Real-Time Telemetry | Statistical Rigor | Auth/Enterprise | Pricing |
 |---|---|---|---|---|---|---|
-| **AutoAgent** | ✅ Unique | ✅ Strong | ❌ Gap | ✅ Best-in-class | ❌ Gap | OSS/Self-host |
+| **AgentLab** | ✅ Unique | ✅ Strong | ❌ Gap | ✅ Best-in-class | ❌ Gap | OSS/Self-host |
 | Braintrust | ❌ | ⚠️ Partial | ✅ SDK push | ❌ | ✅ | $100+/mo |
 | LangSmith | ❌ | ⚠️ LC-only | ✅ SDK push | ❌ | ✅ | $39+/mo |
 | Arize Phoenix | ❌ | ⚠️ Partial | ✅ OTel | ⚠️ | ✅ | OSS + $150/mo |
@@ -489,7 +489,7 @@ The system optimizes agents but doesn't **receive live telemetry from running ag
 | Parloa | ❌ | ❌ | ⚠️ | ❌ | ✅ Enterprise | €150K+/yr |
 | Vertex Agent Builder | ❌ | ⚠️ Partial | ✅ GCP | ❌ | ✅ GCP IAM | Pay-per-use |
 
-**AutoAgent's unique moat:** Autonomous optimization loop with statistical rigor. Nobody else has this. Every competitor requires humans to interpret eval results and manually make changes. We close the loop.
+**AgentLab's unique moat:** Autonomous optimization loop with statistical rigor. Nobody else has this. Every competitor requires humans to interpret eval results and manually make changes. We close the loop.
 
 ---
 
@@ -508,7 +508,7 @@ The system optimizes agents but doesn't **receive live telemetry from running ag
 
 | # | Category | Effort | Impact | Description + Acceptance Criteria |
 |---|---|---|---|---|
-| 1 | Core | S | 10 | **Wire a real agent function into EvalRunner by default.** Currently `agent_fn = mock_agent_response` means all eval scores are simulated. AC: EvalRunner should call the configured agent when `use_mock=False`; add a flag `--real-agent` to `autoagent eval run`; update server to wire `agent.run()` into the eval runner at startup. |
+| 1 | Core | S | 10 | **Wire a real agent function into EvalRunner by default.** Currently `agent_fn = mock_agent_response` means all eval scores are simulated. AC: EvalRunner should call the configured agent when `use_mock=False`; add a flag `--real-agent` to `agentlab eval run`; update server to wire `agent.run()` into the eval runner at startup. |
 | 2 | UX | S | 9 | **Surface mock mode prominently in the UI.** Dashboard, Eval Runs, and Live Optimize pages must show a persistent warning banner when `use_mock=True`. AC: Yellow banner "Running in mock mode — add API keys for live optimization" visible on all optimization-adjacent pages; dismissible only after keys are configured. |
 | 3 | Core | M | 9 | **Replace keyword-based intent classification with LLM-backed classification.** `transcript_intelligence.py` uses `INTENT_KEYWORDS` hardcoded dict. AC: When LLM is available, classify intent via structured LLM call with JSON output; fall back to keyword matching when in mock mode; add accuracy metric to TranscriptReport. |
 | 4 | Enterprise | M | 10 | **Add authentication layer.** Zero auth on any endpoint. AC: Optional auth mode (`AUTH_MODE=bearer/none` env var); bearer token validation middleware; API key management endpoint; docs on how to set it up. |
@@ -519,22 +519,22 @@ The system optimizes agents but doesn't **receive live telemetry from running ag
 
 | # | Category | Effort | Impact | Description + Acceptance Criteria |
 |---|---|---|---|---|
-| 5 | Core | L | 10 | **Real-time production telemetry push SDK.** The platform can't watch production traffic today. AC: Python SDK (`autoagent.trace()`) that pushes span telemetry to the AutoAgent server via HTTP; OpenTelemetry-compatible OTLP endpoint as alternative; traces flow into TraceStore and feed the optimization loop. |
-| 6 | Integration | M | 9 | **OpenTelemetry-compatible trace ingestion endpoint.** AC: `POST /api/traces/otlp` accepting OTLP JSON/protobuf; mapping from OTel span attributes to AutoAgent trace schema; documentation on how to instrument LangChain, LlamaIndex, and ADK apps. |
+| 5 | Core | L | 10 | **Real-time production telemetry push SDK.** The platform can't watch production traffic today. AC: Python SDK (`agentlab.trace()`) that pushes span telemetry to the AgentLab server via HTTP; OpenTelemetry-compatible OTLP endpoint as alternative; traces flow into TraceStore and feed the optimization loop. |
+| 6 | Integration | M | 9 | **OpenTelemetry-compatible trace ingestion endpoint.** AC: `POST /api/traces/otlp` accepting OTLP JSON/protobuf; mapping from OTel span attributes to AgentLab trace schema; documentation on how to instrument LangChain, LlamaIndex, and ADK apps. |
 | 7 | Enterprise | L | 10 | **Multi-tenancy: org/workspace isolation.** Single-user local tool today. AC: Workspace model in DB (workspace_id foreign key on all records); per-workspace configs, traces, and experiments; workspace admin and member roles; no cross-workspace data leakage. |
 | 8 | Infra | L | 9 | **Postgres support as primary DB.** AC: SQLAlchemy ORM layer replacing direct sqlite3 calls; `DATABASE_URL` env var routing to Postgres or SQLite; migration tool (Alembic); tested on Postgres 15+. |
-| 9 | Core | M | 8 | **Real traffic-splitting for canary deployments.** Config versioning exists but no actual traffic split. AC: Integration guide + reference implementation for NGINX, Envoy, and AWS ALB weighted routing; AutoAgent webhook to notify on rollout percent change; canary health check polling to auto-promote or rollback. |
-| 10 | Integration | M | 8 | **LangChain / LangGraph SDK integration.** LangSmith's biggest moat. AC: `autoagent.langchain.tracer` drop-in replacement for LangSmith tracer; traces from LangChain apps appear in AutoAgent trace viewer; demo notebook. |
+| 9 | Core | M | 8 | **Real traffic-splitting for canary deployments.** Config versioning exists but no actual traffic split. AC: Integration guide + reference implementation for NGINX, Envoy, and AWS ALB weighted routing; AgentLab webhook to notify on rollout percent change; canary health check polling to auto-promote or rollback. |
+| 10 | Integration | M | 8 | **LangChain / LangGraph SDK integration.** LangSmith's biggest moat. AC: `agentlab.langchain.tracer` drop-in replacement for LangSmith tracer; traces from LangChain apps appear in AgentLab trace viewer; demo notebook. |
 | 11 | Integration | M | 8 | **Webhook support for external alerting.** AC: `POST /api/webhooks` CRUD; configurable events (optimization_complete, eval_failed, gate_tripped, loop_stalled); signed payloads with HMAC-SHA256; integration docs for Slack, PagerDuty, and Opsgenie. |
 | 12 | Core | M | 8 | **PII detection as a hard gate.** Patronus does this; we don't. AC: Configurable PII scanner (regex + optional LLM-based); hard gate type `pii_leak`; any proposed mutation that introduces PII patterns is rejected with evidence; configurable sensitivity (names, emails, phone, SSN, credit card). |
 | 13 | UX | M | 8 | **Trace waterfall visualization.** We have a traces page but need rich span-level waterfall. AC: Hierarchical span tree view with timing bars; LLM call token counts; tool call args/results expandable; filtering by span type; linked from Blame Map clusters. |
-| 14 | DevEx | S | 7 | **Python SDK with `pip install autoagent-sdk`.** AC: Minimal SDK (`autoagent_sdk.trace()`, `autoagent_sdk.eval()`, `autoagent_sdk.optimize()`); pypi package; 5-minute quickstart in README; no FastAPI server required for trace submission. |
+| 14 | DevEx | S | 7 | **Python SDK with `pip install agentlab-sdk`.** AC: Minimal SDK (`agentlab_sdk.trace()`, `agentlab_sdk.eval()`, `agentlab_sdk.optimize()`); pypi package; 5-minute quickstart in README; no FastAPI server required for trace submission. |
 | 15 | Docs | S | 7 | **API key setup wizard in the UI.** AC: First-run modal (or Settings page) with API key fields, provider links, and a "Test connection" button that runs a mock LLM call; keys stored in `.env` via `/api/config/env` endpoint; auto-dismisses when first real optimization completes. |
 | 16 | Core | M | 8 | **Live conversation monitoring feed.** Ingest agent conversations from production in real time. AC: SSE stream or WebSocket feed at `/api/conversations/stream`; conversations appear in the UI within 5 seconds of being logged; configurable sampling rate. |
 | 17 | UX | M | 7 | **Annotation / labeling queue for human feedback.** Braintrust and LangSmith both have this. AC: UI panel showing unlabeled conversations; thumbs up/down + freeform comment; labels stored as preference data; feed into judge calibration. |
-| 18 | Integration | M | 7 | **Slack integration for loop status.** AC: Slack webhook config in Settings; daily digest of optimization loop status; alerts on gate trips and significant score changes; `/autoagent optimize` Slack command to trigger a cycle from Slack. |
+| 18 | Integration | M | 7 | **Slack integration for loop status.** AC: Slack webhook config in Settings; daily digest of optimization loop status; alerts on gate trips and significant score changes; `/agentlab optimize` Slack command to trigger a cycle from Slack. |
 | 19 | Enterprise | M | 7 | **Audit log for all config deployments.** AC: Immutable append-only event log of all deploy actions (who, when, what, from/to version, rollout percent); accessible via `/api/audit` and exportable as JSONL; surfaced in Settings → Audit Log page. |
-| 20 | Core | L | 8 | **Agent framework SDK connectors.** AC: Drop-in integrations for LlamaIndex, CrewAI, AutoGen, and OpenAI Swarm; each connector wraps the agent and emits spans compatible with AutoAgent's trace schema; zero code changes to agent logic required. |
+| 20 | Core | L | 8 | **Agent framework SDK connectors.** AC: Drop-in integrations for LlamaIndex, CrewAI, AutoGen, and OpenAI Swarm; each connector wraps the agent and emits spans compatible with AgentLab's trace schema; zero code changes to agent logic required. |
 
 ---
 
@@ -544,7 +544,7 @@ The system optimizes agents but doesn't **receive live telemetry from running ag
 |---|---|---|---|---|
 | 21 | UX | M | 7 | **Embedding clustering for failure visualization.** Arize Phoenix does this well. AC: Embed failed trace summaries; visualize clusters in 2D (UMAP); cluster label auto-generated by LLM; color-coded by grader that failed; linked to Blame Map. |
 | 22 | Competitive | M | 7 | **Prompt playground with side-by-side comparison.** Braintrust's killer feature. AC: Select two config versions; send the same test prompt to both; see responses side-by-side with score diff; save comparison as eval case. |
-| 23 | DevEx | S | 7 | **GitHub Actions workflow template.** AC: Published `autoagent/eval-action@v1`; run evals as CI check on PR; PR comment with score diff vs. main; block merge if score below threshold; YAML template in repo. |
+| 23 | DevEx | S | 7 | **GitHub Actions workflow template.** AC: Published `agentlab/eval-action@v1`; run evals as CI check on PR; PR comment with score diff vs. main; block merge if score below threshold; YAML template in repo. |
 | 24 | Core | L | 8 | **Fine-tuning data export pipeline.** Humanloop does this. AC: Export curated conversation pairs (good/bad) as JSONL for SFT/DPO; format for OpenAI fine-tuning API, Vertex AI SFT, and Anthropic Constitutional AI; one-click export from Intelligence Studio. |
 | 25 | Integration | M | 6 | **Datadog / Grafana metrics export.** AC: StatsD/Prometheus metrics for agent health score, eval pass rate, optimization cycle count; export to Datadog via DogStatsD; Grafana dashboard template (JSON) included in repo. |
 | 26 | UX | S | 6 | **Keyboard shortcut system.** Already in Settings page scaffold. AC: Global shortcuts for common actions (run eval, trigger optimize, pause loop, open trace); shortcut cheat sheet modal (? key); persist customizations to localStorage. |
@@ -553,20 +553,20 @@ The system optimizes agents but doesn't **receive live telemetry from running ag
 | 29 | Enterprise | L | 7 | **SSO / SAML 2.0 integration.** AC: SAML 2.0 IdP integration (Okta, Azure AD, Google Workspace); just-in-time provisioning; role mapping from IdP groups; tested with at least 2 IdPs. |
 | 30 | Competitive | M | 6 | **Customer satisfaction delta tracking.** Sierra's core metric. AC: Map optimization cycles to CSAT/NPS change; show pre/post satisfaction score alongside eval scores; alert when optimization improves eval but degrades satisfaction. |
 | 31 | Core | M | 7 | **Compliance probe sets (GDPR, HIPAA, SOC2).** AC: Pre-built eval case sets that probe for compliance-relevant behaviors; configurable by regulation; auto-run as hard gate before any deployment; compliance report PDF export. |
-| 32 | DevEx | S | 6 | **`autoagent init --framework` scaffolding.** AC: `--framework langchain|llamaindex|openai|anthropic|adk` generates a starter agent + eval cases + autoagent.yaml configured for that framework; runnable in under 5 minutes. |
+| 32 | DevEx | S | 6 | **`agentlab init --framework` scaffolding.** AC: `--framework langchain|llamaindex|openai|anthropic|adk` generates a starter agent + eval cases + agentlab.yaml configured for that framework; runnable in under 5 minutes. |
 | 33 | UX | M | 6 | **Conversation journey funnel visualization.** AC: Show the multi-turn journey from entry intent to resolution; drop-off rate at each turn; escalation rate by intent; filter by date range and agent version; linked from Intelligence Studio. |
 | 34 | Core | M | 6 | **Voice transcript analysis.** Parloa and Observe.AI advantage. AC: Accept audio files in IntelligenceStudio (MP3, WAV); transcribe via Whisper or Google STT; same analytics pipeline as text transcripts; phoneme-level search for key phrases. |
 | 35 | Integration | S | 6 | **VS Code extension.** AC: Run evals from command palette; view optimization status; trigger a cycle; see experiment card for last change; published to VS Code Marketplace. |
 | 36 | Infra | M | 6 | **Multi-region deployment support.** AC: Stateless API server with external Postgres; deployment templates for GCP, AWS, Azure; data residency config (EU/US/APAC); tested with latency targets <200ms per region. |
-| 37 | Competitive | L | 7 | **Native A/B traffic splitting.** AC: AutoAgent-managed traffic proxy (or Envoy/NGINX config generator); percentage-based routing to config versions; real-time metrics per variant; auto-promote winner when significance reached; dashboard shows live split. |
+| 37 | Competitive | L | 7 | **Native A/B traffic splitting.** AC: AgentLab-managed traffic proxy (or Envoy/NGINX config generator); percentage-based routing to config versions; real-time metrics per variant; auto-promote winner when significance reached; dashboard shows live split. |
 | 38 | Core | M | 6 | **Lineage graph: config → eval → deployment.** W&B's strength. AC: Visual DAG showing the provenance of each deployed config (which evals it passed, which mutations produced it, which baseline it improved on); click any node to see details. |
 | 39 | UX | S | 5 | **Dark mode.** AC: `prefers-color-scheme` detection + manual toggle in Settings; all 50+ pages styled correctly; system preference persisted to localStorage. |
-| 40 | DevEx | M | 6 | **Notebook integration (Jupyter / Colab).** AC: `autoagent_sdk.notebook` module; cell magic `%%autoagent_eval` runs an eval and displays results inline; `%%autoagent_trace` shows a trace waterfall; Google Colab template published. |
+| 40 | DevEx | M | 6 | **Notebook integration (Jupyter / Colab).** AC: `agentlab_sdk.notebook` module; cell magic `%%agentlab_eval` runs an eval and displays results inline; `%%agentlab_trace` shows a trace waterfall; Google Colab template published. |
 | 41 | Enterprise | L | 7 | **SLA monitoring and alerting.** AC: Configurable SLA thresholds per metric (latency p95, error rate, satisfaction score); alerting when SLA is breached; runbook auto-suggestion when SLA breach detected; dashboard widget for SLA health. |
-| 42 | Integration | M | 5 | **Zendesk / Salesforce Service Cloud connector.** AC: Pull conversation transcripts from Zendesk/Salesforce via API; map to AutoAgent transcript format; schedule automatic import; tag by ticket category for filtered analysis. |
+| 42 | Integration | M | 5 | **Zendesk / Salesforce Service Cloud connector.** AC: Pull conversation transcripts from Zendesk/Salesforce via API; map to AgentLab transcript format; schedule automatic import; tag by ticket category for filtered analysis. |
 | 43 | Docs | M | 6 | **Interactive getting-started tour.** AC: In-app guided tour (Shepherd.js or similar) that walks new users through: view a trace → read a blame map → trigger an eval → review an experiment card; completable in <10 minutes with demo data. |
 | 44 | Core | L | 7 | **Multi-agent topology optimizer.** Currently mutations touch individual agent configs. AC: Topology mutation can add, remove, or reorder agents in a pipeline; validate with integration eval; risk class = high; rollback to previous topology on regression. |
-| 45 | DevEx | S | 5 | **`autoagent doctor` command.** AC: Checks Python version, Node version, API key presence and validity, DB accessibility, server health, venv activation; colored pass/fail output; suggests fixes for each failure. |
+| 45 | DevEx | S | 5 | **`agentlab doctor` command.** AC: Checks Python version, Node version, API key presence and validity, DB accessibility, server health, venv activation; colored pass/fail output; suggests fixes for each failure. |
 | 46 | Competitive | M | 6 | **Knowledge base grounding evaluation.** Vertex AI Agent Builder advantage. AC: Eval mode that measures retrieval accuracy against a knowledge base; measures whether the agent cited the right document; F1 score on retrieved vs. relevant docs; hallucination rate when grounding is available vs. not. |
 | 47 | Infra | S | 5 | **Health endpoint with dependency checks.** Current `/api/health` exists but may not check all dependencies. AC: `/api/health/deep` checks DB connectivity, LLM provider reachability, disk space, and memory; returns structured JSON with per-dependency status; used by Docker health check and load balancer probes. |
 

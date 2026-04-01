@@ -47,9 +47,9 @@ A constrained, legible improvement proposer. It feels like a smart research assi
   - Cost-optimization proposer (finds cheaper model/prompt combos)
   - Each proposer is a simple class with `propose(opportunity) -> List[AutoFixProposal]`
 - CLI commands:
-  - `autoagent autofix suggest` — generate proposals without applying
-  - `autoagent autofix apply <proposal-id>` — apply with eval + canary
-  - `autoagent autofix history` — see past proposals and outcomes
+  - `agentlab autofix suggest` — generate proposals without applying
+  - `agentlab autofix apply <proposal-id>` — apply with eval + canary
+  - `agentlab autofix history` — see past proposals and outcomes
 - API endpoints:
   - `POST /api/autofix/suggest` — trigger proposal generation
   - `GET /api/autofix/proposals` — list proposals
@@ -83,9 +83,9 @@ Judge reliability as a product area. Teams can see how their judges are performi
   - Disagreement sampling: surface cases where judge and human disagree most
   - SME workflow: correct judgments, add rubric dimensions, promote slices to regression suites
 - CLI commands:
-  - `autoagent judges list` — show active judges with version and agreement stats
-  - `autoagent judges calibrate --sample 50` — sample cases for human review
-  - `autoagent judges drift` — show drift report
+  - `agentlab judges list` — show active judges with version and agreement stats
+  - `agentlab judges calibrate --sample 50` — sample cases for human review
+  - `agentlab judges drift` — show drift report
 - API endpoints:
   - `GET /api/judges` — list judges with stats
   - `POST /api/judges/feedback` — submit human correction
@@ -118,9 +118,9 @@ A diagnostic and tuning tool for agent context failures. Many agent failures are
   - Handoff fidelity (structured handoff completeness)
   - Memory staleness (age of oldest active memory vs relevance)
 - CLI commands:
-  - `autoagent context analyze --trace <id>` — analyze context for a trace
-  - `autoagent context simulate --strategy <name>` — simulate compaction
-  - `autoagent context report` — aggregate context health report
+  - `agentlab context analyze --trace <id>` — analyze context for a trace
+  - `agentlab context simulate --strategy <name>` — simulate compaction
+  - `agentlab context report` — aggregate context health report
 - API endpoints:
   - `GET /api/context/analysis/{trace_id}` — context analysis for a trace
   - `POST /api/context/simulate` — run compaction simulation

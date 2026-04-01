@@ -3,7 +3,7 @@
 ## Context
 Two agents built the same UX Overhaul features independently:
 - **CC Opus** (this repo, commit `5e06968`): 1,281 tests, +5,775 lines — the backbone
-- **Codex** (`~/Desktop/AutoAgent-VNextCC-Codex5/`, commit `97eb803`): 1,176 tests, +4,429 lines — cherry-pick source
+- **Codex** (`~/Desktop/AgentLab-VNextCC-Codex5/`, commit `97eb803`): 1,176 tests, +4,429 lines — cherry-pick source
 
 Both started from the same base (commit `0f53eb7` on master).
 
@@ -22,7 +22,7 @@ Codex has 6 `BUILTIN_PLAYBOOKS` entries (fix-retrieval-grounding, reduce-tool-la
 ### 3. `optimizer/proposer.py` — optimization_context injection
 Codex modified the proposer to accept `optimization_mode`, `objective`, `guardrails`, and `project_memory_context` kwargs, and injects them as `optimization_context` in the LLM payload.
 
-**Action**: Check if CC's proposer already does this. If not, add similar `optimization_context` injection from Codex's approach. Look at Codex's file at `~/Desktop/AutoAgent-VNextCC-Codex5/optimizer/proposer.py`.
+**Action**: Check if CC's proposer already does this. If not, add similar `optimization_context` injection from Codex's approach. Look at Codex's file at `~/Desktop/AgentLab-VNextCC-Codex5/optimizer/proposer.py`.
 
 ### 4. CLI `--strategy` deprecation warning
 Codex's `runner.py` keeps `--strategy` flag but prints a deprecation warning directing users to `--mode`. 

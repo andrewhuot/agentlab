@@ -1,6 +1,6 @@
 # Critical User Journey Audit — End-to-End Verification
 
-You are auditing every critical user journey in AutoAgent VNextCC. For each journey, you must verify it actually works by testing it — not just reading the code. Fix any issues you find.
+You are auditing every critical user journey in AgentLab VNextCC. For each journey, you must verify it actually works by testing it — not just reading the code. Fix any issues you find.
 
 ## Journeys to Test
 
@@ -49,7 +49,7 @@ You are auditing every critical user journey in AutoAgent VNextCC. For each jour
 - Verify `runner.py` loop command exists and has correct args
 - Check that TraceCollector is wired into runner (after P0 fix)
 - Check that default mutations don't include NotImplementedError stubs
-- Verify autoagent.yaml default config is sane (mock mode should be off or clearly warned)
+- Verify agentlab.yaml default config is sane (mock mode should be off or clearly warned)
 
 ### Journey 8: Builder Workspace
 - Verify `/builder` route exists in App.tsx

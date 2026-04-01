@@ -25,8 +25,8 @@ Generate realistic synthetic conversations and stress-test agent configs before 
   - `POST /api/sandbox/test` — run stress test
   - `POST /api/sandbox/compare` — A/B compare
   - `GET /api/sandbox/results/{id}` — get results
-- CLI: `autoagent sandbox generate --count 500 --domain customer-support`
-- CLI: `autoagent sandbox test --config candidate.yaml --conversations sandbox_001`
+- CLI: `agentlab sandbox generate --count 500 --domain customer-support`
+- CLI: `agentlab sandbox test --config candidate.yaml --conversations sandbox_001`
 
 **Frontend:**
 - `web/src/pages/Sandbox.tsx` — sandbox page with:
@@ -59,7 +59,7 @@ Extract patterns from successful conversations and feed them back into the agent
   - `GET /api/knowledge/entries` — list entries with filters
   - `POST /api/knowledge/apply/{id}` — apply entry as mutation
   - `PUT /api/knowledge/review/{id}` — approve/reject entry
-- CLI: `autoagent knowledge mine`, `autoagent knowledge list`, `autoagent knowledge apply <id>`
+- CLI: `agentlab knowledge mine`, `agentlab knowledge list`, `agentlab knowledge apply <id>`
 
 **Frontend:**
 - `web/src/pages/Knowledge.tsx` — knowledge page with:
@@ -75,7 +75,7 @@ Extract patterns from successful conversations and feed them back into the agent
 
 ## Feature 3: CI/CD Gate (GitHub Actions)
 
-Make AutoAgent a CI/CD gate — fail the build if agent quality regresses.
+Make AgentLab a CI/CD gate — fail the build if agent quality regresses.
 
 **Backend:**
 - `cicd/gate.py` — `CICDGate` class
@@ -83,7 +83,7 @@ Make AutoAgent a CI/CD gate — fail the build if agent quality regresses.
   - Exit code 0 = pass, exit code 1 = regression detected
   - Output: structured JSON summary (scores, deltas, gate decisions)
   - Supports: hard gate failures, score regression beyond threshold, new safety violations
-- CLI enhancement: `autoagent eval run --gate --baseline latest --fail-on-regression`
+- CLI enhancement: `agentlab eval run --gate --baseline latest --fail-on-regression`
   - `--gate` flag activates CI/CD mode (structured output, exit codes)
   - `--baseline latest` compares against last passing eval
   - `--fail-on-regression` exits non-zero on any score decrease
@@ -106,8 +106,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - run: pip install autoagent
-      - run: autoagent eval run --gate --fail-on-regression --output results.json
+      - run: pip install agentlab
+      - run: agentlab eval run --gate --fail-on-regression --output results.json
       - uses: actions/upload-artifact@v4
         with: { name: eval-results, path: results.json }
 ```
@@ -131,7 +131,7 @@ Replay real historical conversations through a candidate config to project outco
   - `POST /api/what-if/replay` — start replay job
   - `GET /api/what-if/results/{id}` — get results
   - `POST /api/what-if/project` — project impact to full traffic
-- CLI: `autoagent what-if --config candidate.yaml --conversations last-100`
+- CLI: `agentlab what-if --config candidate.yaml --conversations last-100`
 
 **Frontend:**
 - `web/src/pages/WhatIf.tsx` — what-if page with:
@@ -164,7 +164,7 @@ Understand how changes to one agent affect the entire agent team.
   - `POST /api/impact/analyze` — analyze impact of proposed change
   - `GET /api/impact/dependencies` — get dependency graph
   - `GET /api/impact/report/{id}` — get impact report
-- CLI: `autoagent impact analyze --mutation <id>`, `autoagent impact deps`
+- CLI: `agentlab impact analyze --mutation <id>`, `agentlab impact deps`
 
 **Frontend:**
 - `web/src/pages/Impact.tsx` — impact analysis page with:
@@ -198,8 +198,8 @@ Alert users when things happen — don't make them watch dashboards.
   - `GET /api/notifications/subscriptions` — list active subscriptions
   - `DELETE /api/notifications/subscriptions/{id}` — remove subscription
   - `POST /api/notifications/test/{id}` — send test notification
-- CLI: `autoagent notify slack --webhook <url> --events health_drop,safety_violation`
-- CLI: `autoagent notify email --address <email> --events daily_summary`
+- CLI: `agentlab notify slack --webhook <url> --events health_drop,safety_violation`
+- CLI: `agentlab notify email --address <email> --events daily_summary`
 
 **Frontend:**
 - `web/src/pages/Notifications.tsx` — notification settings page with:
@@ -237,9 +237,9 @@ Multiple people can review and approve changes before deployment.
   - `POST /api/reviews/{id}/submit` — submit review
   - `GET /api/reviews/pending` — list pending reviews
   - `GET /api/reviews/{id}` — get review details with comments
-- CLI: `autoagent review request <change-id> --reviewers alice,bob`
-- CLI: `autoagent review approve <change-id> --comment "Looks good"`
-- CLI: `autoagent review list --pending`
+- CLI: `agentlab review request <change-id> --reviewers alice,bob`
+- CLI: `agentlab review approve <change-id> --comment "Looks good"`
+- CLI: `agentlab review list --pending`
 
 **Frontend:**
 - `web/src/pages/Reviews.tsx` — collaborative review page with:

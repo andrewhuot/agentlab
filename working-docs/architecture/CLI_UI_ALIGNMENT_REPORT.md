@@ -21,14 +21,14 @@ Legend:
 
 | CLI Command Group | CLI Capabilities | UI Page/Component | UI Capabilities | Alignment Status |
 | --- | --- | --- | --- | --- |
-| `init` | Scaffold workspace, create `configs/`, `evals/`, `.autoagent/`, seed synthetic/demo data | None | UI assumes an initialized workspace and running API | ❌ Missing |
+| `init` | Scaffold workspace, create `configs/`, `evals/`, `.agentlab/`, seed synthetic/demo data | None | UI assumes an initialized workspace and running API | ❌ Missing |
 | `status` | Snapshot health, scores, active config, review counts, deploy state | `Dashboard`, `Event Log`, `Conversations` | Control-plane dashboard with health cards, gates, cost, demo status, control actions | 🔄 Divergent |
-| `build` | Generate build artifact, starter config, eval draft, persist `.autoagent/build_artifact_latest.json` | `Builder`, `IntelligenceStudio` | Conversational config drafting, transcript/prompt-based generation, YAML export | 🔄 Divergent |
+| `build` | Generate build artifact, starter config, eval draft, persist `.agentlab/build_artifact_latest.json` | `Builder`, `IntelligenceStudio` | Conversational config drafting, transcript/prompt-based generation, YAML export | 🔄 Divergent |
 | `build-show` | Inspect saved build artifact selectors like `latest` | None | No persisted build artifact viewer | ❌ Missing |
 | `eval` | `run`, `results`, `show`, `list`, `generate` | `EvalRuns`, `EvalDetail` | Launch runs, inspect results, compare runs, generate evals, accept generated suites | 🟡 Partial |
 | `optimize` | Run optimization cycles, evaluate proposals, persist attempts, optionally continuous/full-auto | `Optimize`, `LiveOptimize`, `Experiments`, `ChangeReview`, `Opportunities` | Start optimize jobs, watch live stream, inspect experiment cards, review changes, browse opportunities | 🔄 Divergent |
 | `improve` | Alias to `optimize` | Same as `optimize` | Same split UI surface as optimize | 🔄 Divergent |
-| `deploy` | Promote config canary/immediate, inspect status, optional `cx-studio` target | `Deploy` | Canary/immediate deploy and rollback for core AutoAgent configs | 🟡 Partial |
+| `deploy` | Promote config canary/immediate, inspect status, optional `cx-studio` target | `Deploy` | Canary/immediate deploy and rollback for core AgentLab configs | 🟡 Partial |
 | `loop` | Start continuous optimization loop, scheduling/checkpoint options, stop-on-plateau | `LoopMonitor`, `Dashboard` | Start/stop loop, inspect loop status, pause/resume optimization | 🟡 Partial |
 | `logs` | Read historical conversations from local store | `Conversations`, `EventLogPage` | Filtered conversation browser and append-only system event timeline | 🟡 Partial |
 | `doctor` | Workspace diagnostics: configs, evals, DBs, traces, mock/live readiness | None | No dedicated diagnostics page | ❌ Missing |
@@ -56,7 +56,7 @@ Legend:
 | `diagnose` | One-shot or interactive diagnosis session | Dashboard embedded diagnose chat | Diagnose chat exists as dashboard widget, not as full page/workflow | 🟡 Partial |
 | `replay` | Optimization-history log view from `optimizer_memory.db` | `Optimize`, `Experiments`, `ChangeReview` | History is visible across multiple pages, but no single replay/log surface | 🟡 Partial |
 | `server` | Start API + web console | None | UI is the thing being served, not a peer surface | ❌ Missing |
-| `mcp-server` | Expose AutoAgent over MCP transport | None | No UI equivalent | ❌ Missing |
+| `mcp-server` | Expose AgentLab over MCP transport | None | No UI equivalent | ❌ Missing |
 | `mode` | `show`, `set` mock/live runtime mode | None | No runtime mode toggle in UI | ❌ Missing |
 | `mcp` | `init`, `status` for editor MCP wiring | None | No MCP client setup UI | ❌ Missing |
 | `intelligence` | Upload transcript archive, list/show reports, generate agent | `IntelligenceStudio` | Upload archive, generate agent from prompt or transcript, chat-refine config, export YAML | 🔄 Divergent |
@@ -107,10 +107,10 @@ These are part of the codebase inventory, but they are not active first-class ro
 | Workspace bootstrap and environment readiness | `init`, `doctor`, `mode`, `mcp`, `server`, `mcp-server`, `quickstart`, `full-auto` | None | P0 | Add a real onboarding/setup flow in UI for workspace bootstrap, health checks, mock/live mode, and MCP setup status. Keep `server`/`mcp-server` CLI-only, but make their state visible in UI. |
 | Build workflow is conceptually split | `build` persists a build artifact, starter config, and next-step files | UI has conversational builder and transcript studio, but neither persists the same artifact model | P0 | Align on one shared build service and one persisted build artifact contract. Merge `Builder` and `IntelligenceStudio` into one “Build” workflow with modes, not separate products. |
 | Builder platform is richer than either surface | No CLI command uses the full builder workspace/project/task model | UI only uses `/api/builder/chat` and `/api/builder/export`, while the backend also exposes projects, sessions, tasks, proposals, approvals, permissions, events, and specialists | P1 | Decide whether Builder is a real product area. If yes, build the missing workspace UI around the existing API. If not, collapse the unused API surface and align `build` around the simpler artifact flow. |
-| Experiment history is not actually shared | CLI uses `.autoagent/experiment_log.tsv` for `experiment log` | UI/API use `.autoagent/experiments.db` and `.autoagent/opportunities.db` | P0 | Replace TSV-only CLI experiment logging with the same `ExperimentStore`/opportunity APIs the UI uses, or have both read/write through a shared service layer. |
-| Transcript intelligence state is split | CLI persists reports to `.autoagent/intelligence_reports.json` | UI/API keep reports in memory inside `TranscriptIntelligenceService` and only persist knowledge assets | P0 | Introduce one persistent transcript intelligence store used by both CLI and API. Add report list/show in UI and have CLI read the same records. |
+| Experiment history is not actually shared | CLI uses `.agentlab/experiment_log.tsv` for `experiment log` | UI/API use `.agentlab/experiments.db` and `.agentlab/opportunities.db` | P0 | Replace TSV-only CLI experiment logging with the same `ExperimentStore`/opportunity APIs the UI uses, or have both read/write through a shared service layer. |
+| Transcript intelligence state is split | CLI persists reports to `.agentlab/intelligence_reports.json` | UI/API keep reports in memory inside `TranscriptIntelligenceService` and only persist knowledge assets | P0 | Introduce one persistent transcript intelligence store used by both CLI and API. Add report list/show in UI and have CLI read the same records. |
 | Intelligence API is underexposed in both surfaces | CLI only exposes upload/list/show/generate-agent | UI only exposes upload/generate/refine, while the API also supports report Q&A, applying insights into change cards, deep research, and autonomous loops | P1 | Promote the transcript report object to a first-class UI view and extend CLI to call the same richer intelligence operations. |
-| Skills are split across multiple stores | CLI `skill` defaults to `.autoagent/skills.db`; CLI `registry` uses `registry.db` | UI `Skills` uses `.autoagent/core_skills.db`; UI `Registry` uses `registry.db`; `AgentSkills` is another generated workflow | P0 | Collapse skill state into one canonical skill store and one API contract. Make registry browsing and runtime/build skill lifecycle clearly separate concepts in both CLI and UI. |
+| Skills are split across multiple stores | CLI `skill` defaults to `.agentlab/skills.db`; CLI `registry` uses `registry.db` | UI `Skills` uses `.agentlab/core_skills.db`; UI `Registry` uses `registry.db`; `AgentSkills` is another generated workflow | P0 | Collapse skill state into one canonical skill store and one API contract. Make registry browsing and runtime/build skill lifecycle clearly separate concepts in both CLI and UI. |
 | Optimize workflow is fragmented in UI | CLI offers a single optimize/loop/review/autofix progression | UI spreads the same lifecycle across `Optimize`, `LiveOptimize`, `Experiments`, `ChangeReview`, `Opportunities`, and `LoopMonitor` | P0 | Restructure navigation around a single optimization workflow with sub-tabs or stages. Keep separate pages only where there is a true domain boundary. |
 | Config lifecycle differs by surface | CLI has `set-active`, `import`, `migrate`, and selectors | UI adds NL editing but lacks import/migrate/set-active | P1 | Expand `Configs` into a full config lifecycle page: activate, import, migrate, edit, diff, and deploy handoff. |
 | Trace tooling is incomplete in UI | CLI supports `trace grade`, `trace graph`, `trace promote` | UI has richer blame visualization than CLI | P1 | Extend `Traces` to include grade, graph, and promote actions. Preserve `BlameMap` as a dedicated analysis pane. |
@@ -156,7 +156,7 @@ These are part of the codebase inventory, but they are not active first-class ro
 
 - CLI `deploy` includes core deploy logic and a `--target cx-studio` path in one command taxonomy.
 - UI separates these into:
-  - `Deploy` for AutoAgent config promotion
+  - `Deploy` for AgentLab config promotion
   - `CxDeploy` for CX export/deploy/widget
   - `AdkDeploy` for ADK deploy
 - Breakpoint: deployment target is chosen in different places depending on surface.
@@ -181,45 +181,45 @@ These are part of the codebase inventory, but they are not active first-class ro
 
 | State | Store / Path | CLI Access | UI / API Access | Audit Result |
 | --- | --- | --- | --- | --- |
-| Workspace metadata and runtime mode | `.autoagent/workspace.json`, `autoagent.yaml` | `init`, `mode`, `doctor`, runtime loading | Mostly indirect only; no editor UI | CLI-only in practice |
+| Workspace metadata and runtime mode | `.agentlab/workspace.json`, `agentlab.yaml` | `init`, `mode`, `doctor`, runtime loading | Mostly indirect only; no editor UI | CLI-only in practice |
 | Config versions | `configs/*.yaml`, `configs/manifest.json` | `config`, `deploy`, `build`, `eval` | `Configs`, `Deploy`, `EvalRuns`, `CxDeploy` | Shared and healthy |
 | Conversations | `conversations.db` | `status`, `logs`, `diagnose`, `explain`, `doctor` | `Dashboard`, `Conversations`, diagnose widget, what-if backend | Shared |
 | Optimization history | `optimizer_memory.db` | `optimize`, `replay`, `explain`, `status`, `loop` | `Optimize`, `Dashboard`, `LoopMonitor` | Shared |
-| Traces | `.autoagent/traces.db` | `trace`, `context`, `doctor` | `Traces`, `BlameMap`, `ContextWorkbench` | Shared |
-| Change review cards | `.autoagent/change_cards.db` | `review`, `changes`, intelligence apply flows | `ChangeReview`, intelligence apply APIs | Shared |
-| AutoFix proposals | `.autoagent/autofix.db` | `autofix` | `AutoFix` | Shared |
-| Judge calibration and human feedback | `.autoagent/grader_versions.db`, `.autoagent/human_feedback.db` | `judges` | `JudgeOps` | Shared |
+| Traces | `.agentlab/traces.db` | `trace`, `context`, `doctor` | `Traces`, `BlameMap`, `ContextWorkbench` | Shared |
+| Change review cards | `.agentlab/change_cards.db` | `review`, `changes`, intelligence apply flows | `ChangeReview`, intelligence apply APIs | Shared |
+| AutoFix proposals | `.agentlab/autofix.db` | `autofix` | `AutoFix` | Shared |
+| Judge calibration and human feedback | `.agentlab/grader_versions.db`, `.agentlab/human_feedback.db` | `judges` | `JudgeOps` | Shared |
 | Runbooks and registry items | `registry.db` | `runbook`, `registry` | `Runbooks`, `Registry` | Shared |
 | Reward definitions | `rewards.db` | `reward` | `RewardStudio`, `RewardAudit` | Shared |
 | Policy artifacts and RL jobs | `policy_opt.db` | `policy`, `rl` | `PolicyCandidates`, `RewardAudit` | Shared |
-| Experiment log | CLI: `.autoagent/experiment_log.tsv`; UI/API: `.autoagent/experiments.db` | `experiment log` reads TSV | `Experiments` reads DB-backed store | **Not shared** |
-| Opportunity queue | `.autoagent/opportunities.db` | No dedicated CLI command | `Opportunities` | UI/API-only |
-| Transcript intelligence reports | CLI: `.autoagent/intelligence_reports.json`; API: in-memory `TranscriptIntelligenceService._reports` | `intelligence report list/show/generate-agent` | `IntelligenceStudio`, `/api/intelligence/reports*` | **Not shared** |
-| Intelligence knowledge assets | `.autoagent/intelligence_knowledge_assets.json` | Not surfaced directly | `/api/intelligence/knowledge/{asset_id}` | API-only surfaced |
-| Unified skills | CLI default `.autoagent/skills.db` | `skill` | No, UI uses a different DB path | **Split** |
-| UI skills page store | `.autoagent/core_skills.db` | Not default CLI path | `Skills`, `AgentSkills` backend | UI/API-only by default |
-| Builder workspace state | `.autoagent/builder.db` | No CLI equivalent | Builder APIs exist, current UI only uses chat/export subset | UI/API-only |
-| Notification subscriptions/history | `.autoagent/notifications.db` | No CLI equivalent | `Notifications` | UI/API-only |
-| Knowledge mining entries | `.autoagent/knowledge.db` | No CLI equivalent | `Knowledge` API exists; page is placeholder | UI/API-only |
-| Collaborative review requests | `.autoagent/reviews.db` | No CLI equivalent | `Reviews` API exists; page is placeholder | UI/API-only |
+| Experiment log | CLI: `.agentlab/experiment_log.tsv`; UI/API: `.agentlab/experiments.db` | `experiment log` reads TSV | `Experiments` reads DB-backed store | **Not shared** |
+| Opportunity queue | `.agentlab/opportunities.db` | No dedicated CLI command | `Opportunities` | UI/API-only |
+| Transcript intelligence reports | CLI: `.agentlab/intelligence_reports.json`; API: in-memory `TranscriptIntelligenceService._reports` | `intelligence report list/show/generate-agent` | `IntelligenceStudio`, `/api/intelligence/reports*` | **Not shared** |
+| Intelligence knowledge assets | `.agentlab/intelligence_knowledge_assets.json` | Not surfaced directly | `/api/intelligence/knowledge/{asset_id}` | API-only surfaced |
+| Unified skills | CLI default `.agentlab/skills.db` | `skill` | No, UI uses a different DB path | **Split** |
+| UI skills page store | `.agentlab/core_skills.db` | Not default CLI path | `Skills`, `AgentSkills` backend | UI/API-only by default |
+| Builder workspace state | `.agentlab/builder.db` | No CLI equivalent | Builder APIs exist, current UI only uses chat/export subset | UI/API-only |
+| Notification subscriptions/history | `.agentlab/notifications.db` | No CLI equivalent | `Notifications` | UI/API-only |
+| Knowledge mining entries | `.agentlab/knowledge.db` | No CLI equivalent | `Knowledge` API exists; page is placeholder | UI/API-only |
+| Collaborative review requests | `.agentlab/reviews.db` | No CLI equivalent | `Reviews` API exists; page is placeholder | UI/API-only |
 | Preference pairs | `preferences.db` | CLI `pref` does not persist here | `PreferenceInbox` / `/api/preferences` | **Not shared** |
-| Release objects | `.autoagent/releases/*.json` | `release` | No UI equivalent | CLI-only |
-| Build artifact | `.autoagent/build_artifact_latest.json` | `build`, `build-show` | No UI equivalent | CLI-only |
+| Release objects | `.agentlab/releases/*.json` | `release` | No UI equivalent | CLI-only |
+| Build artifact | `.agentlab/build_artifact_latest.json` | `build`, `build-show` | No UI equivalent | CLI-only |
 
 State stores that only one surface can access today:
 
 - CLI-only:
-  - `.autoagent/workspace.json` mode/bootstrap state
-  - `.autoagent/intelligence_reports.json`
-  - `.autoagent/releases/*.json`
-  - `.autoagent/build_artifact_latest.json`
-  - `.autoagent/experiment_log.tsv`
+  - `.agentlab/workspace.json` mode/bootstrap state
+  - `.agentlab/intelligence_reports.json`
+  - `.agentlab/releases/*.json`
+  - `.agentlab/build_artifact_latest.json`
+  - `.agentlab/experiment_log.tsv`
 - UI/API-only:
-  - `.autoagent/builder.db`
-  - `.autoagent/notifications.db`
-  - `.autoagent/knowledge.db`
-  - `.autoagent/reviews.db`
-  - `.autoagent/opportunities.db`
+  - `.agentlab/builder.db`
+  - `.agentlab/notifications.db`
+  - `.agentlab/knowledge.db`
+  - `.agentlab/reviews.db`
+  - `.agentlab/opportunities.db`
   - `preferences.db`
 
 The two most important cross-surface state problems are:
@@ -310,14 +310,14 @@ These should become the canonical contracts that both surfaces consume:
 
 3. `TranscriptReport`
    - Durable report object with insights, derived config, and knowledge asset references
-   - Used by both `autoagent intelligence` and `IntelligenceStudio`
+   - Used by both `agentlab intelligence` and `IntelligenceStudio`
 
 4. `SkillRecord`
    - One canonical skill schema and one canonical store
    - Registry browsing can remain a different concern, but runtime/build skill lifecycle should not fork by surface
 
 5. `DeploymentTarget` and `ReleaseObject`
-   - Shared deploy abstraction across core AutoAgent, CX, and ADK
+   - Shared deploy abstraction across core AgentLab, CX, and ADK
    - UI should not need separate mental models for “deploy” vs “CX deploy”
 
 ### P2: Clean up legacy and confusing navigation

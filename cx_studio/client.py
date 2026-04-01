@@ -15,7 +15,7 @@ def _build_base_url(location: str) -> str:
 
 
 class CxClient(CxStudioClient):
-    """Backwards-compatible CX client facade used by existing AutoAgent code."""
+    """Backwards-compatible CX client facade used by existing AgentLab code."""
 
     def fetch_snapshot(self, agent_name: str, app_name: str | None = None):  # type: ignore[override]
         """Accept the legacy optional `app_name` argument while using v3 snapshots."""

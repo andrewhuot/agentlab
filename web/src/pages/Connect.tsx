@@ -35,7 +35,7 @@ const CONNECT_SOURCES: ConnectSourceOption[] = [
   {
     adapter: 'http',
     label: 'HTTP',
-    description: 'Wrap an existing agent API behind a lightweight AutoAgent adapter workspace.',
+    description: 'Wrap an existing agent API behind a lightweight AgentLab adapter workspace.',
     icon: Globe,
   },
   {
@@ -60,7 +60,7 @@ const RUNTIME_MODE_OPTIONS: Array<{ value: ConnectRuntimeMode; label: string; he
   {
     value: 'auto',
     label: 'Auto',
-    help: 'Let AutoAgent choose the runtime mode from the imported source.',
+    help: 'Let AgentLab choose the runtime mode from the imported source.',
   },
 ];
 
@@ -99,7 +99,7 @@ function sourceHelpText(adapter: ConnectAdapter): string {
     case 'http':
       return 'Use the primary webhook or REST endpoint that fronts the runtime you want to connect.';
     case 'transcript':
-      return 'Provide a JSONL export of prior conversations so AutoAgent can build starter eval cases.';
+      return 'Provide a JSONL export of prior conversations so AgentLab can build starter eval cases.';
   }
 }
 
@@ -199,7 +199,7 @@ export function Connect() {
     <div className="space-y-6">
       <PageHeader
         title="Connect Existing Runtime"
-        description="Import an existing OpenAI Agents, Anthropic, HTTP, or transcript-based runtime into a fresh AutoAgent workspace."
+        description="Import an existing OpenAI Agents, Anthropic, HTTP, or transcript-based runtime into a fresh AgentLab workspace."
       />
 
       <div className="flex items-center gap-2 text-sm">
@@ -331,7 +331,7 @@ export function Connect() {
                 {connectMutation.isPending ? 'Creating...' : 'Create workspace'}
               </button>
               <p className="text-xs text-gray-500">
-                AutoAgent will save the imported spec, adapter config, and starter eval fixtures together.
+                AgentLab will save the imported spec, adapter config, and starter eval fixtures together.
               </p>
             </div>
           </section>

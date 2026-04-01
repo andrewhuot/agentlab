@@ -8,6 +8,6 @@ describe('PageHeader', () => {
     render(<PageHeader title="Compare" description="Head-to-head evaluations." />);
 
     expect(screen.getByRole('heading', { name: 'Compare' })).toBeInTheDocument();
-    expect(document.title).toBe('Compare • AutoAgent');
+    expect(document.title).toBe('Compare • AgentLab');
   });
 });

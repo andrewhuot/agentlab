@@ -1,6 +1,6 @@
 # P0 Showstopper Fixes — Distinguished Engineer Review
 
-You are fixing critical production-blocking issues in AutoAgent VNextCC. These are P0 showstoppers that prevent the platform from running.
+You are fixing critical production-blocking issues in AgentLab VNextCC. These are P0 showstoppers that prevent the platform from running.
 
 ## Required Fixes
 
@@ -20,7 +20,7 @@ The `TraceCollector` and SQLite datastore exist, plus `TracingMiddleware` is ins
 **Fix**: Either implement the mutations properly, remove them from the default config, or add a guard that skips mutations that raise `NotImplementedError`. The default config should only include working mutations.
 
 ### 4. "Mock-First" Overrides (P1)
-`autoagent.yaml` ships with `use_mock: true`, which overrides the entire Proposer engine and produces deterministic fake eval scores. This destroys the new-user experience — they think they're running real optimizations but aren't.
+`agentlab.yaml` ships with `use_mock: true`, which overrides the entire Proposer engine and produces deterministic fake eval scores. This destroys the new-user experience — they think they're running real optimizations but aren't.
 
 **Fix**: Change the default to `use_mock: false`. If no API key is configured, fall back to mock mode gracefully with a clear warning banner — don't silently mock everything. The user should know when they're in mock mode vs real mode.
 
@@ -47,7 +47,7 @@ Before fixing, also investigate the codebase for additional issues:
 ## Verification
 
 After all fixes:
-1. Verify backend boots: `cd /Users/andrew/Desktop/AutoAgent-VNextCC && python3 -c "from api.server import app; print('Server boots OK')"` (or equivalent)
+1. Verify backend boots: `cd /Users/andrew/Desktop/AgentLab-VNextCC && python3 -c "from api.server import app; print('Server boots OK')"` (or equivalent)
 2. Verify frontend compiles: `cd web && npx tsc --noEmit`
 3. Run existing tests: `python3 -m pytest tests/ -x -q --tb=short 2>&1 | tail -20`
 4. Document all changes in a `P0_FIX_REPORT.md`

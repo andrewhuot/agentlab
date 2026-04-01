@@ -34,7 +34,7 @@ class ReleaseSigner:
     #                  post-signing that must not invalidate the signature.
     _EXCLUDED_FIELDS = frozenset({"signature", "signed_at", "status", "metadata"})
 
-    def __init__(self, secret_key: str = "autoagent-default-key") -> None:
+    def __init__(self, secret_key: str = "agentlab-default-key") -> None:
         self._secret = secret_key.encode("utf-8")
 
     # ------------------------------------------------------------------

@@ -1,7 +1,7 @@
 set -euo pipefail
-ROOT="/Users/andrew/Desktop/AutoAgent-VNextCC-Codex-P0"
+ROOT="/Users/andrew/Desktop/AgentLab-VNextCC-Codex-P0"
 WORK="$ROOT/.tmp/quickstart-guide-1774814336"
-CLI="$ROOT/.venv/bin/autoagent"
+CLI="$ROOT/.venv/bin/agentlab"
 cd "$WORK"
 
 "$CLI" build "Build a customer support agent that can help with refunds, shipping questions, and product recommendations" --connector Shopify --output-dir build-output >/tmp/qs-build.out
@@ -16,15 +16,15 @@ cp "$ROOT"/docs/samples/sample_configs/* config-demo/
 "$CLI" config diff 1 2 --configs-dir config-demo >/tmp/qs-config-diff.out
 
 "$CLI" context analyze --trace trace_demo_fail_001 >/tmp/qs-context.out
-"$CLI" trace grade trace_demo_fail_001 --db .autoagent/traces.db >/tmp/qs-trace-grade.out
-"$CLI" trace graph trace_demo_fail_001 --db .autoagent/traces.db >/tmp/qs-trace-graph.out
-"$CLI" trace blame --db .autoagent/traces.db --window 24h --top 5 >/tmp/qs-trace-blame.out
+"$CLI" trace grade trace_demo_fail_001 --db .agentlab/traces.db >/tmp/qs-trace-grade.out
+"$CLI" trace graph trace_demo_fail_001 --db .agentlab/traces.db >/tmp/qs-trace-graph.out
+"$CLI" trace blame --db .agentlab/traces.db --window 24h --top 5 >/tmp/qs-trace-blame.out
 
 "$CLI" scorer create "accurate, safe, respond in under 3 seconds" --name guide_demo_scorer >/tmp/qs-scorer-create.out
 "$CLI" scorer list >/tmp/qs-scorer-list.out
 "$CLI" scorer show guide_demo_scorer >/tmp/qs-scorer-show.out
 "$CLI" scorer refine guide_demo_scorer "also offer helpful follow-up guidance" >/tmp/qs-scorer-refine.out
-"$CLI" scorer test guide_demo_scorer --trace trace_demo_pass_001 --db .autoagent/traces.db >/tmp/qs-scorer-test.out
+"$CLI" scorer test guide_demo_scorer --trace trace_demo_pass_001 --db .agentlab/traces.db >/tmp/qs-scorer-test.out
 
 "$CLI" judges list >/tmp/qs-judges-list.out
 "$CLI" judges calibrate --sample 2 >/tmp/qs-judges-calibrate.out
@@ -39,7 +39,7 @@ cp "$ROOT"/docs/samples/sample_configs/* config-demo/
 "$CLI" autofix suggest >/tmp/qs-autofix-suggest.out
 AUTOFIX_ID=$(python3 - <<'PY'
 import sqlite3
-conn = sqlite3.connect('.autoagent/autofix.db')
+conn = sqlite3.connect('.agentlab/autofix.db')
 row = conn.execute("select proposal_id from proposals order by created_at desc limit 1").fetchone()
 print(row[0])
 conn.close()
@@ -103,7 +103,7 @@ DATASET_ID=$(("$CLI" dataset create guide_dataset --description "Guide dataset" 
 "$CLI" rl train --mode verifier --backend openai_rft --dataset "$ROOT/docs/samples/sample_verifier_dataset.jsonl" >/tmp/qs-rl-train.out
 POLICY_ID=$(python3 - <<'PY'
 import sqlite3, json
-conn = sqlite3.connect('.autoagent/policy_registry.db')
+conn = sqlite3.connect('.agentlab/policy_registry.db')
 row = conn.execute("select data from policies order by rowid desc limit 1").fetchone()
 if row:
     print(json.loads(row[0])['policy_id'])
@@ -122,7 +122,7 @@ PY
 BATCH_ID=$(python3 - <<'PY'
 import json
 from pathlib import Path
-files = sorted(Path('.autoagent/curriculum').glob('*.json'), reverse=True)
+files = sorted(Path('.agentlab/curriculum').glob('*.json'), reverse=True)
 if files:
     print(json.loads(files[0].read_text())['batch_id'])
 PY

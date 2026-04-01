@@ -1,8 +1,8 @@
-# AutoAgent UX Audit Report
+# AgentLab UX Audit Report
 
 ## Executive Summary (1 page)
 
-AutoAgent VNextCC has substantial product depth and strong technical ambition, but the user experience is currently constrained by **integration breakpoints**, **documentation drift**, and **information architecture overload**.
+AgentLab VNextCC has substantial product depth and strong technical ambition, but the user experience is currently constrained by **integration breakpoints**, **documentation drift**, and **information architecture overload**.
 
 The biggest finding is that the product presents itself as an integrated, end-to-end optimization platform across CLI, web UI, API, ADK, CX Agent Studio, and MCP workflows, yet these surfaces are not consistently wired together. In practice:
 
@@ -58,7 +58,7 @@ This is not a “small polish” gap. It is a **trust gap**: users cannot reliab
   - `41` command sections in `docs/cli-reference.md`
   - `76` endpoint rows in `docs/api-reference.md`
 - Config/setup surface:
-  - `10` user-visible config/memory files spanning `autoagent.yaml`, `AUTOAGENT.md`, `configs/*`, and `agent/config/*`
+  - `10` user-visible config/memory files spanning `agentlab.yaml`, `AGENTLAB.md`, `configs/*`, and `agent/config/*`
 
 ### Drift Between Product and Docs
 
@@ -88,15 +88,15 @@ Concept load is high and currently under-scaffolded.
 ### Typical path
 
 1. Read README and run install commands.
-2. Run `autoagent` / `autoagent --help` and inspect commands.
-3. Run `autoagent init`, `eval run`, `optimize`, or `quickstart`.
+2. Run `agentlab` / `agentlab --help` and inspect commands.
+3. Run `agentlab init`, `eval run`, `optimize`, or `quickstart`.
 4. Open web console and interpret dashboard.
 
 ### Friction points
 
 - CLI is immediately broad (20+ top-level commands in help output) without progressive onboarding.
 - `eval` group runs evaluation when invoked without subcommand (`runner.py:450-464`), which is surprising behavior for group commands.
-- Default mock mode (`autoagent.yaml:2`) can produce successful-looking outputs that users may misread as production truth.
+- Default mock mode (`agentlab.yaml:2`) can produce successful-looking outputs that users may misread as production truth.
 - README and docs contain stale command group references and inaccurate counts (`README.md:759-777`, `README.md:783-832`).
 - Dashboard is information-dense for day-zero users (hard gates, cost controls, event timeline, control hatches all on first screen).
 
@@ -112,7 +112,7 @@ Users can get to “something works” quickly, but confidence in what is real v
 
 1. Discover integration pages/commands.
 2. Provide source agent path/IDs and credentials.
-3. Import into AutoAgent config.
+3. Import into AgentLab config.
 4. Run optimization and export/deploy back.
 
 ### Friction points
@@ -193,7 +193,7 @@ Power users can find depth, but orchestration requires tribal knowledge and cros
 
 ### Typical path
 
-1. Run `autoagent demo quickstart` or `demo vp`.
+1. Run `agentlab demo quickstart` or `demo vp`.
 2. Open web console to showcase score movement and operational controls.
 3. Answer “how this works” and “is this production-ready?” questions.
 
@@ -243,7 +243,7 @@ High-value integration exists in code but is effectively hidden for most develop
 - Project memory exists and is valuable, but note entry behavior is brittle:
   - Add-note handler uses global query selector and can capture the wrong field (`web/src/pages/ProjectMemory.tsx:143-147`).
 - Settings contains placeholder repo URL (`web/src/pages/Settings.tsx:106`), reducing handoff reliability.
-- Multiple env var naming schemes across modules (`AUTOAGENT_DB` vs `AUTOAGENT_DB_PATH` in `agent/server.py:99`) increase setup ambiguity.
+- Multiple env var naming schemes across modules (`AGENTLAB_DB` vs `AGENTLAB_DB_PATH` in `agent/server.py:99`) increase setup ambiguity.
 - No dedicated “handoff checklist” or operator runbook surfaced in UI onboarding.
 
 ### Net result
@@ -274,7 +274,7 @@ Continuity is possible but not robustly productized.
 | UX-016 | P1 | Inconsistency | Page titles | `web/src/components/Layout.tsx:9-27` omits many routes | 1,3 | Add complete title map for all routes | Small |
 | UX-017 | P1 | Inconsistency | Visual design language | Dark zinc ADK/CX pages vs light app-wide pattern (`AdkImport/AdkDeploy/Cx*`) | 2,5 | Refactor integration pages to shared design tokens/components | Medium |
 | UX-018 | P1 | Confusion | ADK copy accuracy | `web/src/pages/AdkImport.tsx:40,88` | 2 | Correct copy to “Google ADK” and Python file-structure expectations | Small |
-| UX-019 | P1 | Confusion | Mock mode default | `autoagent.yaml:2`; mock warnings only in some flows | 1,5 | Add global “Mock Mode ON” banner in UI and CLI header | Small |
+| UX-019 | P1 | Confusion | Mock mode default | `agentlab.yaml:2`; mock warnings only in some flows | 1,5 | Add global “Mock Mode ON” banner in UI and CLI header | Small |
 | UX-020 | P1 | Confusion | Simulated SSE optimization | `api/routes/optimize_stream.py:41-131` | 3,5 | Label as simulated or wire to real task stream | Medium |
 | UX-021 | P1 | Missing | Quickfix realism | `api/routes/quickfix.py:42-57` returns mock result | 3 | Gate endpoint behind feature flag or implement real flow + labeling | Medium |
 | UX-022 | P1 | Inconsistency | Archive/calibration fallback | `api/routes/experiments.py:61-115,128-135` mock fallback | 3,4 | Add explicit `source: mock|live` in payload and UI badges | Small |
@@ -290,7 +290,7 @@ Continuity is possible but not robustly productized.
 | UX-032 | P2 | Inconsistency | Settings repository link placeholder | `web/src/pages/Settings.tsx:106-113` | 7 | Replace with real repo URL or remove block | Small |
 | UX-033 | P2 | Inconsistency | API prefix style | `/api` root routes for diagnose/edit/quickfix vs grouped prefixes | 4 | Move to scoped prefixes (`/api/diagnose`, etc.) | Medium |
 | UX-034 | P2 | Friction | Command palette coverage | `web/src/components/CommandPalette.tsx` static actions are narrow | 1,3,4 | Expand action coverage to top 10 user tasks + integrations | Small-Medium |
-| UX-035 | P2 | Complexity | Config/setup naming spread | `AUTOAGENT_DB` vs `AUTOAGENT_DB_PATH` patterns across modules | 1,7 | Publish canonical env var matrix and deprecate aliases | Medium |
+| UX-035 | P2 | Complexity | Config/setup naming spread | `AGENTLAB_DB` vs `AGENTLAB_DB_PATH` patterns across modules | 1,7 | Publish canonical env var matrix and deprecate aliases | Medium |
 | UX-036 | P2 | Delight gap | No visible “what changed this week” summary | Distributed across events/changes/experiments | 3,5 | Add weekly digest card on dashboard | Medium |
 | UX-037 | P2 | Missing | Integration auth guidance in UI | CX/ADK pages capture IDs but no inline credential setup guidance | 2 | Add credential help panel + link to docs | Small |
 | UX-038 | P2 | Friction | Incomplete page-route breadcrumbs | only eval detail has breadcrumbs (`Layout.tsx:65-74`) | 3 | Add breadcrumb metadata per route | Medium |
@@ -474,4 +474,4 @@ Adopt a normalized API envelope for both success and failure on user-facing rout
 
 ## Closing Note
 
-AutoAgent already has the ingredients of a high-trust operator platform: strong loop concepts, real governance primitives, and rich observability surfaces. The next leverage point is not adding more features; it is **making existing features dependable, coherent, and legible across CLI, web, API, docs, and integrations**.
+AgentLab already has the ingredients of a high-trust operator platform: strong loop concepts, real governance primitives, and rich observability surfaces. The next leverage point is not adding more features; it is **making existing features dependable, coherent, and legible across CLI, web, API, docs, and integrations**.

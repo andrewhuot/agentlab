@@ -210,7 +210,7 @@ export function AgentStudio() {
                   )}
                 >
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-400">
-                    {message.role === 'user' ? 'Change request' : 'AutoAgent'}
+                    {message.role === 'user' ? 'Change request' : 'AgentLab'}
                   </p>
                   <p className="text-gray-700">{message.content}</p>
                 </div>

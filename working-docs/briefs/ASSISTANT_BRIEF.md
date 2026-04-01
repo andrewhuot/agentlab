@@ -1,8 +1,8 @@
-# AutoAgent Assistant — "Manus for Agent Optimization"
+# AgentLab Assistant — "Manus for Agent Optimization"
 
 ## Vision
 
-A conversational AI interface that makes the entire AutoAgent platform accessible through natural language. Users talk to the Assistant like they'd talk to a senior engineer: "Build me a customer support agent from these transcripts," "Why is my agent failing on billing questions?", "Fix it."
+A conversational AI interface that makes the entire AgentLab platform accessible through natural language. Users talk to the Assistant like they'd talk to a senior engineer: "Build me a customer support agent from these transcripts," "Why is my agent failing on billing questions?", "Fix it."
 
 The Assistant orchestrates all existing modules (observer, optimizer, deployer, evals, blame map, mutations, search) under the hood. The 87 CLI commands and 131 API endpoints become invisible. Users just describe what they want.
 
@@ -102,7 +102,7 @@ The Assistant page is a full-width conversational interface (like ChatGPT or Man
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  🤖 AutoAgent Assistant                          [···]  │
+│  🤖 AgentLab Assistant                          [···]  │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  Welcome! I can help you build, optimize, and           │
@@ -246,7 +246,7 @@ The orchestrator is the brain — it classifies intent and routes to the right m
 
 ```python
 class AssistantOrchestrator:
-    """Routes NL messages to appropriate AutoAgent modules."""
+    """Routes NL messages to appropriate AgentLab modules."""
     
     def __init__(self):
         self.conversation = ConversationState()
@@ -461,7 +461,7 @@ The builder module is NEW — it doesn't exist yet:
 1. **Time to first agent**: < 3 minutes from transcript upload to baseline eval
 2. **Time to first fix**: < 60 seconds from "why is it failing?" to deployed fix
 3. **Conversation depth**: Users average 5+ turns per session (not bouncing after 1)
-4. **Feature coverage**: Assistant can access 80%+ of AutoAgent's capabilities via NL
+4. **Feature coverage**: Assistant can access 80%+ of AgentLab's capabilities via NL
 
 ---
 

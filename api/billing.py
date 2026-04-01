@@ -65,7 +65,7 @@ _DEFAULT_PRICES: dict[str, float] = {
 class BillingService:
     """Record usage events and compute invoices (SQLite-backed)."""
 
-    def __init__(self, db_path: str = ".autoagent/billing.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/billing.db") -> None:
         self.db_path = db_path
         self._init_db()
 

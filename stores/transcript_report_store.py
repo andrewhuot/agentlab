@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-DEFAULT_DB_PATH = Path(".autoagent/transcript_reports.db")
+DEFAULT_DB_PATH = Path(".agentlab/transcript_reports.db")
 
 _DDL = """
 CREATE TABLE IF NOT EXISTS transcript_reports (

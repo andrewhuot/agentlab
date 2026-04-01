@@ -36,10 +36,10 @@
   - `/knowledge`
   - `/what-if`
   - `/reviews`
-- Result: blank main panel with generic title (`AutoAgent`).
+- Result: blank main panel with generic title (`AgentLab`).
 
 4. **P1: Navigation and naming consistency are fractured**
-- `/notifications` renders page title as `AutoAgent` (missing title mapping in `Layout.tsx`).
+- `/notifications` renders page title as `AgentLab` (missing title mapping in `Layout.tsx`).
 - Labeling drift: `Changes` in sidebar vs `Change Review` page title/route.
 - Mixed “new run” labels (`New Eval Run`, `Create Eval Run`, `Start New Evaluation`) in one flow.
 
@@ -65,17 +65,17 @@
 
 ### Artifacts generated
 - Main screenshot set (47 images):
-  - `~/Desktop/AutoAgent-Journey-Screenshots/`
+  - `~/Desktop/AgentLab-Journey-Screenshots/`
 - Structured journey log:
-  - `~/Desktop/AutoAgent-Journey-Screenshots/journey_audit_results.json`
+  - `~/Desktop/AgentLab-Journey-Screenshots/journey_audit_results.json`
 - Long-wait validation set (post-load states):
-  - `~/Desktop/AutoAgent-Journey-Screenshots/longwait_checks/`
+  - `~/Desktop/AgentLab-Journey-Screenshots/longwait_checks/`
 - Action-level click/submit checks:
-  - `~/Desktop/AutoAgent-Journey-Screenshots/action_checks/`
-  - `~/Desktop/AutoAgent-Journey-Screenshots/action_checks/action_checks.json`
+  - `~/Desktop/AgentLab-Journey-Screenshots/action_checks/`
+  - `~/Desktop/AgentLab-Journey-Screenshots/action_checks/action_checks.json`
 
 ### Extra CLI-first journey coverage (real execution)
-Executed in scratch dir: `/tmp/autoagent_journey_cli.q2oZnt`
+Executed in scratch dir: `/tmp/agentlab_journey_cli.q2oZnt`
 - `python runner.py quickstart ... --verbose`
 - `python runner.py eval run -j`
 - `python runner.py diagnose -j`
@@ -88,7 +88,7 @@ Result: CLI loop is functional in isolation; web/API runtime is not.
 
 ## Journey-by-Journey Analysis
 
-## 1) First Run — `autoagent init` -> first eval -> first diagnosis -> first fix -> deploy
+## 1) First Run — `agentlab init` -> first eval -> first diagnosis -> first fix -> deploy
 **What I tested**
 - Real CLI golden-path equivalent via `quickstart` + explicit `eval`, `diagnose`, `edit`, `deploy` commands.
 - Real web counterpart pages: `/`, `/evals`, `/assistant`, `/deploy`.
@@ -99,7 +99,7 @@ Result: CLI loop is functional in isolation; web/API runtime is not.
 
 **Friction points**
 - Web and CLI feel like two different maturity levels.
-- Dashboard empty-state pushes CLI (`autoagent quickstart`) instead of giving first-run in-product action.
+- Dashboard empty-state pushes CLI (`agentlab quickstart`) instead of giving first-run in-product action.
 
 **Evidence**
 - `01_001_dashboard-entry-dashboard.png`
@@ -374,7 +374,7 @@ Result: CLI loop is functional in isolation; web/API runtime is not.
 
 **Friction points**
 - Submission failure is a blocking error after full form completion.
-- Page header title still says `AutoAgent` instead of `Notifications`.
+- Page header title still says `AgentLab` instead of `Notifications`.
 
 **Evidence**
 - `action_checks/notifications_form_filled.png`
@@ -398,7 +398,7 @@ Result: CLI loop is functional in isolation; web/API runtime is not.
 - Root collision:
   - `registry/store.py` creates `skills` table without `kind`.
   - `core/skills/store.py` expects `skills.kind` and creates indexes on it.
-  - Both use same `AUTOAGENT_REGISTRY_DB` path in `api/server.py` lifespan.
+  - Both use same `AGENTLAB_REGISTRY_DB` path in `api/server.py` lifespan.
 
 3. **Frontend/backend capability mismatch**
 - Backend exposes APIs for sandbox, knowledge, what-if, collaboration (`/api/sandbox`, `/api/knowledge`, `/api/what-if`, `/api/reviews`).
@@ -436,7 +436,7 @@ Result: CLI loop is functional in isolation; web/API runtime is not.
 - Major route labels are mostly predictable (`Eval Runs`, `Optimize`, `Traces`).
 
 ### Inconsistent
-- Header title fallback issue on `/notifications` -> shows `AutoAgent` due missing page title map entry.
+- Header title fallback issue on `/notifications` -> shows `AgentLab` due missing page title map entry.
 - `Changes` (sidebar) vs `Change Review` (page title) increases cognitive overhead.
 - Eval action naming drifts inside a single flow:
   - `New Eval Run`

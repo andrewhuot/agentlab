@@ -175,7 +175,7 @@ def _hydrate_release(payload: dict[str, Any]) -> ReleaseCandidate:
 class BuilderStore:
     """SQLite store for all Builder first-class objects."""
 
-    def __init__(self, db_path: str = ".autoagent/builder.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/builder.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

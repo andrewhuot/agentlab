@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — Implementation Plan
+# AgentLab VNextCC — Implementation Plan
 
 ## Architecture Decisions
 

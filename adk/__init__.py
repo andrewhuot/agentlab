@@ -1,11 +1,11 @@
-"""ADK (Agent Development Kit) integration for AutoAgent.
+"""ADK (Agent Development Kit) integration for AgentLab.
 
 Provides bidirectional integration with Google's Agent Development Kit:
 - Parse ADK Python source code into structured config
-- Map ADK agents to AutoAgent surfaces
+- Map ADK agents to AgentLab surfaces
 - Export optimized configs back to ADK source
 - Deploy to Cloud Run or Vertex AI
-- Execute agents with AutoAgent tracing via the runtime adapter
+- Execute agents with AgentLab tracing via the runtime adapter
 - Manage session state, lifecycle, and streaming
 
 Public API:

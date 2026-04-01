@@ -35,7 +35,7 @@ def _new_uuid() -> str:
 class OutcomeStore:
     """SQLite-backed store for business outcomes and trace join records."""
 
-    def __init__(self, db_path: str = ".autoagent/outcomes.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/outcomes.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

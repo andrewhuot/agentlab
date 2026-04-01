@@ -62,7 +62,7 @@ test.describe('Preference + Policy Flows', () => {
 
   test('policy candidates can create a valid training job and run OPE', async ({ page }) => {
     const assertHealthy = collectBrowserIssues(page);
-    const datasetDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autoagent-policy-'));
+    const datasetDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agentlab-policy-'));
     const datasetPath = path.join(datasetDir, 'control-dataset.jsonl');
     await fs.writeFile(datasetPath, '{"input_text":"hello","output_text":"world"}\n', 'utf-8');
 

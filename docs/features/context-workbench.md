@@ -49,13 +49,13 @@ The `ContextMetrics` data class captures per-trace measurements:
 
 ```bash
 # Analyze a specific trace
-autoagent context analyze --trace trace_abc123
+agentlab context analyze --trace trace_abc123
 
 # Simulate compaction strategies
-autoagent context simulate --strategy balanced
+agentlab context simulate --strategy balanced
 
 # Generate a full context health report
-autoagent context report
+agentlab context report
 ```
 
 ## API endpoints
@@ -70,19 +70,19 @@ autoagent context report
 
 ```bash
 # 1. Get a high-level report
-autoagent context report
+agentlab context report
 # → Growth pattern: exponential (3 agents)
 # → Average utilization: 78%
 # → Failure correlation: moderate (r=0.42)
 
 # 2. Drill into a problematic trace
-autoagent context analyze --trace trace_abc123
+agentlab context analyze --trace trace_abc123
 # → Pattern: exponential
 # → Peak: 12,400 tokens (82% of window)
 # → Cause: tool output from order lookup not compacted
 
 # 3. Simulate a fix
-autoagent context simulate --strategy balanced
+agentlab context simulate --strategy balanced
 # → Estimated savings: 3,200 tokens
 # → Quality impact: -0.5%
 # → Recommendation: Safe to apply

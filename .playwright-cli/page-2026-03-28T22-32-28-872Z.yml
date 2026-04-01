@@ -1,7 +1,7 @@
 - generic [ref=e3]:
   - complementary [ref=e4]:
     - generic [ref=e5]:
-      - generic [ref=e6]: AutoAgent
+      - generic [ref=e6]: AgentLab
       - generic [ref=e7]: VNextCC
     - navigation [ref=e8]:
       - generic [ref=e9]:

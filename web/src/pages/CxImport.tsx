@@ -53,7 +53,7 @@ export function CxImport() {
     <div className="space-y-6">
       <PageHeader
         title="Import CX Agent"
-        description="Import an agent from Google Cloud CX Agent Studio into AutoAgent"
+        description="Import an agent from Google Cloud CX Agent Studio into AgentLab"
       />
 
       {/* Step indicators */}
@@ -157,7 +157,7 @@ export function CxImport() {
           </div>
           <p className="text-xs text-gray-400">
             This will fetch the agent's instructions, tools, examples, and test cases,
-            then map them to AutoAgent config format.
+            then map them to AgentLab config format.
           </p>
           <div className="flex gap-2">
             <button

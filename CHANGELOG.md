@@ -12,7 +12,7 @@
 - HandoffSchemaRegistry — versioned handoff schemas with validation rules
 - Bulk import from YAML/JSON files
 - Search, diffing, and deprecation support
-- CLI: `autoagent registry list|show|add|diff|import`
+- CLI: `agentlab registry list|show|add|diff|import`
 - API: 6 endpoints under `/api/registry/`
 
 **Trace Grading** (`observer/trace_grading.py`)
@@ -30,14 +30,14 @@
 - ScorerSpec with named dimensions and scoring criteria
 - Iterative refinement with additional NL criteria
 - Test scorers against sample eval results
-- CLI: `autoagent scorer create|list|show|refine|test`
+- CLI: `agentlab scorer create|list|show|refine|test`
 - API: 5 endpoints under `/api/scorers/`
 
 **Frontend**
 - Registry page — browse/search skills, policies, tools, handoff schemas
 - Blame Map page — visualize failure clusters with impact and trends
 - Scorer Studio page — create and test NL scorers
-- CLI: `autoagent trace grade|blame|graph`
+- CLI: `agentlab trace grade|blame|graph`
 - API: 3 new trace endpoints (blame, grades, graph)
 
 ### Numbers
@@ -78,21 +78,21 @@
 **AutoFix Copilot** (`api/routes/autofix.py`)
 - AI-driven failure analysis → constrained improvement proposals
 - Review-before-apply workflow with proposal lifecycle
-- CLI: `autoagent autofix suggest|apply|history`
+- CLI: `agentlab autofix suggest|apply|history`
 - API: 4 endpoints under `/api/autofix/`
 
 **Judge Ops** (`judges/`, `api/routes/judges.py`)
 - GraderVersionStore for judge versioning
 - DriftMonitor for agreement rate tracking
 - HumanFeedbackStore for calibration corrections
-- CLI: `autoagent judges list|calibrate|drift`
+- CLI: `agentlab judges list|calibrate|drift`
 - API: 4 endpoints under `/api/judges/`
 
 **Context Engineering Workbench** (`context/`)
 - ContextAnalyzer with growth pattern detection (linear/exponential/sawtooth/stable)
 - CompactionSimulator with 3 strategies (aggressive/balanced/conservative)
 - ContextMetrics (utilization, compaction loss, handoff fidelity, memory staleness)
-- CLI: `autoagent context analyze|simulate|report`
+- CLI: `agentlab context analyze|simulate|report`
 - API: 3 endpoints under `/api/context/`
 
 **Frontend**
@@ -153,9 +153,9 @@
 **Strategy-Aware Optimizer Loop** (`optimizer/loop.py`)
 - Default remains `simple` proposer path (failure-bucket mapping preserved)
 - `adaptive` and `full` now route through hybrid search orchestration
-- Added runtime-configurable search and guardrail settings via `autoagent.yaml`
+- Added runtime-configurable search and guardrail settings via `agentlab.yaml`
 
-**Runtime Config Schema** (`agent/config/runtime.py`, `autoagent.yaml`)
+**Runtime Config Schema** (`agent/config/runtime.py`, `agentlab.yaml`)
 - Added optimizer strategy fields:
   `search_strategy`, `bandit_policy`,
   search budget limits, anti-Goodhart thresholds

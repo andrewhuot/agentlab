@@ -1,4 +1,4 @@
-"""Transcript adapter for importing conversation logs into AutoAgent workspaces."""
+"""Transcript adapter for importing conversation logs into AgentLab workspaces."""
 
 from __future__ import annotations
 

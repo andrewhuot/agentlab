@@ -79,7 +79,7 @@ class CxStudioClient:
             try:
                 headers = dict(self._auth.get_headers())
                 headers.setdefault("Content-Type", "application/json")
-                headers.setdefault("User-Agent", "autoagent-cx/1.0")
+                headers.setdefault("User-Agent", "agentlab-cx/1.0")
 
                 status_code, response_text, response_headers = self._send(
                     method=method,

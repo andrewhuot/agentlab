@@ -184,7 +184,7 @@ class TranscriptIntelligenceService:
 
     def __init__(
         self,
-        knowledge_asset_path: str = ".autoagent/intelligence_knowledge_assets.json",
+        knowledge_asset_path: str = ".agentlab/intelligence_knowledge_assets.json",
         report_store: TranscriptReportStore | None = None,
         llm_router: LLMRouter | None = None,
     ) -> None:
@@ -373,7 +373,7 @@ class TranscriptIntelligenceService:
 
         # --- derive a short agent name from the prompt ---
         agent_name_words = [w.capitalize() for w in re.findall(r"[a-z]+", lower) if len(w) > 3][:3]
-        agent_name = "".join(agent_name_words) + "Agent" if agent_name_words else "AutoAgent"
+        agent_name = "".join(agent_name_words) + "Agent" if agent_name_words else "AgentLab"
 
         # ---- domain-specific system prompts ----
         _system_prompts: dict[str, str] = {
@@ -1484,7 +1484,7 @@ class TranscriptIntelligenceService:
             "policies": policies,
             "eval_criteria": eval_criteria,
             "metadata": {
-                "agent_name": str(metadata.get("agent_name") or "AutoAgent"),
+                "agent_name": str(metadata.get("agent_name") or "AgentLab"),
                 "version": str(metadata.get("version") or "1.0.0"),
                 "created_from": created_from,
             },

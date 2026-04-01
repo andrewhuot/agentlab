@@ -1,1 +1,1 @@
-"""Test package for AutoAgent VNext."""
+"""Test package for AgentLab VNext."""

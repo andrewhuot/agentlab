@@ -1,4 +1,4 @@
-"""CLI settings hierarchy for AutoAgent."""
+"""CLI settings hierarchy for AgentLab."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 
 
 DEFAULTS: dict[str, Any] = {
-    "shell.prompt": "autoagent> ",
+    "shell.prompt": "agentlab> ",
     "shell.show_status_bar": True,
     "output.format": "text",
     "output.color": True,
@@ -18,7 +18,7 @@ DEFAULTS: dict[str, Any] = {
     "editor": None,
 }
 
-USER_CONFIG_DIR = Path.home() / ".autoagent"
+USER_CONFIG_DIR = Path.home() / ".agentlab"
 USER_CONFIG_PATH = USER_CONFIG_DIR / "config.json"
 PROJECT_SETTINGS_FILENAME = "settings.json"
 LOCAL_SETTINGS_FILENAME = "settings.local.json"
@@ -87,10 +87,10 @@ def resolve_settings(
     merged = _deep_merge(merged, _flatten_dotted(_load_json(USER_CONFIG_PATH)))
 
     if workspace_dir is not None:
-        project_path = workspace_dir / ".autoagent" / PROJECT_SETTINGS_FILENAME
+        project_path = workspace_dir / ".agentlab" / PROJECT_SETTINGS_FILENAME
         merged = _deep_merge(merged, _flatten_dotted(_load_json(project_path)))
 
-        local_path = workspace_dir / ".autoagent" / LOCAL_SETTINGS_FILENAME
+        local_path = workspace_dir / ".agentlab" / LOCAL_SETTINGS_FILENAME
         merged = _deep_merge(merged, _flatten_dotted(_load_json(local_path)))
 
     if session_overrides:
@@ -103,7 +103,7 @@ def resolve_settings(
 
 
 def save_user_config(data: dict[str, Any]) -> Path:
-    """Persist user-level CLI settings to ``~/.autoagent/config.json``."""
+    """Persist user-level CLI settings to ``~/.agentlab/config.json``."""
     USER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     existing = _load_json(USER_CONFIG_PATH)
     merged = _deep_merge(existing, data)
@@ -115,8 +115,8 @@ def save_user_config(data: dict[str, Any]) -> Path:
 
 
 def save_project_settings(workspace_dir: Path, data: dict[str, Any]) -> Path:
-    """Persist project-level CLI settings to ``.autoagent/settings.json``."""
-    settings_path = workspace_dir / ".autoagent" / PROJECT_SETTINGS_FILENAME
+    """Persist project-level CLI settings to ``.agentlab/settings.json``."""
+    settings_path = workspace_dir / ".agentlab" / PROJECT_SETTINGS_FILENAME
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     existing = _load_json(settings_path)
     merged = _deep_merge(existing, data)
@@ -128,8 +128,8 @@ def save_project_settings(workspace_dir: Path, data: dict[str, Any]) -> Path:
 
 
 def save_local_settings(workspace_dir: Path, data: dict[str, Any]) -> Path:
-    """Persist local CLI overrides to ``.autoagent/settings.local.json``."""
-    local_path = workspace_dir / ".autoagent" / LOCAL_SETTINGS_FILENAME
+    """Persist local CLI overrides to ``.agentlab/settings.local.json``."""
+    local_path = workspace_dir / ".agentlab" / LOCAL_SETTINGS_FILENAME
     local_path.parent.mkdir(parents=True, exist_ok=True)
     existing = _load_json(local_path)
     merged = _deep_merge(existing, data)
@@ -144,6 +144,6 @@ def settings_file_paths(workspace_dir: Path | None = None) -> list[tuple[str, Pa
     """Return the configured settings file paths for diagnostics."""
     paths: list[tuple[str, Path]] = [("user", USER_CONFIG_PATH)]
     if workspace_dir is not None:
-        paths.append(("project", workspace_dir / ".autoagent" / PROJECT_SETTINGS_FILENAME))
-        paths.append(("local", workspace_dir / ".autoagent" / LOCAL_SETTINGS_FILENAME))
+        paths.append(("project", workspace_dir / ".agentlab" / PROJECT_SETTINGS_FILENAME))
+        paths.append(("local", workspace_dir / ".agentlab" / LOCAL_SETTINGS_FILENAME))
     return paths

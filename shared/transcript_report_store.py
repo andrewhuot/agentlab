@@ -8,7 +8,7 @@ from typing import Any
 
 from shared.contracts import TranscriptReport as TranscriptReportContract
 
-DEFAULT_TRANSCRIPT_REPORT_STORE_PATH = Path(".autoagent") / "intelligence_reports.json"
+DEFAULT_TRANSCRIPT_REPORT_STORE_PATH = Path(".agentlab") / "intelligence_reports.json"
 
 
 class TranscriptReportStore:

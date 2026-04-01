@@ -40,7 +40,7 @@ def test_console_script_entrypoint_module_is_packaged() -> None:
     scripts = pyproject.get("project", {}).get("scripts", {})
     setuptools_config = pyproject.get("tool", {}).get("setuptools", {})
 
-    assert scripts.get("autoagent") == "runner:cli"
+    assert scripts.get("agentlab") == "runner:cli"
     assert "runner" in (setuptools_config.get("py-modules") or [])
 
 

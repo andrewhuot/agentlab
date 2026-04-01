@@ -32,7 +32,7 @@ class HarnessResult:
         passed: ``True`` if the case met all pass criteria.
         score: Float in [0, 1] representing how well the case was answered.
         output: The agent's final output string.
-        trace_events: Full execution trace as AutoAgent-format event dicts.
+        trace_events: Full execution trace as AgentLab-format event dicts.
         latency_ms: Wall-clock time from request to final response.
         errors: Any errors raised during execution.
     """

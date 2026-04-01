@@ -1,4 +1,4 @@
-"""Base benchmark adapter and result types for AutoAgent standard benchmarks."""
+"""Base benchmark adapter and result types for AgentLab standard benchmarks."""
 
 from __future__ import annotations
 

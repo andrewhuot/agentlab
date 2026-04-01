@@ -1,4 +1,4 @@
-"""Interactive REPL shell for AutoAgent."""
+"""Interactive REPL shell for AgentLab."""
 
 from __future__ import annotations
 
@@ -52,11 +52,11 @@ SLASH_COMMANDS: dict[str, str] = {
     "/help": "Show available slash commands",
     "/status": "Show workspace status",
     "/config": "Show active config info",
-    "/memory": "Show AUTOAGENT.md contents",
+    "/memory": "Show AGENTLAB.md contents",
     "/doctor": "Run workspace diagnostics",
     "/review": "Show pending review cards",
     "/mcp": "Show MCP integration status",
-    "/compact": "Summarize session to .autoagent/memory/latest_session.md",
+    "/compact": "Summarize session to .agentlab/memory/latest_session.md",
     "/resume": "Resume the most recent session",
     "/exit": "Exit the shell",
 }
@@ -150,12 +150,12 @@ def _run_click_command(command_path: str) -> None:
 
 
 def _compact_session(session: Session, workspace: Any) -> None:
-    """Summarize the current session into ``.autoagent/memory/latest_session.md``."""
+    """Summarize the current session into ``.agentlab/memory/latest_session.md``."""
     if workspace is None:
         click.echo("  No workspace — cannot save session summary.")
         return
 
-    memory_dir = workspace.autoagent_dir / "memory"
+    memory_dir = workspace.agentlab_dir / "memory"
     memory_dir.mkdir(parents=True, exist_ok=True)
     summary_path = memory_dir / "latest_session.md"
 
@@ -191,25 +191,25 @@ def _route_free_text(text: str, workspace: Any) -> None:
     del workspace
 
     if any(keyword in lower for keyword in ("build", "create", "scaffold", "generate")):
-        click.echo(click.style("  -> routing to: autoagent build", fg="green"))
+        click.echo(click.style("  -> routing to: agentlab build", fg="green"))
         _run_click_command(f"build {shlex.quote(text)}")
     elif any(keyword in lower for keyword in ("eval", "test", "score", "grade")):
-        click.echo(click.style("  -> routing to: autoagent eval run", fg="green"))
+        click.echo(click.style("  -> routing to: agentlab eval run", fg="green"))
         _run_click_command("eval run")
     elif any(keyword in lower for keyword in ("optimize", "improve", "fix", "refine")):
-        click.echo(click.style("  -> routing to: autoagent improve", fg="green"))
+        click.echo(click.style("  -> routing to: agentlab improve", fg="green"))
         _run_click_command("improve")
     elif any(keyword in lower for keyword in ("review", "check", "inspect")):
-        click.echo(click.style("  -> routing to: autoagent review", fg="green"))
+        click.echo(click.style("  -> routing to: agentlab review", fg="green"))
         _run_click_command("review")
     elif any(keyword in lower for keyword in ("deploy", "release", "ship")):
-        click.echo(click.style("  -> routing to: autoagent deploy status", fg="green"))
+        click.echo(click.style("  -> routing to: agentlab deploy status", fg="green"))
         _run_click_command("deploy status")
     elif any(keyword in lower for keyword in ("status", "state", "dashboard")):
         _run_click_command("status")
     else:
-        click.echo(click.style("  -> routing to: autoagent edit", fg="green"))
-        click.echo(f'  Would run: autoagent edit "{text}"')
+        click.echo(click.style("  -> routing to: agentlab edit", fg="green"))
+        click.echo(f'  Would run: agentlab edit "{text}"')
         click.echo("  (Free-text editing available in a future release.)")
 
 
@@ -231,10 +231,10 @@ def run_shell(workspace: Any, *, session_store: SessionStore | None = None) -> N
     settings = resolve_settings(
         workspace_dir=workspace.root if workspace else None,
     )
-    prompt_str = settings.get("shell.prompt", "autoagent> ")
+    prompt_str = settings.get("shell.prompt", "agentlab> ")
 
     status_bar = _build_status_bar(workspace)
-    click.echo(click.style("\n  AutoAgent Shell", fg="cyan", bold=True))
+    click.echo(click.style("\n  AgentLab Shell", fg="cyan", bold=True))
     click.echo(f"  [{status_bar}]")
     click.echo("  Type /help for commands, or enter free text.\n")
 

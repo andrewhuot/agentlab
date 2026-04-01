@@ -141,7 +141,7 @@ The builder should feel like a command center, not a thin chat shell.
   - deployment targets, benchmark/eval defaults, permission defaults, preferred models/backends
 - Every new conversation/task in a project inherits project context automatically.
 - The UI must provide an Instructions & Memory panel for:
-  - project memory, builder memory, AGENTS.md, CLAUDE.md, AUTOAGENT.md
+  - project memory, builder memory, AGENTS.md, CLAUDE.md, AGENTLAB.md
 - The UI must show scope/inheritance: project-wide, folder-specific, task-specific
 - The UI must support attachments in chat: traces, SOPs, source trees, eval files, screenshots, diagrams, archives
 

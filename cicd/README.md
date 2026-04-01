@@ -1,6 +1,6 @@
-# CI/CD Gate for AutoAgent
+# CI/CD Gate for AgentLab
 
-Make AutoAgent a CI/CD gate — fail the build if agent quality regresses.
+Make AgentLab a CI/CD gate — fail the build if agent quality regresses.
 
 ## Quick Start
 
@@ -8,13 +8,13 @@ Make AutoAgent a CI/CD gate — fail the build if agent quality regresses.
 
 ```bash
 # Run eval with gate (exit code 0 = pass, 1 = fail)
-autoagent eval run --gate --fail-on-regression
+agentlab eval run --gate --fail-on-regression
 
 # Compare against baseline
-autoagent eval run --gate --baseline latest --fail-on-regression
+agentlab eval run --gate --baseline latest --fail-on-regression
 
 # Allow up to 5% regression
-autoagent eval run --gate --threshold 0.05 --fail-on-regression
+agentlab eval run --gate --threshold 0.05 --fail-on-regression
 ```
 
 ### 2. GitHub Actions Integration
@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - run: autoagent eval run --gate --fail-on-regression --output results.json
+      - run: agentlab eval run --gate --fail-on-regression --output results.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -48,7 +48,7 @@ Add to `.git/hooks/pre-push`:
 
 ```bash
 #!/bin/bash
-autoagent eval run --gate --baseline main --fail-on-regression
+agentlab eval run --gate --baseline main --fail-on-regression
 if [ $? -ne 0 ]; then
     echo "❌ Agent quality gate failed. Push blocked."
     exit 1
@@ -142,11 +142,11 @@ gate.exit()
 
 ```yaml
 # With pytest
-- run: pytest tests/ && autoagent eval run --gate
+- run: pytest tests/ && agentlab eval run --gate
 
 # With linting
-- run: ruff check . && autoagent eval run --gate
+- run: ruff check . && agentlab eval run --gate
 
 # With security scan
-- run: bandit -r . && autoagent eval run --gate
+- run: bandit -r . && agentlab eval run --gate
 ```

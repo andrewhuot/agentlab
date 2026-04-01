@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AutoAgent - Start backend + frontend
+# AgentLab - Start backend + frontend
 # Usage: ./start.sh
 
 set -euo pipefail
@@ -30,18 +30,18 @@ hr() {
 
 # ─── Globals ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUTOAGENT_VERSION="$(awk -F'"' '/^version = "/ { print $2; exit }' "$SCRIPT_DIR/pyproject.toml" 2>/dev/null || true)"
-if [[ -z "$AUTOAGENT_VERSION" ]]; then
-  AUTOAGENT_VERSION="dev"
+AGENTLAB_VERSION="$(awk -F'"' '/^version = "/ { print $2; exit }' "$SCRIPT_DIR/pyproject.toml" 2>/dev/null || true)"
+if [[ -z "$AGENTLAB_VERSION" ]]; then
+  AGENTLAB_VERSION="dev"
 fi
 VENV_DIR="$SCRIPT_DIR/.venv"
 VENV_BIN_DIR="$VENV_DIR/bin"
 VENV_ACTIVATE="$VENV_BIN_DIR/activate"
 VENV_PYTHON="$VENV_BIN_DIR/python"
-BACKEND_PID_FILE="$SCRIPT_DIR/.autoagent/backend.pid"
-FRONTEND_PID_FILE="$SCRIPT_DIR/.autoagent/frontend.pid"
-BACKEND_LOG="$SCRIPT_DIR/.autoagent/backend.log"
-FRONTEND_LOG="$SCRIPT_DIR/.autoagent/frontend.log"
+BACKEND_PID_FILE="$SCRIPT_DIR/.agentlab/backend.pid"
+FRONTEND_PID_FILE="$SCRIPT_DIR/.agentlab/frontend.pid"
+BACKEND_LOG="$SCRIPT_DIR/.agentlab/backend.log"
+FRONTEND_LOG="$SCRIPT_DIR/.agentlab/frontend.log"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 BACKEND_URL="http://localhost:$BACKEND_PORT"
@@ -51,7 +51,7 @@ FRONTEND_URL="${FRONTEND_BASE_URL}/dashboard"
 # ─── Cleanup / Ctrl+C handler ─────────────────────────────────────────────────
 cleanup() {
   echo ""
-  echo -e "\n  ${YELLOW}Shutting down AutoAgent...${RESET}"
+  echo -e "\n  ${YELLOW}Shutting down AgentLab...${RESET}"
 
   if [[ -f "$BACKEND_PID_FILE" ]]; then
     local pid
@@ -101,7 +101,7 @@ banner() {
   echo -e "${BLUE}    |::::|      ${RESET}${BOLD_WHITE}/ ___ / /_/ / /_/ /_/ / ___ / /_/ /  __/ / / / /_${RESET}"
   echo -e "${BLUE}    /|__|\\     ${RESET}${BOLD_WHITE}/_/  |_|\\__,_/\\__/\\____/_/  |_|\\__, /\\___/_/ /_/\\__/${RESET}"
   echo -e "${BLUE}      ||        ${RESET}${BOLD_WHITE}                         /____/${RESET}"
-  echo -e "${BLUE}      ||        ${RESET}${BOLD_CYAN}Continuous Agent Optimization Platform${RESET}${BOLD_CYAN}   v${AUTOAGENT_VERSION}${RESET}"
+  echo -e "${BLUE}      ||        ${RESET}${BOLD_CYAN}Continuous Agent Optimization Platform${RESET}${BOLD_CYAN}   v${AGENTLAB_VERSION}${RESET}"
   echo -e "${BLUE}      ||        ${RESET}${DIM}Created by Andrew Huot${RESET}"
   echo -e "${DIM}  ------------------------------------------------------------------------${RESET}"
   echo ""
@@ -128,7 +128,7 @@ if [[ -f "$BACKEND_PID_FILE" ]]; then
 fi
 
 # Create runtime dir
-mkdir -p .autoagent
+mkdir -p .agentlab
 
 # Refuse to touch ports owned by unrelated processes.
 port_is_available() {
@@ -255,7 +255,7 @@ wait_for_http() {
   echo -e "\r  ${RED}✗  ${label} did not start within ${max_attempts}s${RESET}"
   local label_lower
   label_lower=$(echo "$label" | tr '[:upper:]' '[:lower:]')
-  echo -e "  ${DIM}Check logs: cat .autoagent/${label_lower}.log${RESET}"
+  echo -e "  ${DIM}Check logs: cat .agentlab/${label_lower}.log${RESET}"
   return 1
 }
 
@@ -287,14 +287,14 @@ fi
 echo ""
 hr
 echo ""
-echo -e "  ${BOLD_GREEN}AutoAgent is running!${RESET}"
+echo -e "  ${BOLD_GREEN}AgentLab is running!${RESET}"
 echo ""
 echo -e "  ${BOLD_WHITE}Open in browser:${RESET}"
 echo -e "  ${BOLD_CYAN}  Frontend   →  ${FRONTEND_URL}${RESET}"
 echo -e "  ${DIM}  API        →  ${BACKEND_URL}${RESET}"
 echo -e "  ${DIM}  API docs   →  ${BACKEND_URL}/docs${RESET}"
 echo ""
-echo -e "  ${DIM}Logs:  .autoagent/backend.log  |  .autoagent/frontend.log${RESET}"
+echo -e "  ${DIM}Logs:  .agentlab/backend.log  |  .agentlab/frontend.log${RESET}"
 echo -e "  ${DIM}Stop:  Ctrl+C  or  ./stop.sh${RESET}"
 echo ""
 hr
@@ -305,7 +305,7 @@ echo ""
 while true; do
   if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
     echo -e "\n  ${RED}✗  Backend process died unexpectedly${RESET}"
-    echo -e "  ${DIM}Last lines from .autoagent/backend.log:${RESET}"
+    echo -e "  ${DIM}Last lines from .agentlab/backend.log:${RESET}"
     tail -10 "$BACKEND_LOG" 2>/dev/null | sed 's/^/    /'
     cleanup
     exit 1
@@ -313,7 +313,7 @@ while true; do
 
   if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
     echo -e "\n  ${RED}✗  Frontend process died unexpectedly${RESET}"
-    echo -e "  ${DIM}Last lines from .autoagent/frontend.log:${RESET}"
+    echo -e "  ${DIM}Last lines from .agentlab/frontend.log:${RESET}"
     tail -10 "$FRONTEND_LOG" 2>/dev/null | sed 's/^/    /'
     cleanup
     exit 1

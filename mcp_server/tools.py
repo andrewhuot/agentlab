@@ -1,4 +1,4 @@
-"""AutoAgent MCP tool implementations.
+"""AgentLab MCP tool implementations.
 
 Each tool function takes keyword arguments and returns a dict result.
 These functions are standalone — they create their own stores/components
@@ -9,12 +9,12 @@ import os
 from typing import Any
 
 # Lazy imports to avoid circular dependencies
-DB_PATH = os.environ.get("AUTOAGENT_DB", "conversations.db")
-CONFIGS_DIR = os.environ.get("AUTOAGENT_CONFIGS", "configs")
-MEMORY_DB = os.environ.get("AUTOAGENT_MEMORY_DB", "optimizer_memory.db")
+DB_PATH = os.environ.get("AGENTLAB_DB", "conversations.db")
+CONFIGS_DIR = os.environ.get("AGENTLAB_CONFIGS", "configs")
+MEMORY_DB = os.environ.get("AGENTLAB_MEMORY_DB", "optimizer_memory.db")
 
 
-def autoagent_status(**kwargs: Any) -> dict[str, Any]:
+def agentlab_status(**kwargs: Any) -> dict[str, Any]:
     """Get current agent health, scores, and failure summary."""
     from logger.store import ConversationStore
     from observer import Observer
@@ -42,7 +42,7 @@ def autoagent_status(**kwargs: Any) -> dict[str, Any]:
     }
 
 
-def autoagent_explain(**kwargs: Any) -> dict[str, Any]:
+def agentlab_explain(**kwargs: Any) -> dict[str, Any]:
     """Get a plain-English summary of the agent's current state."""
     from logger.store import ConversationStore
     from observer import Observer
@@ -74,7 +74,7 @@ def autoagent_explain(**kwargs: Any) -> dict[str, Any]:
     }
 
 
-def autoagent_diagnose(**kwargs: Any) -> dict[str, Any]:
+def agentlab_diagnose(**kwargs: Any) -> dict[str, Any]:
     """Run failure analysis and return clustered issues."""
     from optimizer.diagnose_session import DiagnoseSession
     session = DiagnoseSession()
@@ -82,7 +82,7 @@ def autoagent_diagnose(**kwargs: Any) -> dict[str, Any]:
     return session.to_dict()
 
 
-def autoagent_get_failures(failure_family: str = "", limit: int = 5, **kwargs: Any) -> list[dict]:
+def agentlab_get_failures(failure_family: str = "", limit: int = 5, **kwargs: Any) -> list[dict]:
     """Get sample conversations for a specific failure type."""
     from logger.store import ConversationStore
     store = ConversationStore(db_path=DB_PATH)
@@ -99,7 +99,7 @@ def autoagent_get_failures(failure_family: str = "", limit: int = 5, **kwargs: A
     ][:limit]
 
 
-def autoagent_suggest_fix(description: str = "", **kwargs: Any) -> dict[str, Any]:
+def agentlab_suggest_fix(description: str = "", **kwargs: Any) -> dict[str, Any]:
     """Suggest a config fix based on NL description."""
     from optimizer.nl_editor import NLEditor
     editor = NLEditor()
@@ -116,7 +116,7 @@ def autoagent_suggest_fix(description: str = "", **kwargs: Any) -> dict[str, Any
     return result.to_dict()
 
 
-def autoagent_edit(description: str = "", auto_apply: bool = False, **kwargs: Any) -> dict[str, Any]:
+def agentlab_edit(description: str = "", auto_apply: bool = False, **kwargs: Any) -> dict[str, Any]:
     """Apply a natural language edit to the agent config."""
     from optimizer.nl_editor import NLEditor
     editor = NLEditor()
@@ -133,7 +133,7 @@ def autoagent_edit(description: str = "", auto_apply: bool = False, **kwargs: An
     return result.to_dict()
 
 
-def autoagent_eval(config_path: str | None = None, **kwargs: Any) -> dict[str, Any]:
+def agentlab_eval(config_path: str | None = None, **kwargs: Any) -> dict[str, Any]:
     """Run eval suite and return scores."""
     from evals.runner import EvalRunner
     from agent.config.runtime import load_runtime_config
@@ -163,7 +163,7 @@ def autoagent_eval(config_path: str | None = None, **kwargs: Any) -> dict[str, A
     }
 
 
-def autoagent_eval_compare(config_a: str = "", config_b: str = "", **kwargs: Any) -> dict[str, Any]:
+def agentlab_eval_compare(config_a: str = "", config_b: str = "", **kwargs: Any) -> dict[str, Any]:
     """Compare two configs via eval."""
     from evals.runner import EvalRunner
     from agent.config.runtime import load_runtime_config
@@ -194,7 +194,7 @@ def autoagent_eval_compare(config_a: str = "", config_b: str = "", **kwargs: Any
     }
 
 
-def autoagent_skill_gaps(**kwargs: Any) -> list[dict]:
+def agentlab_skill_gaps(**kwargs: Any) -> list[dict]:
     """Identify capabilities the agent is missing."""
     try:
         from agent_skills.gap_analyzer import GapAnalyzer
@@ -205,11 +205,11 @@ def autoagent_skill_gaps(**kwargs: Any) -> list[dict]:
         return []
 
 
-def autoagent_skill_recommend(**kwargs: Any) -> list[dict]:
+def agentlab_skill_recommend(**kwargs: Any) -> list[dict]:
     """Recommend optimization skills."""
     try:
         from registry.skill_store import SkillStore
-        store = SkillStore(db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"))
+        store = SkillStore(db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"))
         skills = store.recommend()
         result = [
             {"name": s.name, "category": s.category, "description": s.description}
@@ -221,7 +221,7 @@ def autoagent_skill_recommend(**kwargs: Any) -> list[dict]:
         return []
 
 
-def autoagent_replay(limit: int = 10, **kwargs: Any) -> list[dict]:
+def agentlab_replay(limit: int = 10, **kwargs: Any) -> list[dict]:
     """Get optimization history."""
     from optimizer.memory import OptimizationMemory
     memory = OptimizationMemory(db_path=MEMORY_DB)
@@ -239,7 +239,7 @@ def autoagent_replay(limit: int = 10, **kwargs: Any) -> list[dict]:
     ]
 
 
-def autoagent_diff(version_a: int = 0, version_b: int = 0, **kwargs: Any) -> str:
+def agentlab_diff(version_a: int = 0, version_b: int = 0, **kwargs: Any) -> str:
     """Get diff between two config versions."""
     try:
         from deployer.versioning import ConfigVersionManager
@@ -301,7 +301,7 @@ def scaffold_agent(
         readme = textwrap.dedent(f"""\
             # {agent_name}
 
-            {description or 'An AutoAgent specialist.'}
+            {description or 'An AgentLab specialist.'}
 
             ## Type
             {agent_type}
@@ -513,7 +513,7 @@ def open_pr(
     """Create a git branch and open a pull request for pending changes."""
     import subprocess
 
-    branch = branch_name or "autoagent/auto-improvement"
+    branch = branch_name or "agentlab/auto-improvement"
     results: dict[str, Any] = {"branch": branch, "base": base_branch}
 
     try:
@@ -530,7 +530,7 @@ def open_pr(
         # Stage all changes
         subprocess.run(["git", "add", "-A"], check=True, capture_output=True)
         # Commit
-        commit_msg = title or "AutoAgent: automated improvement"
+        commit_msg = title or "AgentLab: automated improvement"
         subprocess.run(
             ["git", "commit", "-m", commit_msg],
             check=True, capture_output=True, text=True,
@@ -598,7 +598,7 @@ def list_skills(category: str = "", **kwargs: Any) -> list[dict[str, Any]]:
     """List available skills in the registry."""
     try:
         from registry.skill_store import SkillStore
-        store = SkillStore(db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"))
+        store = SkillStore(db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"))
         skills = store.recommend()
         result = [
             {
@@ -625,7 +625,7 @@ def apply_skill(
     """Apply a skill to an agent, updating its configuration."""
     try:
         from registry.skill_store import SkillStore
-        store = SkillStore(db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"))
+        store = SkillStore(db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"))
         skills = store.recommend()
         skill = next((s for s in skills if s.name == skill_name), None)
         store.close()
@@ -727,73 +727,73 @@ def _register_tools():
     from mcp_server.types import MCPToolDef, MCPToolParam
     global TOOL_REGISTRY
     TOOL_REGISTRY = {
-        "autoagent_status": (autoagent_status, MCPToolDef(
-            name="autoagent_status",
+        "agentlab_status": (agentlab_status, MCPToolDef(
+            name="agentlab_status",
             description="Get current agent health, scores, and failure summary.",
         )),
-        "autoagent_explain": (autoagent_explain, MCPToolDef(
-            name="autoagent_explain",
+        "agentlab_explain": (agentlab_explain, MCPToolDef(
+            name="agentlab_explain",
             description="Get a plain-English summary of the agent's current state.",
         )),
-        "autoagent_diagnose": (autoagent_diagnose, MCPToolDef(
-            name="autoagent_diagnose",
+        "agentlab_diagnose": (agentlab_diagnose, MCPToolDef(
+            name="agentlab_diagnose",
             description="Run failure analysis and return clustered issues with root causes.",
         )),
-        "autoagent_get_failures": (autoagent_get_failures, MCPToolDef(
-            name="autoagent_get_failures",
+        "agentlab_get_failures": (agentlab_get_failures, MCPToolDef(
+            name="agentlab_get_failures",
             description="Get sample conversations for a specific failure type.",
             parameters=[
                 MCPToolParam(name="failure_family", description="Failure type to filter by", required=True),
                 MCPToolParam(name="limit", description="Max results", type="integer"),
             ],
         )),
-        "autoagent_suggest_fix": (autoagent_suggest_fix, MCPToolDef(
-            name="autoagent_suggest_fix",
+        "agentlab_suggest_fix": (agentlab_suggest_fix, MCPToolDef(
+            name="agentlab_suggest_fix",
             description="Suggest a config fix based on natural language description.",
             parameters=[
                 MCPToolParam(name="description", description="NL description of the fix", type="string", required=True),
             ],
         )),
-        "autoagent_edit": (autoagent_edit, MCPToolDef(
-            name="autoagent_edit",
+        "agentlab_edit": (agentlab_edit, MCPToolDef(
+            name="agentlab_edit",
             description="Apply a natural language edit to the agent config.",
             parameters=[
                 MCPToolParam(name="description", description="NL description of the edit", type="string", required=True),
                 MCPToolParam(name="auto_apply", description="Auto-apply without confirmation", type="boolean"),
             ],
         )),
-        "autoagent_eval": (autoagent_eval, MCPToolDef(
-            name="autoagent_eval",
+        "agentlab_eval": (agentlab_eval, MCPToolDef(
+            name="agentlab_eval",
             description="Run eval suite and return scores.",
             parameters=[
                 MCPToolParam(name="config_path", description="Optional config YAML path", type="string"),
             ],
         )),
-        "autoagent_eval_compare": (autoagent_eval_compare, MCPToolDef(
-            name="autoagent_eval_compare",
+        "agentlab_eval_compare": (agentlab_eval_compare, MCPToolDef(
+            name="agentlab_eval_compare",
             description="Compare two configs via eval and return winner.",
             parameters=[
                 MCPToolParam(name="config_a", description="Path to first config", type="string", required=True),
                 MCPToolParam(name="config_b", description="Path to second config", type="string", required=True),
             ],
         )),
-        "autoagent_skill_gaps": (autoagent_skill_gaps, MCPToolDef(
-            name="autoagent_skill_gaps",
+        "agentlab_skill_gaps": (agentlab_skill_gaps, MCPToolDef(
+            name="agentlab_skill_gaps",
             description="Identify capabilities the agent is missing based on failure analysis.",
         )),
-        "autoagent_skill_recommend": (autoagent_skill_recommend, MCPToolDef(
-            name="autoagent_skill_recommend",
+        "agentlab_skill_recommend": (agentlab_skill_recommend, MCPToolDef(
+            name="agentlab_skill_recommend",
             description="Recommend optimization skills based on current failure patterns.",
         )),
-        "autoagent_replay": (autoagent_replay, MCPToolDef(
-            name="autoagent_replay",
+        "agentlab_replay": (agentlab_replay, MCPToolDef(
+            name="agentlab_replay",
             description="Get optimization history showing config evolution.",
             parameters=[
                 MCPToolParam(name="limit", description="Max entries to return", type="integer"),
             ],
         )),
-        "autoagent_diff": (autoagent_diff, MCPToolDef(
-            name="autoagent_diff",
+        "agentlab_diff": (agentlab_diff, MCPToolDef(
+            name="agentlab_diff",
             description="Get unified diff between two config versions.",
             parameters=[
                 MCPToolParam(name="version_a", description="First version number", type="integer", required=True),

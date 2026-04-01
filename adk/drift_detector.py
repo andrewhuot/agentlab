@@ -1,6 +1,6 @@
 """Drift detection for round-trip ADK source fidelity.
 
-A "round-trip" is the sequence: parse ADK source → map to AutoAgent config →
+A "round-trip" is the sequence: parse ADK source → map to AgentLab config →
 map back to ADK source → re-parse.  If the re-parsed config differs from the
 original the difference is called "drift".  Drift is expected for fields that
 are deliberately not round-tripped (e.g. raw function bodies), but any
@@ -73,7 +73,7 @@ class DriftDetector:
             original_config: The config dict produced directly from parsing
                 the ADK source.
             roundtripped_config: The config dict produced after a full
-                ADK → AutoAgent → ADK round-trip.
+                ADK → AgentLab → ADK round-trip.
 
         Returns:
             A ``DriftReport`` summarising the comparison.

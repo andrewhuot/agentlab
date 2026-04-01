@@ -55,11 +55,11 @@ class ClassifiedIntent:
 
 
 class AssistantOrchestrator:
-    """Routes NL messages to appropriate AutoAgent modules.
+    """Routes NL messages to appropriate AgentLab modules.
 
     The orchestrator is the main entry point for assistant interactions.
     It classifies intent, maintains conversation state, and coordinates
-    with existing AutoAgent modules (observer, optimizer, deployer, etc.).
+    with existing AgentLab modules (observer, optimizer, deployer, etc.).
     """
 
     def __init__(
@@ -613,7 +613,7 @@ class AssistantOrchestrator:
     async def _handle_general(self, message: str) -> AsyncIterator[Event]:
         """Handle general conversation or unclear intent."""
         yield TextEvent(
-            "I'm the AutoAgent Assistant. I can help you:\n\n"
+            "I'm the AgentLab Assistant. I can help you:\n\n"
             "• Build agents from transcripts or documents\n"
             "• Diagnose agent performance issues\n"
             "• Fix and optimize your agents\n"

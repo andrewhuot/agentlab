@@ -1,10 +1,10 @@
-# AutoAgent Assistant - Backend Core Modules
+# AgentLab Assistant - Backend Core Modules
 
-This directory contains the backend core modules for the AutoAgent Assistant feature.
+This directory contains the backend core modules for the AgentLab Assistant feature.
 
 ## Overview
 
-The Assistant provides a conversational AI interface to all AutoAgent capabilities:
+The Assistant provides a conversational AI interface to all AgentLab capabilities:
 - Build agents from transcripts, documents, or guided conversation
 - Iterate on agents (diagnose, fix, optimize)
 - Explore conversations with semantic search and clustering
@@ -14,7 +14,7 @@ The Assistant provides a conversational AI interface to all AutoAgent capabiliti
 ### Core Modules (Implemented)
 
 #### 1. **orchestrator.py** - The Brain
-Routes natural language messages to appropriate AutoAgent modules.
+Routes natural language messages to appropriate AgentLab modules.
 
 **Class:** `AssistantOrchestrator`
 **Key Methods:**

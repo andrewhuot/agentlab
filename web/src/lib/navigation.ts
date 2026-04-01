@@ -225,7 +225,7 @@ function getRouteMetadata(pathname: string): RouteMetadata {
   if (path.startsWith('/results/')) {
     return ROUTE_METADATA['/results'];
   }
-  return { title: 'AutoAgent', breadcrumbs: [] };
+  return { title: 'AgentLab', breadcrumbs: [] };
 }
 
 export function getNavigationSections(): NavigationSection[] {

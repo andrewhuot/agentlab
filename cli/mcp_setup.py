@@ -1,6 +1,6 @@
 """CLI commands for MCP client configuration.
 
-These flows write the documented AutoAgent MCP server definitions directly to
+These flows write the documented AgentLab MCP server definitions directly to
 the target client config files so users do not need to hand-edit JSON/TOML.
 """
 
@@ -26,7 +26,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python <3.11 fallback
 
 @dataclass(frozen=True)
 class MCPClientSpec:
-    """Describe where and how a specific MCP client stores AutoAgent config."""
+    """Describe where and how a specific MCP client stores AgentLab config."""
 
     client_name: str
     path_factory: Callable[[], Path]
@@ -34,20 +34,20 @@ class MCPClientSpec:
     verification_steps: list[str]
 
 
-def _autoagent_json_entry() -> dict[str, Any]:
+def _agentlab_json_entry() -> dict[str, Any]:
     """Return the shared stdio MCP server shape for JSON-based clients."""
     return {
-        "command": "autoagent",
+        "command": "agentlab",
         "args": ["mcp-server"],
     }
 
 
-def _autoagent_toml_payload() -> dict[str, Any]:
+def _agentlab_toml_payload() -> dict[str, Any]:
     """Return the shared stdio MCP server shape for TOML-based clients."""
     return {
         "mcp_servers": {
-            "autoagent": {
-                "command": "autoagent",
+            "agentlab": {
+                "command": "agentlab",
                 "args": ["mcp-server"],
             }
         }
@@ -64,7 +64,7 @@ def _client_specs() -> dict[str, MCPClientSpec]:
             verification_steps=[
                 "Run `claude mcp list`.",
                 "Open Claude Code and run `/mcp`.",
-                "Ask Claude Code to run `autoagent_status`.",
+                "Ask Claude Code to run `agentlab_status`.",
             ],
         ),
         "codex": MCPClientSpec(
@@ -73,8 +73,8 @@ def _client_specs() -> dict[str, MCPClientSpec]:
             file_format="toml",
             verification_steps=[
                 "Run `codex mcp list`.",
-                "Run `codex mcp get autoagent`.",
-                "Ask Codex to call `autoagent_status`.",
+                "Run `codex mcp get agentlab`.",
+                "Ask Codex to call `agentlab_status`.",
             ],
         ),
         "cursor": MCPClientSpec(
@@ -83,8 +83,8 @@ def _client_specs() -> dict[str, MCPClientSpec]:
             file_format="json",
             verification_steps=[
                 "Restart Cursor.",
-                "Confirm `autoagent` appears in Agent / Composer tools.",
-                "Ask Cursor to run `autoagent_status`.",
+                "Confirm `agentlab` appears in Agent / Composer tools.",
+                "Ask Cursor to run `agentlab_status`.",
             ],
         ),
         "windsurf": MCPClientSpec(
@@ -93,8 +93,8 @@ def _client_specs() -> dict[str, MCPClientSpec]:
             file_format="json",
             verification_steps=[
                 "Open Windsurf Cascade.",
-                "Open the MCP picker and confirm `autoagent` is enabled.",
-                "Ask Windsurf to run `autoagent_status`.",
+                "Open the MCP picker and confirm `agentlab` is enabled.",
+                "Ask Windsurf to run `agentlab_status`.",
             ],
         ),
     }
@@ -197,43 +197,43 @@ def _dump_toml(data: dict[str, Any]) -> str:
 
 
 def _merge_json_config(path: Path) -> None:
-    """Merge the AutoAgent server into a JSON MCP config file."""
+    """Merge the AgentLab server into a JSON MCP config file."""
     payload = _load_json(path)
     servers = payload.get("mcpServers")
     if not isinstance(servers, dict):
         servers = {}
     payload["mcpServers"] = servers
-    servers["autoagent"] = _autoagent_json_entry()
+    servers["agentlab"] = _agentlab_json_entry()
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _merge_toml_config(path: Path) -> None:
-    """Merge the AutoAgent server into a TOML MCP config file."""
+    """Merge the AgentLab server into a TOML MCP config file."""
     payload = _load_toml(path)
     mcp_servers = payload.get("mcp_servers")
     if not isinstance(mcp_servers, dict):
         mcp_servers = {}
     payload["mcp_servers"] = mcp_servers
-    mcp_servers["autoagent"] = _autoagent_toml_payload()["mcp_servers"]["autoagent"]
+    mcp_servers["agentlab"] = _agentlab_toml_payload()["mcp_servers"]["agentlab"]
     path.write_text(_dump_toml(payload), encoding="utf-8")
 
 
-def _has_autoagent_entry(spec: MCPClientSpec) -> bool:
-    """Return whether the given client already exposes the AutoAgent server."""
+def _has_agentlab_entry(spec: MCPClientSpec) -> bool:
+    """Return whether the given client already exposes the AgentLab server."""
     path = spec.path_factory()
     if not path.exists():
         return False
     if spec.file_format == "json":
         payload = _load_json(path)
         servers = payload.get("mcpServers", {})
-        return isinstance(servers, dict) and "autoagent" in servers
+        return isinstance(servers, dict) and "agentlab" in servers
     payload = _load_toml(path)
     servers = payload.get("mcp_servers", {})
-    return isinstance(servers, dict) and "autoagent" in servers
+    return isinstance(servers, dict) and "agentlab" in servers
 
 
 def _write_client_config(spec: MCPClientSpec) -> tuple[Path, Path | None]:
-    """Create or update a client MCP config file for AutoAgent."""
+    """Create or update a client MCP config file for AgentLab."""
     path = spec.path_factory()
     path.parent.mkdir(parents=True, exist_ok=True)
     backup_path = _backup_file(path)
@@ -256,7 +256,7 @@ def _write_local_project_configs() -> list[Path]:
         if not isinstance(servers, dict):
             servers = {}
         payload["mcpServers"] = servers
-        servers["autoagent"] = _autoagent_json_entry()
+        servers["agentlab"] = _agentlab_json_entry()
         path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         written_paths.append(path)
     return written_paths
@@ -264,28 +264,28 @@ def _write_local_project_configs() -> list[Path]:
 
 @click.group("mcp")
 def mcp_group() -> None:
-    """Configure AutoAgent MCP integration for supported coding tools.
+    """Configure AgentLab MCP integration for supported coding tools.
 
     Examples:
-      autoagent mcp init claude-code
-      autoagent mcp init codex
-      autoagent mcp status
+      agentlab mcp init claude-code
+      agentlab mcp init codex
+      agentlab mcp status
     """
 
 
 @mcp_group.command("init")
 @click.argument("client_name", required=False, type=click.Choice(tuple(_client_specs().keys()), case_sensitive=False))
 def init_client(client_name: str | None) -> None:
-    """Write AutoAgent MCP config for a supported client.
+    """Write AgentLab MCP config for a supported client.
 
     Examples:
-      autoagent mcp init
-      autoagent mcp init codex
-      autoagent mcp init cursor
+      agentlab mcp init
+      agentlab mcp init codex
+      agentlab mcp init cursor
     """
     if client_name is None:
         written_paths = _write_local_project_configs()
-        click.echo("Configured AutoAgent MCP for local project files.")
+        click.echo("Configured AgentLab MCP for local project files.")
         for path in written_paths:
             click.echo(f"Config path: {path}")
         return
@@ -293,7 +293,7 @@ def init_client(client_name: str | None) -> None:
     spec = _client_specs()[client_name.lower()]
     config_path, backup_path = _write_client_config(spec)
 
-    click.echo(f"Configured AutoAgent MCP for {spec.client_name}.")
+    click.echo(f"Configured AgentLab MCP for {spec.client_name}.")
     click.echo(f"Config path: {config_path}")
     if backup_path is not None:
         click.echo(f"Backup: {backup_path}")
@@ -307,13 +307,13 @@ def mcp_status() -> None:
     """Show workspace MCP runtime plus supported client installation status.
 
     Examples:
-      autoagent mcp status
+      agentlab mcp status
     """
     render_workspace_mcp_status()
     click.echo("")
     click.echo("Installed client status")
     for name, spec in _client_specs().items():
-        status = "configured" if _has_autoagent_entry(spec) else "not configured"
+        status = "configured" if _has_agentlab_entry(spec) else "not configured"
         click.echo(f"  {name:<12} {status:<14} {spec.path_factory()}")
 
 

@@ -1,4 +1,4 @@
-"""Workspace bootstrap and demo seeding helpers for the AutoAgent CLI."""
+"""Workspace bootstrap and demo seeding helpers for the AgentLab CLI."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any
 import yaml
 
 from agent.config.runtime import RuntimeConfig
-from cli.workspace import AutoAgentWorkspace
+from cli.workspace import AgentLabWorkspace
 from core.project_memory import ProjectMemory
 from deployer import Deployer
 from evals.synthetic import generate_dataset, seed_conversations
@@ -70,7 +70,7 @@ DEFAULT_AGENT_CONFIG: dict[str, Any] = {
     },
     "prompts": {
         "root": (
-            "You are AutoAgent, a helpful customer service assistant. Route customer "
+            "You are AgentLab, a helpful customer service assistant. Route customer "
             "requests to the appropriate specialist. If unclear, ask a clarifying "
             "question. Be friendly and concise."
         ),
@@ -209,16 +209,16 @@ def _resolve_runtime_use_mock(mode: str) -> bool:
     return not _has_api_key()
 
 
-def write_runtime_config(workspace: AutoAgentWorkspace, *, mode: str = "auto") -> None:
+def write_runtime_config(workspace: AgentLabWorkspace, *, mode: str = "auto") -> None:
     """Write a workspace-local runtime config that works on first run."""
     runtime = RuntimeConfig()
     runtime.optimizer.use_mock = _resolve_runtime_use_mock(mode)
     runtime.eval.history_db_path = workspace.eval_history_db.name
-    runtime.eval.cache_db_path = f".autoagent/{workspace.eval_cache_db.name}"
-    runtime.budget.tracker_db_path = ".autoagent/cost_tracker.db"
-    runtime.loop.checkpoint_path = ".autoagent/loop_checkpoint.json"
-    runtime.loop.dead_letter_db = ".autoagent/dead_letters.db"
-    runtime.loop.structured_log_path = ".autoagent/logs/backend.jsonl"
+    runtime.eval.cache_db_path = f".agentlab/{workspace.eval_cache_db.name}"
+    runtime.budget.tracker_db_path = ".agentlab/cost_tracker.db"
+    runtime.loop.checkpoint_path = ".agentlab/loop_checkpoint.json"
+    runtime.loop.dead_letter_db = ".agentlab/dead_letters.db"
+    runtime.loop.structured_log_path = ".agentlab/logs/backend.jsonl"
 
     workspace.runtime_config_path.write_text(
         yaml.safe_dump(runtime.model_dump(mode="json"), sort_keys=False),
@@ -226,7 +226,7 @@ def write_runtime_config(workspace: AutoAgentWorkspace, *, mode: str = "auto") -
     )
 
 
-def write_eval_case_files(workspace: AutoAgentWorkspace) -> list[Path]:
+def write_eval_case_files(workspace: AgentLabWorkspace) -> list[Path]:
     """Create a starter eval suite inside the workspace."""
     written: list[Path] = []
     for filename, payload in DEFAULT_EVAL_CASES.items():
@@ -240,13 +240,13 @@ def write_eval_case_files(workspace: AutoAgentWorkspace) -> list[Path]:
 
 
 def write_project_memory(
-    workspace: AutoAgentWorkspace,
+    workspace: AgentLabWorkspace,
     *,
     agent_name: str,
     platform: str,
 ) -> Path:
-    """Create the starter AUTOAGENT.md file when missing."""
-    path = workspace.root / "AUTOAGENT.md"
+    """Create the starter AGENTLAB.md file when missing."""
+    path = workspace.root / "AGENTLAB.md"
     if not path.exists():
         content = ProjectMemory.generate_template(
             agent_name=agent_name,
@@ -257,7 +257,7 @@ def write_project_memory(
     return path
 
 
-def seed_base_config(workspace: AutoAgentWorkspace) -> dict[str, Any]:
+def seed_base_config(workspace: AgentLabWorkspace) -> dict[str, Any]:
     """Ensure the workspace has an active base config and legacy base copy."""
     deployer = Deployer(
         configs_dir=str(workspace.configs_dir),
@@ -278,7 +278,7 @@ def seed_base_config(workspace: AutoAgentWorkspace) -> dict[str, Any]:
     return DEFAULT_AGENT_CONFIG
 
 
-def seed_synthetic_workspace_data(workspace: AutoAgentWorkspace) -> dict[str, int]:
+def seed_synthetic_workspace_data(workspace: AgentLabWorkspace) -> dict[str, int]:
     """Seed synthetic conversations for a first-run demoable workspace."""
     store = ConversationStore(db_path=str(workspace.conversation_db))
     dataset = generate_dataset()
@@ -301,7 +301,7 @@ def seed_synthetic_workspace_data(workspace: AutoAgentWorkspace) -> dict[str, in
     }
 
 
-def _reset_demo_sqlite_files(workspace: AutoAgentWorkspace) -> None:
+def _reset_demo_sqlite_files(workspace: AgentLabWorkspace) -> None:
     """Clear demo-only sqlite files so seeding stays idempotent."""
     for path in (
         workspace.trace_db,
@@ -314,7 +314,7 @@ def _reset_demo_sqlite_files(workspace: AutoAgentWorkspace) -> None:
             path.unlink()
 
 
-def _seed_demo_traces(workspace: AutoAgentWorkspace) -> list[str]:
+def _seed_demo_traces(workspace: AgentLabWorkspace) -> list[str]:
     """Seed stable trace data for demos and docs."""
     store = TraceStore(db_path=str(workspace.trace_db))
     now = time.time()
@@ -454,7 +454,7 @@ def _seed_demo_traces(workspace: AutoAgentWorkspace) -> list[str]:
     return [trace["trace_id"] for trace in traces]
 
 
-def _seed_demo_judges(workspace: AutoAgentWorkspace) -> None:
+def _seed_demo_judges(workspace: AgentLabWorkspace) -> None:
     """Seed judge versions and calibration feedback used by docs and demos."""
     version_store = GraderVersionStore(db_path=str(workspace.grader_versions_db))
     feedback_store = HumanFeedbackStore(db_path=str(workspace.human_feedback_db))
@@ -500,7 +500,7 @@ def _seed_demo_judges(workspace: AutoAgentWorkspace) -> None:
         feedback_store.record(item)
 
 
-def _seed_demo_change_cards(workspace: AutoAgentWorkspace) -> str:
+def _seed_demo_change_cards(workspace: AgentLabWorkspace) -> str:
     """Seed one pending change card for the review flows."""
     store = ChangeCardStore(db_path=str(workspace.change_cards_db))
     resolved = workspace.resolve_active_config()
@@ -569,7 +569,7 @@ def _seed_demo_change_cards(workspace: AutoAgentWorkspace) -> str:
     return card.card_id
 
 
-def _seed_demo_autofix(workspace: AutoAgentWorkspace) -> str:
+def _seed_demo_autofix(workspace: AgentLabWorkspace) -> str:
     """Seed one pending AutoFix proposal for deterministic demos."""
     store = AutoFixStore(db_path=str(workspace.autofix_db))
     proposal = AutoFixProposal(
@@ -599,7 +599,7 @@ def _seed_demo_autofix(workspace: AutoAgentWorkspace) -> str:
     return proposal.proposal_id
 
 
-def seed_demo_workspace(workspace: AutoAgentWorkspace) -> dict[str, Any]:
+def seed_demo_workspace(workspace: AgentLabWorkspace) -> dict[str, Any]:
     """Seed trace, judge, change-card, and autofix demo state into a workspace."""
     workspace.ensure_structure()
     _reset_demo_sqlite_files(workspace)
@@ -629,7 +629,7 @@ def _has_api_key() -> bool:
 
 
 def bootstrap_workspace(
-    workspace: AutoAgentWorkspace,
+    workspace: AgentLabWorkspace,
     *,
     template: str,
     agent_name: str,
@@ -643,7 +643,7 @@ def bootstrap_workspace(
     write_runtime_config(workspace, mode=runtime_mode)
     active_config = seed_base_config(workspace)
     eval_files = write_eval_case_files(workspace)
-    autoagent_path = write_project_memory(workspace, agent_name=agent_name, platform=platform)
+    agentlab_path = write_project_memory(workspace, agent_name=agent_name, platform=platform)
 
     runbook_store = RunbookStore(db_path=str(workspace.registry_db))
     seeded_runbooks = seed_starter_runbooks(runbook_store)
@@ -667,7 +667,7 @@ def bootstrap_workspace(
         "active_config": active_config,
         "active_config_version": workspace.metadata.active_config_version,
         "eval_files": eval_files,
-        "project_memory_path": autoagent_path,
+        "project_memory_path": agentlab_path,
         "runbook_count": seeded_runbooks,
         "synthetic_summary": synthetic_summary,
         "demo_summary": demo_summary,

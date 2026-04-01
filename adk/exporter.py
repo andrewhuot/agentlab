@@ -1,7 +1,7 @@
-"""Export optimized AutoAgent configs back to ADK source.
+"""Export optimized AgentLab configs back to ADK source.
 
 This module patches the original ADK Python source files to reflect changes made
-through AutoAgent optimization. It preserves formatting, comments, and code style
+through AgentLab optimization. It preserves formatting, comments, and code style
 by using AST parsing and targeted patching rather than full rewrites.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ from adk.types import AdkAgentTree, ExportResult
 
 
 class AdkExporter:
-    """Exports optimized AutoAgent configs back to ADK Python source."""
+    """Exports optimized AgentLab configs back to ADK Python source."""
 
     def __init__(self):
         self.mapper = AdkMapper()
@@ -40,7 +40,7 @@ class AdkExporter:
         5. Write patched files to output_dir
 
         Args:
-            config: Optimized AutoAgent config
+            config: Optimized AgentLab config
             snapshot_path: Path to original ADK snapshot directory
             output_dir: Directory to write modified source files (defaults to snapshot_path)
             dry_run: If True, preview changes without writing files
@@ -90,7 +90,7 @@ class AdkExporter:
         """Preview what changes export would make without writing files.
 
         Args:
-            config: Optimized AutoAgent config
+            config: Optimized AgentLab config
             snapshot_path: Path to original ADK snapshot
 
         Returns:
@@ -104,7 +104,7 @@ class AdkExporter:
 
         Args:
             base_tree: Parsed original agent structure
-            config: Optimized AutoAgent config
+            config: Optimized AgentLab config
 
         Returns:
             List of change descriptors

@@ -1,7 +1,7 @@
 # Three Features V2 — Registry, Trace Grading, NL Scorer
 
 ## CRITICAL DESIGN PRINCIPLES
-- **Product sense first.** These features should make AutoAgent dramatically easier to use, not harder.
+- **Product sense first.** These features should make AgentLab dramatically easier to use, not harder.
 - **Modular by default.** The whole point of Feature 1 is that mutations target modules, not monoliths. Design accordingly.
 - **Show the "why", not just the "what".** Feature 2 exists because teams need root-cause, not more dashboards.
 - **Zero-config entry point.** Feature 3 means a PM can type English and get a working scorer. No YAML, no code.
@@ -35,7 +35,7 @@
 ## FEATURE 1: Modular Registry (Skills, Policies, Tool Contracts, Handoff Schemas)
 
 ### The Problem
-AutoAgent currently treats agent configs as monolithic blobs. Mutations target "the whole prompt" or "the whole config." This plateaus because:
+AgentLab currently treats agent configs as monolithic blobs. Mutations target "the whole prompt" or "the whole config." This plateaus because:
 - Changes aren't composable or reusable
 - Teams can't share pieces of behavior
 - Mutations can't be scoped to the right granularity
@@ -75,18 +75,18 @@ AutoAgent currently treats agent configs as monolithic blobs. Mutations target "
 - Example: `instruction_rewrite` on skill "returns_handling" v3, not on "the system prompt"
 
 **CLI:**
-- `autoagent registry list [--type skills|policies|tools|handoffs]`
-- `autoagent registry show <type> <name> [--version N]`
-- `autoagent registry add <type> <name> --file <path>`
-- `autoagent registry diff <type> <name> <v1> <v2>`
-- `autoagent registry import <path>` — bulk import from YAML/JSON
+- `agentlab registry list [--type skills|policies|tools|handoffs]`
+- `agentlab registry show <type> <name> [--version N]`
+- `agentlab registry add <type> <name> --file <path>`
+- `agentlab registry diff <type> <name> <v1> <v2>`
+- `agentlab registry import <path>` — bulk import from YAML/JSON
 
 **API:** CRUD endpoints under `/api/registry/`
 **Web:** Registry browser page with search, version history, dependency graph
 
 ### User Journey
-1. Team imports their agent's skills/policies from a YAML file: `autoagent registry import agent_modules.yaml`
-2. AutoAgent mutations now target specific skills: "Rewrite the returns_handling skill instruction"
+1. Team imports their agent's skills/policies from a YAML file: `agentlab registry import agent_modules.yaml`
+2. AgentLab mutations now target specific skills: "Rewrite the returns_handling skill instruction"
 3. When a mutation improves a skill, the new version is registered automatically
 4. Teams can export and share improved skills across agents
 
@@ -125,9 +125,9 @@ Each grader returns: `SpanGrade(span_id, grader_name, score: float, passed: bool
 - Enables graph-level analysis: critical path, bottleneck detection
 
 **CLI:**
-- `autoagent trace grade <trace-id>` — grade all spans in a trace, show blame
-- `autoagent trace blame [--window 24h]` — show top blame clusters
-- `autoagent trace graph <trace-id>` — show trace graph structure
+- `agentlab trace grade <trace-id>` — grade all spans in a trace, show blame
+- `agentlab trace blame [--window 24h]` — show top blame clusters
+- `agentlab trace graph <trace-id>` — show trace graph structure
 
 **API:**
 - `GET /api/traces/{id}/grades` — span-level grades for a trace
@@ -141,7 +141,7 @@ Each grader returns: `SpanGrade(span_id, grader_name, score: float, passed: bool
 
 ### User Journey
 1. Team sees quality dropped from 0.82 to 0.71
-2. `autoagent trace blame` shows: "73% of new failures from tool_argument errors in order_lookup, 18% from routing to wrong specialist"
+2. `agentlab trace blame` shows: "73% of new failures from tool_argument errors in order_lookup, 18% from routing to wrong specialist"
 3. Team clicks into the tool_argument cluster, sees specific traces with graded spans
 4. AutoFix Copilot can now target mutations precisely: "Fix the order_lookup tool description"
 
@@ -185,12 +185,12 @@ Flow:
 - Can be loaded by EvalRunner as an alternative to manual scorer config
 
 **CLI:**
-- `autoagent scorer create "The agent should..."` — interactive NL scorer creation
-- `autoagent scorer create --from-file criteria.txt` — from file
-- `autoagent scorer list` — list compiled scorers
-- `autoagent scorer show <name>` — show dimensions and config
-- `autoagent scorer test <name> --trace <id>` — test scorer against a real trace
-- `autoagent scorer refine <name> "Also check for empathy"` — add/modify dimensions
+- `agentlab scorer create "The agent should..."` — interactive NL scorer creation
+- `agentlab scorer create --from-file criteria.txt` — from file
+- `agentlab scorer list` — list compiled scorers
+- `agentlab scorer show <name>` — show dimensions and config
+- `agentlab scorer test <name> --trace <id>` — test scorer against a real trace
+- `agentlab scorer refine <name> "Also check for empathy"` — add/modify dimensions
 
 **API:**
 - `POST /api/scorers/create` — compile NL description to scorer

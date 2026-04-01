@@ -15,8 +15,26 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-AUTOAGENT_DIR = REPO_ROOT / ".autoagent"
+AGENTLAB_DIR = REPO_ROOT / ".agentlab"
 _VENV_ACTIVATE = REPO_ROOT / ".venv" / "bin" / "activate"
+_PORT_OCCUPANT_CODE = textwrap.dedent(
+    """
+    import socket
+    import sys
+    import time
+
+    port = int(sys.argv[1])
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(("127.0.0.1", port))
+    sock.listen(1)
+    try:
+        while True:
+            time.sleep(1)
+    finally:
+        sock.close()
+    """
+)
 
 
 def _wait_for_port(port: int, timeout_seconds: float = 5.0) -> None:
@@ -36,22 +54,32 @@ def _get_free_port() -> int:
         return int(sock.getsockname()[1])
 
 
+def _spawn_port_occupant(port: int) -> subprocess.Popen[str]:
+    """Start a tiny TCP listener so shell-script safety tests can occupy a port reliably."""
+    return subprocess.Popen(
+        [sys.executable, "-c", _PORT_OCCUPANT_CODE, str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+
+
 @contextmanager
 def _preserved_pid_files() -> None:
-    AUTOAGENT_DIR.mkdir(exist_ok=True)
+    AGENTLAB_DIR.mkdir(exist_ok=True)
     backups: list[tuple[Path, Path]] = []
 
     try:
         for name in ("backend.pid", "frontend.pid"):
-            path = AUTOAGENT_DIR / name
-            backup = AUTOAGENT_DIR / f"{name}.bak-test"
+            path = AGENTLAB_DIR / name
+            backup = AGENTLAB_DIR / f"{name}.bak-test"
             if path.exists():
                 shutil.move(path, backup)
                 backups.append((path, backup))
         yield
     finally:
         for name in ("backend.pid", "frontend.pid"):
-            path = AUTOAGENT_DIR / name
+            path = AGENTLAB_DIR / name
             if path.exists():
                 path.unlink()
         for path, backup in backups:
@@ -125,11 +153,7 @@ def _path_without_lsof(*, fake_npm_body: str | None = None) -> None:
 
 def test_stop_script_does_not_kill_unrelated_processes() -> None:
     with _preserved_pid_files():
-        occupant = subprocess.Popen(
-            [sys.executable, "-m", "http.server", "8000"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        occupant = _spawn_port_occupant(8000)
         try:
             _wait_for_port(8000)
             with _fake_lsof({8000: occupant.pid}) as env:
@@ -157,11 +181,7 @@ def test_stop_script_does_not_kill_unrelated_processes() -> None:
 )
 def test_start_script_refuses_occupied_ports_without_killing_other_processes() -> None:
     with _preserved_pid_files():
-        occupant = subprocess.Popen(
-            [sys.executable, "-m", "http.server", "8000"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        occupant = _spawn_port_occupant(8000)
         try:
             _wait_for_port(8000)
             with _fake_lsof({8000: occupant.pid}) as env:
@@ -193,11 +213,7 @@ def test_start_script_refuses_frontend_port_conflicts_without_lsof() -> None:
     """start.sh should still block occupied frontend ports when lsof is unavailable."""
 
     with _preserved_pid_files():
-        occupant = subprocess.Popen(
-            [sys.executable, "-m", "http.server", "5173"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        occupant = _spawn_port_occupant(5173)
         try:
             _wait_for_port(5173)
             with _path_without_lsof(fake_npm_body="exit 0") as env:

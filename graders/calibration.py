@@ -17,7 +17,7 @@ class CalibrationRecord:
 class CalibrationTracker:
     """Track agreement and drift against human labels."""
 
-    def __init__(self, db_path: str = ".autoagent/grader_calibration.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/grader_calibration.db") -> None:
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

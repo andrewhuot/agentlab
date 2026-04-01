@@ -1,4 +1,4 @@
-"""Extension methods for CxMapper to export AutoAgent artifacts to CX Studio format."""
+"""Extension methods for CxMapper to export AgentLab artifacts to CX Studio format."""
 from __future__ import annotations
 
 from typing import Any
@@ -10,7 +10,7 @@ def integration_templates_to_cx_tools(
     integration_templates: list[dict[str, Any]],
     agent_name: str,
 ) -> list[CxTool]:
-    """Convert AutoAgent integration templates to CX Tool definitions.
+    """Convert AgentLab integration templates to CX Tool definitions.
 
     Args:
         integration_templates: List of integration templates from build_agent_artifact.
@@ -69,9 +69,9 @@ def integration_templates_to_cx_tools(
 
 def knowledge_asset_to_cx_datastore(
     knowledge_asset: dict[str, Any],
-    display_name: str = "AutoAgent Knowledge Base",
+    display_name: str = "AgentLab Knowledge Base",
 ) -> dict[str, Any]:
-    """Convert AutoAgent knowledge asset to CX DataStore creation payload.
+    """Convert AgentLab knowledge asset to CX DataStore creation payload.
 
     Args:
         knowledge_asset: Knowledge asset dict from transcript intelligence.
@@ -116,7 +116,7 @@ def knowledge_asset_to_cx_datastore(
 def guardrails_to_cx_safety_settings(
     guardrails: list[str],
 ) -> dict[str, Any]:
-    """Convert AutoAgent guardrails to CX Agent generativeSettings.safetySettings.
+    """Convert AgentLab guardrails to CX Agent generativeSettings.safetySettings.
 
     Args:
         guardrails: List of guardrail strings from build_agent_artifact.
@@ -152,7 +152,7 @@ def guardrails_to_cx_safety_settings(
 def skills_to_cx_playbooks(
     skills: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Convert AutoAgent runtime skills to CX Playbook definitions.
+    """Convert AgentLab runtime skills to CX Playbook definitions.
 
     Maps runtime skills to CX Agent Studio playbooks, tools, and generators.
 

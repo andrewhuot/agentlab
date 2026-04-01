@@ -139,7 +139,7 @@ class Skill:
     guardrails: list[str]
     eval_criteria: list[EvalCriterion]
     triggers: list[TriggerCondition]
-    author: str = "autoagent-builtin"
+    author: str = "agentlab-builtin"
     tags: list[str] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     proven_improvement: float | None = None
@@ -211,7 +211,7 @@ class Skill:
             guardrails=data.get("guardrails", []),
             eval_criteria=[EvalCriterion.from_dict(c) for c in data.get("eval_criteria", [])],
             triggers=[TriggerCondition.from_dict(t) for t in data.get("triggers", [])],
-            author=data.get("author", "autoagent-builtin"),
+            author=data.get("author", "agentlab-builtin"),
             tags=data.get("tags", []),
             created_at=data.get("created_at", time.time()),
             proven_improvement=data.get("proven_improvement"),

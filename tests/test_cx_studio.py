@@ -179,32 +179,32 @@ class TestCxTypes:
 # ---------------------------------------------------------------------------
 
 class TestCxMapper:
-    def test_to_autoagent_basic(self):
+    def test_to_agentlab_basic(self):
         mapper = CxMapper()
         snapshot = _make_snapshot()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         assert "prompts" in config
         assert "root" in config["prompts"]
         assert "tools" in config
         assert "routing" in config
 
-    def test_to_autoagent_prompts_from_playbooks(self):
+    def test_to_agentlab_prompts_from_playbooks(self):
         mapper = CxMapper()
         snapshot = _make_snapshot()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         # First playbook → root prompt
         assert "helpful assistant" in config["prompts"]["root"].lower() or len(config["prompts"]["root"]) > 0
 
-    def test_to_autoagent_tools(self):
+    def test_to_agentlab_tools(self):
         mapper = CxMapper()
         snapshot = _make_snapshot()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         assert "faq_lookup" in config.get("tools", {}) or len(config.get("tools", {})) > 0
 
-    def test_to_autoagent_routing(self):
+    def test_to_agentlab_routing(self):
         mapper = CxMapper()
         snapshot = _make_snapshot()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         rules = config.get("routing", {}).get("rules", [])
         assert len(rules) >= 0  # May have rules from intents
 
@@ -218,16 +218,16 @@ class TestCxMapper:
     def test_to_cx_round_trip(self):
         mapper = CxMapper()
         snapshot = _make_snapshot()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         updated = mapper.to_cx(config, snapshot)
         assert updated.agent.display_name == snapshot.agent.display_name
 
-    def test_to_autoagent_empty_snapshot(self):
+    def test_to_agentlab_empty_snapshot(self):
         mapper = CxMapper()
         snapshot = CxAgentSnapshot(
             agent=CxAgent(name="a", display_name="Empty"),
         )
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         assert "prompts" in config
 
     def test_extract_test_cases_empty(self):
@@ -241,7 +241,7 @@ class TestCxMapper:
     def test_to_cx_preserves_base_snapshot_fields(self):
         mapper = CxMapper()
         snapshot = _make_snapshot()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         updated = mapper.to_cx(config, snapshot)
         # Should preserve tools and environments from base
         assert len(updated.tools) == len(snapshot.tools)
@@ -381,7 +381,7 @@ class TestCxExporter:
         snapshot = _make_snapshot()
         mock_client = MagicMock()
         mapper = CxMapper()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
 
         with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
             json.dump(snapshot.model_dump(), f)
@@ -398,7 +398,7 @@ class TestCxExporter:
     def test_preview_changes(self):
         snapshot = _make_snapshot()
         mapper = CxMapper()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         # Modify a prompt to create a diff
         config["prompts"]["root"] = "Changed prompt"
 
@@ -567,7 +567,7 @@ class TestCxClientArgumentTypes:
         snapshot = _make_snapshot()
         mock_client = MagicMock()
         mapper = CxMapper()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         # Modify description to trigger agent update
         config["description"] = "Updated description"
 
@@ -593,7 +593,7 @@ class TestCxClientArgumentTypes:
         snapshot = _make_snapshot()
         mock_client = MagicMock()
         mapper = CxMapper()
-        config = mapper.to_autoagent(snapshot)
+        config = mapper.to_agentlab(snapshot)
         # Modify prompt to trigger playbook update
         config["prompts"]["root"] = "Updated prompt instructions"
 

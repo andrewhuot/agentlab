@@ -131,7 +131,7 @@ export function CxDeploy() {
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 space-y-3">
         <h3 className="text-sm font-medium text-gray-200">Preview & Export to CX</h3>
         <p className="text-xs text-gray-400">
-          Select the optimized AutoAgent config + CX snapshot, preview exact changes, then push when ready.
+          Select the optimized AgentLab config + CX snapshot, preview exact changes, then push when ready.
         </p>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <select

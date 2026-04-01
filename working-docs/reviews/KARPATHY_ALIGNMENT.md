@@ -1,4 +1,4 @@
-# Karpathy Alignment Review (AutoAgent VNextCC)
+# Karpathy Alignment Review (AgentLab VNextCC)
 
 Date: 2026-03-27
 
@@ -41,7 +41,7 @@ Date: 2026-03-27
 
 ---
 
-## 2) Audit: AutoAgent vs Karpathy Principles
+## 2) Audit: AgentLab vs Karpathy Principles
 
 ### Principle 1: Simplicity Over Complexity
 
@@ -148,7 +148,7 @@ Files:
 - `agent/config/runtime.py`
 - `runner.py`
 - `api/server.py`
-- `autoagent.yaml`
+- `agentlab.yaml`
 - `tests/test_adversarial_simulator.py`
 - `tests/test_optimizer.py`
 
@@ -180,7 +180,7 @@ File:
 
 ---
 
-## 4) Where AutoAgent Exceeds Karpathy’s Baseline Vision
+## 4) Where AgentLab Exceeds Karpathy’s Baseline Vision
 
 1. **Production reliability envelope**
 - Dead-letter queue, watchdog, checkpointing, structured logs, and human control layers exceed the minimal AutoResearch baseline.

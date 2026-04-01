@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from agent.config.runtime import RuntimeConfig, RuntimeModelConfig, load_runtime_config
-from cli.workspace import AutoAgentWorkspace
+from cli.workspace import AgentLabWorkspace
 
 
 DEFAULT_PROVIDER_MODELS: dict[str, str] = {
@@ -39,11 +39,11 @@ def normalize_model_name(provider: str, model: str) -> str:
     return cleaned
 
 
-def providers_file_path(workspace: AutoAgentWorkspace | None) -> Path:
+def providers_file_path(workspace: AgentLabWorkspace | None) -> Path:
     """Return the provider registry path for the current CLI scope."""
     if workspace is not None:
-        return workspace.autoagent_dir / "providers.json"
-    return Path(".autoagent") / "providers.json"
+        return workspace.agentlab_dir / "providers.json"
+    return Path(".agentlab") / "providers.json"
 
 
 def default_model_for(provider: str) -> str:
@@ -133,7 +133,7 @@ def sync_runtime_config(
     api_key_env: str,
     base_url: str | None = None,
 ) -> RuntimeConfig:
-    """Update `autoagent.yaml` so CLI live-mode setup matches provider registry state."""
+    """Update `agentlab.yaml` so CLI live-mode setup matches provider registry state."""
     runtime = load_runtime_config(str(runtime_config_path))
     runtime.optimizer.use_mock = False
     normalized_provider = provider.strip().lower()

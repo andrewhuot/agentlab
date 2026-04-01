@@ -111,7 +111,7 @@ _VALID_STATUSES = {"pending", "evaluating", "evaluated", "applied", "rejected", 
 class AutoFixStore:
     """Persistent SQLite store for autofix proposals."""
 
-    def __init__(self, db_path: str = ".autoagent/autofix.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/autofix.db") -> None:
         self.db_path = db_path
         self._init_db()
 

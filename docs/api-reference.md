@@ -15,7 +15,7 @@ Recommended startup:
 Backend-only alternative:
 
 ```bash
-autoagent server
+agentlab server
 ```
 
 Live generated schema:
@@ -66,7 +66,7 @@ Representative shape:
   "workspace": {
     "found": true,
     "path": "/path/to/workspace",
-    "runtime_config_path": "/path/to/autoagent.yaml",
+    "runtime_config_path": "/path/to/agentlab.yaml",
     "active_config_version": 1
   },
   "doctor": {
@@ -84,10 +84,10 @@ Representative shape:
     }
   ],
   "recommended_commands": [
-    "autoagent init",
-    "autoagent doctor",
-    "autoagent mode show",
-    "autoagent mcp status"
+    "agentlab init",
+    "agentlab doctor",
+    "agentlab mode show",
+    "agentlab mcp status"
   ]
 }
 ```
@@ -142,7 +142,7 @@ Representative shape:
 
 ## Eval Runs, Results, and Compare
 
-AutoAgent now exposes three related but separate eval route families.
+AgentLab now exposes three related but separate eval route families.
 
 ### Eval runs
 

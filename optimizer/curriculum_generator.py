@@ -1,7 +1,7 @@
 """Self-play curriculum generator for adversarial eval prompt synthesis.
 
 Generates progressively harder eval prompts from recent failure clusters.
-This is the flywheel that makes AutoAgent genuinely self-improving.
+This is the flywheel that makes AgentLab genuinely self-improving.
 """
 
 from __future__ import annotations
@@ -398,7 +398,7 @@ class CurriculumGenerator:
 class CurriculumStore:
     """Persistent storage for curriculum batches."""
 
-    def __init__(self, store_dir: str = ".autoagent/curriculum") -> None:
+    def __init__(self, store_dir: str = ".agentlab/curriculum") -> None:
         self.store_dir = Path(store_dir)
         self.store_dir.mkdir(parents=True, exist_ok=True)
 

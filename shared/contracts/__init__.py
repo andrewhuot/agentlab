@@ -1,4 +1,4 @@
-"""Shared domain contracts used across the AutoAgent stack."""
+"""Shared domain contracts used across the AgentLab stack."""
 
 from __future__ import annotations
 

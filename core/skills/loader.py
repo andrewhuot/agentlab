@@ -274,7 +274,7 @@ class SkillLoader:
                 tags=data.get("tags", []),
                 domain=data.get("domain", "general"),
                 metadata=data.get("metadata", {}),
-                author=data.get("author", "autoagent"),
+                author=data.get("author", "agentlab"),
                 status=data.get("status", "active"),
             )
 

@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — Frontend & Docs Polish Task
+# AgentLab VNextCC — Frontend & Docs Polish Task
 
 Read PRODUCT_BRIEF.md for the full product vision and CUJs.
 
@@ -95,4 +95,4 @@ All docs should follow OpenAI's documentation style: clear, concise, code-heavy,
 4. Verify CLI commands work
 5. Run all tests — fix any failures
 
-When completely finished, run: openclaw system event --text 'Done: AutoAgent VNextCC Codex frontend + docs polish complete' --mode now
+When completely finished, run: openclaw system event --text 'Done: AgentLab VNextCC Codex frontend + docs polish complete' --mode now

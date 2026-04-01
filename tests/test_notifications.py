@@ -343,7 +343,7 @@ class TestEmailChannel:
         channel = EmailChannel()
         config = {
             "address": "test@example.com",
-            "from_address": "autoagent@localhost",
+            "from_address": "agentlab@localhost",
         }
         payload = {"message": "Test notification"}
 

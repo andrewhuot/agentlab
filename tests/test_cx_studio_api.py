@@ -138,7 +138,7 @@ def test_diff_returns_changes_and_conflicts(
         def diff_agent(self, config, ref, snapshot_path):  # noqa: ANN001
             assert config == {"prompts": {"root": "hello"}}
             assert ref.agent_id == "support-bot"
-            assert snapshot_path == ".autoagent/cx/snapshot.json"
+            assert snapshot_path == ".agentlab/cx/snapshot.json"
 
             class _Result:
                 changes = [{"resource": "playbook", "field": "instruction", "action": "update"}]
@@ -159,7 +159,7 @@ def test_diff_returns_changes_and_conflicts(
             "location": "us-central1",
             "agent_id": "support-bot",
             "config": {"prompts": {"root": "hello"}},
-            "snapshot_path": ".autoagent/cx/snapshot.json",
+            "snapshot_path": ".agentlab/cx/snapshot.json",
         },
     )
 
@@ -210,7 +210,7 @@ def test_sync_returns_conflicts_without_pushing(
             "location": "us-central1",
             "agent_id": "support-bot",
             "config": {"prompts": {"root": "hello"}},
-            "snapshot_path": ".autoagent/cx/snapshot.json",
+            "snapshot_path": ".agentlab/cx/snapshot.json",
             "conflict_strategy": "detect",
         },
     )

@@ -1,7 +1,7 @@
 """Tests for Stream 2 — Resources & Durability (FR-05, FR-06, FR-07, FR-08, FR-13).
 
 Covers:
-  FR-05: autoagent config import
+  FR-05: agentlab config import
   FR-06: Durable semantics (release create, trace promote, autofix apply writes config)
   FR-07: --json output standard envelope
   FR-08: Standard selectors (latest/active/pending)
@@ -129,7 +129,7 @@ class TestDurableSemantics:
         assert "rel-" in result.output
 
         # Verify file was persisted
-        releases_dir = tmp_path / ".autoagent" / "releases"
+        releases_dir = tmp_path / ".agentlab" / "releases"
         release_files = list(releases_dir.glob("rel-*.json"))
         assert len(release_files) == 1
         release = json.loads(release_files[0].read_text())
@@ -261,7 +261,7 @@ class TestInspectCommands:
 
     def test_build_show_with_artifact(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
-        aa_dir = tmp_path / ".autoagent"
+        aa_dir = tmp_path / ".agentlab"
         aa_dir.mkdir()
         _write_json(aa_dir / "build_artifact_latest.json", {
             "source_prompt": "Build a support bot",
@@ -280,7 +280,7 @@ class TestInspectCommands:
 
     def test_build_show_json(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
-        aa_dir = tmp_path / ".autoagent"
+        aa_dir = tmp_path / ".agentlab"
         aa_dir.mkdir()
         _write_json(aa_dir / "build_artifact_latest.json", {
             "source_prompt": "test",
@@ -304,8 +304,8 @@ class TestInspectCommands:
 
         monkeypatch.chdir(tmp_path)
         store = BuildArtifactStore(
-            path=tmp_path / ".autoagent" / "build_artifacts.json",
-            latest_path=tmp_path / ".autoagent" / "build_artifact_latest.json",
+            path=tmp_path / ".agentlab" / "build_artifacts.json",
+            latest_path=tmp_path / ".agentlab" / "build_artifact_latest.json",
         )
         store.save_latest(
             BuildArtifact(
@@ -367,7 +367,7 @@ class TestInspectCommands:
 
     def test_autofix_show_pending_uses_store_pending_selector(self, tmp_path: Path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
-        aa_dir = tmp_path / ".autoagent"
+        aa_dir = tmp_path / ".agentlab"
         aa_dir.mkdir()
         store = AutoFixStore(db_path=str(aa_dir / "autofix.db"))
         store.save(
@@ -390,7 +390,7 @@ class TestInspectCommands:
         import optimizer.autofix as autofix_module
 
         monkeypatch.chdir(tmp_path)
-        aa_dir = tmp_path / ".autoagent"
+        aa_dir = tmp_path / ".agentlab"
         aa_dir.mkdir()
         store = AutoFixStore(db_path=str(aa_dir / "autofix.db"))
         store.save(
@@ -440,11 +440,11 @@ class TestStream2Helpers:
     def test_json_response_format(self) -> None:
         from cli.stream2_helpers import json_response
 
-        output = json_response("ok", {"key": "val"}, next_cmd="autoagent status")
+        output = json_response("ok", {"key": "val"}, next_cmd="agentlab status")
         data = json.loads(output)
         assert data["status"] == "ok"
         assert data["data"]["key"] == "val"
-        assert data["next"] == "autoagent status"
+        assert data["next"] == "agentlab status"
 
     def test_json_response_no_next(self) -> None:
         from cli.stream2_helpers import json_response
@@ -525,7 +525,7 @@ class TestStream2Helpers:
         monkeypatch.chdir(tmp_path)
         assert get_latest_build_artifact() is None
 
-        aa_dir = tmp_path / ".autoagent"
+        aa_dir = tmp_path / ".agentlab"
         aa_dir.mkdir(exist_ok=True)
         _write_json(aa_dir / "build_artifact_latest.json", {"source_prompt": "hello"})
         assert get_latest_build_artifact()["source_prompt"] == "hello"
@@ -537,8 +537,8 @@ class TestStream2Helpers:
 
         monkeypatch.chdir(tmp_path)
         store = BuildArtifactStore(
-            path=tmp_path / ".autoagent" / "build_artifacts.json",
-            latest_path=tmp_path / ".autoagent" / "build_artifact_latest.json",
+            path=tmp_path / ".agentlab" / "build_artifacts.json",
+            latest_path=tmp_path / ".agentlab" / "build_artifact_latest.json",
         )
         store.save_latest(
             BuildArtifact(

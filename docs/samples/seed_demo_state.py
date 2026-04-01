@@ -2,18 +2,18 @@
 """Seed reproducible demo data for the Quick Start guide.
 
 Creates:
-- trace events and spans in ``.autoagent/traces.db``
-- grader versions in ``.autoagent/grader_versions.db``
-- human feedback in ``.autoagent/human_feedback.db``
-- a pending change card in ``.autoagent/change_cards.db``
-- a pending AutoFix proposal in ``.autoagent/autofix.db``
+- trace events and spans in ``.agentlab/traces.db``
+- grader versions in ``.agentlab/grader_versions.db``
+- human feedback in ``.agentlab/human_feedback.db``
+- a pending change card in ``.agentlab/change_cards.db``
+- a pending AutoFix proposal in ``.agentlab/autofix.db``
 
 The seeded data gives the CLI guide stable examples for:
-- ``autoagent trace ...``
-- ``autoagent context analyze``
-- ``autoagent scorer test``
-- ``autoagent judges list`` and ``autoagent judges calibrate``
-- ``autoagent review ...`` and ``autoagent changes ...``
+- ``agentlab trace ...``
+- ``agentlab context analyze``
+- ``agentlab scorer test``
+- ``agentlab judges list`` and ``agentlab judges calibrate``
+- ``agentlab review ...`` and ``agentlab changes ...``
 """
 
 from __future__ import annotations
@@ -35,12 +35,12 @@ from optimizer.autofix import AutoFixProposal, AutoFixStore
 from optimizer.change_card import ChangeCardStore, ConfidenceInfo, DiffHunk, ProposedChangeCard
 
 
-def _trace_store(autoagent_dir: Path) -> TraceStore:
+def _trace_store(agentlab_dir: Path) -> TraceStore:
     """Return the trace store rooted in the target workspace."""
-    return TraceStore(db_path=str(autoagent_dir / "traces.db"))
+    return TraceStore(db_path=str(agentlab_dir / "traces.db"))
 
 
-def _reset_sqlite_files(autoagent_dir: Path) -> None:
+def _reset_sqlite_files(agentlab_dir: Path) -> None:
     """Remove existing demo sqlite files so the script is idempotent."""
     for name in (
         "traces.db",
@@ -49,7 +49,7 @@ def _reset_sqlite_files(autoagent_dir: Path) -> None:
         "change_cards.db",
         "autofix.db",
     ):
-        path = autoagent_dir / name
+        path = agentlab_dir / name
         if path.exists():
             path.unlink()
 
@@ -72,9 +72,9 @@ def _log_trace(
         store.log_span(span)
 
 
-def seed_traces(autoagent_dir: Path) -> list[str]:
+def seed_traces(agentlab_dir: Path) -> list[str]:
     """Seed passing and failing traces for trace, context, and scorer demos."""
-    store = _trace_store(autoagent_dir)
+    store = _trace_store(agentlab_dir)
     now = time.time()
 
     traces = [
@@ -334,10 +334,10 @@ def seed_traces(autoagent_dir: Path) -> list[str]:
     return [trace["trace_id"] for trace in traces]
 
 
-def seed_judges(autoagent_dir: Path) -> None:
+def seed_judges(agentlab_dir: Path) -> None:
     """Seed judge versions and calibration feedback."""
-    version_store = GraderVersionStore(db_path=str(autoagent_dir / "grader_versions.db"))
-    feedback_store = HumanFeedbackStore(db_path=str(autoagent_dir / "human_feedback.db"))
+    version_store = GraderVersionStore(db_path=str(agentlab_dir / "grader_versions.db"))
+    feedback_store = HumanFeedbackStore(db_path=str(agentlab_dir / "human_feedback.db"))
 
     versions = [
         GraderVersion(
@@ -388,9 +388,9 @@ def seed_judges(autoagent_dir: Path) -> None:
         feedback_store.record(item)
 
 
-def seed_change_cards(autoagent_dir: Path) -> str:
+def seed_change_cards(agentlab_dir: Path) -> str:
     """Seed one pending change card for review and changes demos."""
-    store = ChangeCardStore(db_path=str(autoagent_dir / "change_cards.db"))
+    store = ChangeCardStore(db_path=str(agentlab_dir / "change_cards.db"))
     card = ProposedChangeCard(
         card_id="demochg1",
         title="Tighten refund verification before escalation",
@@ -425,9 +425,9 @@ def seed_change_cards(autoagent_dir: Path) -> str:
     return card.card_id
 
 
-def seed_autofix(autoagent_dir: Path) -> str:
+def seed_autofix(agentlab_dir: Path) -> str:
     """Seed one pending AutoFix proposal for deterministic AutoFix demos."""
-    store = AutoFixStore(db_path=str(autoagent_dir / "autofix.db"))
+    store = AutoFixStore(db_path=str(agentlab_dir / "autofix.db"))
     proposal = AutoFixProposal(
         proposal_id="demoaf1",
         mutation_name="few_shot_edit",
@@ -454,14 +454,14 @@ def seed_autofix(autoagent_dir: Path) -> str:
 
 def seed_workspace(workspace: Path) -> None:
     """Seed all demo assets into the target workspace."""
-    autoagent_dir = workspace / ".autoagent"
-    autoagent_dir.mkdir(parents=True, exist_ok=True)
-    _reset_sqlite_files(autoagent_dir)
+    agentlab_dir = workspace / ".agentlab"
+    agentlab_dir.mkdir(parents=True, exist_ok=True)
+    _reset_sqlite_files(agentlab_dir)
 
-    trace_ids = seed_traces(autoagent_dir)
-    seed_judges(autoagent_dir)
-    card_id = seed_change_cards(autoagent_dir)
-    autofix_id = seed_autofix(autoagent_dir)
+    trace_ids = seed_traces(agentlab_dir)
+    seed_judges(agentlab_dir)
+    card_id = seed_change_cards(agentlab_dir)
+    autofix_id = seed_autofix(agentlab_dir)
 
     print(f"Seeded workspace: {workspace}")
     print(f"Trace IDs: {', '.join(trace_ids)}")
@@ -471,16 +471,16 @@ def seed_workspace(workspace: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Seed demo state for AutoAgent quickstart docs.")
+    parser = argparse.ArgumentParser(description="Seed demo state for AgentLab quickstart docs.")
     parser.add_argument(
         "--workspace",
         default=".",
-        help="Workspace root that should receive the .autoagent demo data.",
+        help="Workspace root that should receive the .agentlab demo data.",
     )
     parser.add_argument(
         "--clean-curriculum",
         action="store_true",
-        help="Remove .autoagent/curriculum before seeding.",
+        help="Remove .agentlab/curriculum before seeding.",
     )
     return parser.parse_args()
 
@@ -492,7 +492,7 @@ def main() -> None:
     workspace.mkdir(parents=True, exist_ok=True)
 
     if args.clean_curriculum:
-        curriculum_dir = workspace / ".autoagent" / "curriculum"
+        curriculum_dir = workspace / ".agentlab" / "curriculum"
         if curriculum_dir.exists():
             shutil.rmtree(curriculum_dir)
 

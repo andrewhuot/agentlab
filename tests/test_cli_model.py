@@ -41,7 +41,7 @@ def test_mode_without_subcommand_behaves_like_show(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`autoagent mode` should behave like `autoagent mode show`."""
+    """`agentlab mode` should behave like `agentlab mode show`."""
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(cli, ["mode"])
@@ -51,7 +51,7 @@ def test_mode_without_subcommand_behaves_like_show(
 
 
 def test_model_without_subcommand_behaves_like_show(runner: CliRunner) -> None:
-    """`autoagent model` should surface the effective model summary directly."""
+    """`agentlab model` should surface the effective model summary directly."""
     with runner.isolated_filesystem():
         init_result = runner.invoke(cli, ["init", "--dir", "."])
         assert init_result.exit_code == 0, init_result.output
@@ -63,7 +63,7 @@ def test_model_without_subcommand_behaves_like_show(runner: CliRunner) -> None:
 
 
 def test_provider_without_subcommand_behaves_like_status(runner: CliRunner) -> None:
-    """`autoagent provider` should show provider status instead of erroring."""
+    """`agentlab provider` should show provider status instead of erroring."""
     with runner.isolated_filesystem():
         init_result = runner.invoke(cli, ["init", "--dir", "."])
         assert init_result.exit_code == 0, init_result.output
@@ -75,7 +75,7 @@ def test_provider_without_subcommand_behaves_like_status(runner: CliRunner) -> N
 
 
 def test_model_set_writes_workspace_settings_overrides(runner: CliRunner) -> None:
-    """Per-workspace proposer/evaluator overrides should live in `.autoagent/settings.json`."""
+    """Per-workspace proposer/evaluator overrides should live in `.agentlab/settings.json`."""
     with runner.isolated_filesystem():
         init_result = runner.invoke(cli, ["init", "--dir", "."])
         assert init_result.exit_code == 0, init_result.output
@@ -86,7 +86,7 @@ def test_model_set_writes_workspace_settings_overrides(runner: CliRunner) -> Non
         assert proposer_result.exit_code == 0, proposer_result.output
         assert evaluator_result.exit_code == 0, evaluator_result.output
 
-        settings = json.loads((Path(".autoagent") / "settings.json").read_text(encoding="utf-8"))
+        settings = json.loads((Path(".agentlab") / "settings.json").read_text(encoding="utf-8"))
         assert settings["models"]["proposer"] == "anthropic:claude-sonnet-4-5"
         assert settings["models"]["evaluator"] == "google:gemini-2.5-pro"
 

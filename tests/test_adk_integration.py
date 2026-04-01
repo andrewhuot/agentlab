@@ -25,9 +25,9 @@ def test_full_import_pipeline(sample_agent_path, tmp_path):
     assert len(tree.tools) == 3
     assert len(tree.sub_agents) == 1
 
-    # 2. Map to AutoAgent config
+    # 2. Map to AgentLab config
     mapper = AdkMapper()
-    config = mapper.to_autoagent(tree)
+    config = mapper.to_agentlab(tree)
 
     assert "prompts" in config
     assert "root" in config["prompts"]
@@ -79,13 +79,13 @@ def test_round_trip_config_preservation(sample_agent_path, tmp_path):
 
     # Map to config
     mapper = AdkMapper()
-    config = mapper.to_autoagent(tree1)
+    config = mapper.to_agentlab(tree1)
 
     # Map back to tree
     tree2 = mapper.to_adk(config, tree1)
 
     # Map to config again
-    config2 = mapper.to_autoagent(tree2)
+    config2 = mapper.to_agentlab(tree2)
 
     # Compare configs
     assert config["prompts"]["root"] == config2["prompts"]["root"]
@@ -124,7 +124,7 @@ def test_keyword_derivation_for_routing(sample_agent_path):
     """Test that routing keywords are intelligently derived."""
     mapper = AdkMapper()
     tree = parse_agent_directory(sample_agent_path)
-    config = mapper.to_autoagent(tree)
+    config = mapper.to_agentlab(tree)
 
     billing_rule = None
     for rule in config["routing"]["rules"]:

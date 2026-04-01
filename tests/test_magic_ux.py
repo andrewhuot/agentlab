@@ -69,7 +69,7 @@ class TestSoulHelpers:
         assert "evaluation" in _soul_line("eval").lower()
 
     def test_soul_line_fallback(self):
-        assert _soul_line("unknown") == "AutoAgent is online."
+        assert _soul_line("unknown") == "AgentLab is online."
 
     def test_print_cli_plan(self, runner):
         @__import__("click").command()
@@ -83,11 +83,11 @@ class TestSoulHelpers:
     def test_print_next_actions(self, runner):
         @__import__("click").command()
         def _cmd():
-            _print_next_actions(["autoagent status"])
+            _print_next_actions(["agentlab status"])
 
         result = runner.invoke(_cmd, [])
         assert "Next actions" in result.output
-        assert "autoagent status" in result.output
+        assert "agentlab status" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -301,35 +301,35 @@ class TestStatusNextAction:
     def test_no_attempts_prefers_eval_run_without_latest_eval(self, monkeypatch):
         report = self._make_report({})
         monkeypatch.setattr("runner._latest_eval_result_file", lambda: None)
-        assert _status_next_action(report, attempts_count=0, accepted_count=0) == "autoagent eval run"
+        assert _status_next_action(report, attempts_count=0, accepted_count=0) == "agentlab eval run"
 
     def test_no_attempts_prefers_optimize_when_latest_eval_exists(self, monkeypatch, tmp_path):
         report = self._make_report({})
         latest = tmp_path / "eval_results_latest.json"
         latest.write_text("{}", encoding="utf-8")
         monkeypatch.setattr("runner._latest_eval_result_file", lambda: latest)
-        assert _status_next_action(report, attempts_count=0, accepted_count=0) == "autoagent optimize --cycles 3"
+        assert _status_next_action(report, attempts_count=0, accepted_count=0) == "agentlab optimize --cycles 3"
 
     def test_failures_prefers_runbook(self):
         report = self._make_report({"timeout": 3})
         action = _status_next_action(report, attempts_count=2, accepted_count=0)
-        assert action.startswith("autoagent runbook apply")
+        assert action.startswith("agentlab runbook apply")
 
     def test_multiple_wins_prefers_continuous_optimize(self):
         report = self._make_report({})
         action = _status_next_action(report, attempts_count=6, accepted_count=3)
-        assert action == "autoagent optimize --continuous"
+        assert action == "agentlab optimize --continuous"
 
 
 # ---------------------------------------------------------------------------
-# autoagent status command
+# agentlab status command
 # ---------------------------------------------------------------------------
 
 class TestStatusCommand:
     def test_status_runs(self, runner):
         result = runner.invoke(cli, ["status"])
         assert result.exit_code == 0, result.output
-        assert "AutoAgent Status" in result.output
+        assert "AgentLab Status" in result.output
 
     def test_status_shows_config(self, runner):
         result = runner.invoke(cli, ["status"])

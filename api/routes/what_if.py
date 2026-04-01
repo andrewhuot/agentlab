@@ -37,13 +37,13 @@ def _get_what_if_engine(request: Request) -> WhatIfEngine:
     conversation_store = getattr(request.app.state, "conversation_store", None)
     if conversation_store is None:
         conversation_store = ConversationStore(
-            db_path=os.environ.get("AUTOAGENT_DB", "conversations.db")
+            db_path=os.environ.get("AGENTLAB_DB", "conversations.db")
         )
         request.app.state.conversation_store = conversation_store
 
     # Keep the lazy fallback isolated to the app instance so route tests and
     # unconfigured local runs do not reuse old what-if jobs from disk.
-    fd, db_path = tempfile.mkstemp(prefix="autoagent-what-if-", suffix=".db")
+    fd, db_path = tempfile.mkstemp(prefix="agentlab-what-if-", suffix=".db")
     os.close(fd)
     engine = WhatIfEngine(
         conversation_store=conversation_store,

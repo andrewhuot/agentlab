@@ -1,10 +1,10 @@
 # CX Studio Integration
 
-This guide explains how AutoAgent integrates with Google Cloud CX Agent Studio and Dialogflow CX for real bidirectional import, diff, export, and sync workflows.
+This guide explains how AgentLab integrates with Google Cloud CX Agent Studio and Dialogflow CX for real bidirectional import, diff, export, and sync workflows.
 
 ## What This Integration Covers
 
-AutoAgent now imports and exports real Dialogflow CX agent resources rather than relying on placeholder mappings.
+AgentLab now imports and exports real Dialogflow CX agent resources rather than relying on placeholder mappings.
 
 The integration covers:
 
@@ -30,7 +30,7 @@ This is intentional. The older CX Agent Studio REST surface is useful for some n
 
 ## Authentication
 
-AutoAgent uses `google-auth` and supports the three practical authentication modes teams use with Google Cloud:
+AgentLab uses `google-auth` and supports the three practical authentication modes teams use with Google Cloud:
 
 1. Service account JSON
 2. Application Default Credentials (ADC)
@@ -42,22 +42,22 @@ Use this for CI, production automation, and shared operational workflows.
 
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-autoagent cx auth
+agentlab cx auth
 ```
 
 You can also pass the file directly:
 
 ```bash
-autoagent cx auth --credentials /path/to/service-account.json
+agentlab cx auth --credentials /path/to/service-account.json
 ```
 
 ### Option 2: Application Default Credentials
 
-If `GOOGLE_APPLICATION_CREDENTIALS` points to a service account file, AutoAgent will use it automatically through ADC.
+If `GOOGLE_APPLICATION_CREDENTIALS` points to a service account file, AgentLab will use it automatically through ADC.
 
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-autoagent cx auth
+agentlab cx auth
 ```
 
 ### Option 3: OAuth via gcloud
@@ -66,17 +66,17 @@ This is the easiest local development path for a human operator.
 
 ```bash
 gcloud auth application-default login
-autoagent cx auth
+agentlab cx auth
 ```
 
-This produces user credentials in the local ADC store. AutoAgent treats that as an ADC flow, but the underlying credential source is OAuth.
+This produces user credentials in the local ADC store. AgentLab treats that as an ADC flow, but the underlying credential source is OAuth.
 
 ### Verifying Auth
 
 Use the new command before any import or export work:
 
 ```bash
-autoagent cx auth [--credentials /path/to/service-account.json]
+agentlab cx auth [--credentials /path/to/service-account.json]
 ```
 
 The command prints:
@@ -115,7 +115,7 @@ For write-back operations, the identity also needs permission to:
 - Patch entity types
 - Patch webhooks
 - Patch playbooks
-- Create missing resources when AutoAgent needs to materialize new ones
+- Create missing resources when AgentLab needs to materialize new ones
 
 ### Recommended Role Strategy
 
@@ -129,36 +129,36 @@ For regulated or high-risk deployments:
 
 - Use one service account per environment
 - Store keys in Secret Manager, not in the repo
-- Keep explicit audit logging around AutoAgent-triggered write-back
+- Keep explicit audit logging around AgentLab-triggered write-back
 - Require human review before `sync` or non-dry-run `export`
 
 ## Workspace Model
 
-When you import a CX agent, AutoAgent creates a normal workspace and also stores CX-specific round-trip metadata.
+When you import a CX agent, AgentLab creates a normal workspace and also stores CX-specific round-trip metadata.
 
 ### Important Files
 
 After import, the workspace contains:
 
 - `configs/v001.yaml`
-  The active AutoAgent config derived from the imported agent.
+  The active AgentLab config derived from the imported agent.
 - `evals/cases/imported_connect.yaml`
   Starter evals generated from CX test cases when test-case import is enabled.
-- `.autoagent/cx/snapshot.json`
+- `.agentlab/cx/snapshot.json`
   The imported CX snapshot used as the merge base for later export and sync.
-- `.autoagent/cx/workspace.json`
+- `.agentlab/cx/workspace.json`
   The mapped workspace representation used by the CX integration.
-- `.autoagent/cx/manifest.json`
+- `.agentlab/cx/manifest.json`
   The bridge file that links the workspace, config, snapshot, and CX agent coordinates.
 
 ### Why the Snapshot Matters
 
 The snapshot is what makes incremental sync possible.
 
-AutoAgent uses it as the base in a three-way comparison:
+AgentLab uses it as the base in a three-way comparison:
 
 - Base: the imported snapshot
-- Local: the current AutoAgent config mapped back to CX
+- Local: the current AgentLab config mapped back to CX
 - Remote: the latest live CX state fetched from Google Cloud
 
 That is how the integration can distinguish:
@@ -172,31 +172,31 @@ That is how the integration can distinguish:
 ### 1. Authenticate
 
 ```bash
-autoagent cx auth
+agentlab cx auth
 ```
 
 Or with explicit credentials:
 
 ```bash
-autoagent cx auth --credentials /path/to/service-account.json
+agentlab cx auth --credentials /path/to/service-account.json
 ```
 
 ### 2. List Agents
 
 ```bash
-autoagent cx list --project PROJECT --location us-central1
+agentlab cx list --project PROJECT --location us-central1
 ```
 
 ### 3. Import an Agent
 
 ```bash
-autoagent cx import AGENT_ID --project PROJECT --location us-central1
+agentlab cx import AGENT_ID --project PROJECT --location us-central1
 ```
 
 Compatibility form:
 
 ```bash
-autoagent cx import --project PROJECT --location us-central1 --agent AGENT_ID
+agentlab cx import --project PROJECT --location us-central1 --agent AGENT_ID
 ```
 
 Optional flags:
@@ -210,25 +210,25 @@ Optional flags:
 From inside the imported workspace:
 
 ```bash
-autoagent cx diff AGENT_ID --project PROJECT --location us-central1
+agentlab cx diff AGENT_ID --project PROJECT --location us-central1
 ```
 
-If you are already inside the imported workspace, AutoAgent can resolve the active config and snapshot automatically from `.autoagent/cx/manifest.json`.
+If you are already inside the imported workspace, AgentLab can resolve the active config and snapshot automatically from `.agentlab/cx/manifest.json`.
 
 You can still override paths explicitly:
 
 ```bash
-autoagent cx diff AGENT_ID \
+agentlab cx diff AGENT_ID \
   --project PROJECT \
   --location us-central1 \
   --config configs/v004.yaml \
-  --snapshot .autoagent/cx/snapshot.json
+  --snapshot .agentlab/cx/snapshot.json
 ```
 
 ### 5. Preview Export
 
 ```bash
-autoagent cx export AGENT_ID \
+agentlab cx export AGENT_ID \
   --project PROJECT \
   --location us-central1 \
   --dry-run
@@ -239,7 +239,7 @@ This compares the active config with the imported snapshot and shows the changes
 ### 6. Push Export
 
 ```bash
-autoagent cx export AGENT_ID \
+agentlab cx export AGENT_ID \
   --project PROJECT \
   --location us-central1
 ```
@@ -249,7 +249,7 @@ Use this when you want to push the local config as-is relative to the stored sna
 ### 7. Safe Sync
 
 ```bash
-autoagent cx sync AGENT_ID \
+agentlab cx sync AGENT_ID \
   --project PROJECT \
   --location us-central1
 ```
@@ -257,13 +257,13 @@ autoagent cx sync AGENT_ID \
 By default, sync uses conflict detection:
 
 ```bash
-autoagent cx sync AGENT_ID \
+agentlab cx sync AGENT_ID \
   --project PROJECT \
   --location us-central1 \
   --conflict-strategy detect
 ```
 
-If the same field changed both locally and remotely since import, AutoAgent reports a conflict and does not push.
+If the same field changed both locally and remotely since import, AgentLab reports a conflict and does not push.
 
 ## CLI Semantics: Export vs Sync
 
@@ -318,9 +318,9 @@ The new web control surface lives at:
 
 ## Mapping Model
 
-AutoAgent’s internal config model is simpler than Dialogflow CX, so the integration uses a layered mapping strategy.
+AgentLab’s internal config model is simpler than Dialogflow CX, so the integration uses a layered mapping strategy.
 
-### Normalized AutoAgent Fields
+### Normalized AgentLab Fields
 
 - `prompts`
 - `routing.rules`
@@ -341,13 +341,13 @@ That preserved metadata includes:
 - playbooks
 - the full imported snapshot
 
-This lets AutoAgent expose a usable local config while still restoring precise CX structures during export and sync.
+This lets AgentLab expose a usable local config while still restoring precise CX structures during export and sync.
 
 ## Conflict Detection
 
 The sync path uses three-way conflict detection per managed field.
 
-AutoAgent currently tracks conflicts across:
+AgentLab currently tracks conflicts across:
 
 - Agent description and generative settings
 - Playbook instruction text
@@ -363,7 +363,7 @@ If both local and remote values changed from the same base and no longer match e
 Successful sync does two things:
 
 1. Pushes the merged changes to CX
-2. Rewrites `.autoagent/cx/snapshot.json` with the merged post-sync snapshot
+2. Rewrites `.agentlab/cx/snapshot.json` with the merged post-sync snapshot
 
 That keeps the next diff or sync incremental instead of comparing against stale import-time state forever.
 
@@ -397,19 +397,19 @@ Start with this rollout order:
 For team use:
 
 - Treat import as the beginning of a tracked workspace lifecycle
-- Re-import if the live agent changed significantly outside AutoAgent
+- Re-import if the live agent changed significantly outside AgentLab
 - Prefer `sync` over `export` when multiple operators touch the same CX agent
 
 ## Current Limitations
 
 - The deploy and widget paths remain compatibility-oriented and were not the primary focus of this import/export implementation.
-- The mapper preserves fidelity through metadata, so not every CX concept is expressed directly in the small normalized AutoAgent config surface.
+- The mapper preserves fidelity through metadata, so not every CX concept is expressed directly in the small normalized AgentLab config surface.
 
 ## Verification Performed
 
 CLI and route verification:
 
-- Verified the current `autoagent cx` command group and subcommand helps for `auth`, `list`, `import`, `diff`, `export`, `sync`, `status`, and `widget`
+- Verified the current `agentlab cx` command group and subcommand helps for `auth`, `list`, `import`, `diff`, `export`, `sync`, `status`, and `widget`
 - Verified the backend exposes the current CX routes: `/api/cx/auth`, `/api/cx/agents`, `/api/cx/import`, `/api/cx/diff`, `/api/cx/export`, `/api/cx/sync`, `/api/cx/deploy`, `/api/cx/widget`, `/api/cx/status`, and `/api/cx/preview`
 - Verified the current web route is `/cx/studio`
 

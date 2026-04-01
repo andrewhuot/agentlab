@@ -1,4 +1,4 @@
-# CODEX Product Vision Review — AutoAgent VNextCC
+# CODEX Product Vision Review — AgentLab VNextCC
 
 Date: March 26, 2026
 
@@ -13,7 +13,7 @@ Scope reviewed (as requested):
 
 ## 1. The One Sentence
 
-**AutoAgent should be: _the fastest way to find why an AI agent is failing in production and safely ship a measurable fix in one cycle._**
+**AgentLab should be: _the fastest way to find why an AI agent is failing in production and safely ship a measurable fix in one cycle._**
 
 Right now, the product identity is split between:
 - Continuous production optimization platform (`README.md`, `optimizer/loop.py`, `observer/opportunities.py`).
@@ -235,16 +235,16 @@ Current naming mixes research jargon, infra language, and UX language in the sam
 ## 7. The First 5 Minutes (ideal new user flow)
 
 ### Current first 5 minutes (too much assembly)
-- `autoagent init`
-- `autoagent eval run`
-- `autoagent optimize`
-- `autoagent server`
+- `agentlab init`
+- `agentlab eval run`
+- `agentlab optimize`
+- `agentlab server`
 
 This is capable, but not guided. The user has to infer intent and next step from tool-centric commands.
 
 ### Ideal first 5 minutes
 
-1. `autoagent init --guided`
+1. `agentlab init --guided`
 - Ask only 3 choices:
   - Agent platform (ADK/CX/Custom)
   - Primary goal (routing/safety/quality/cost)
@@ -374,7 +374,7 @@ Effort scale:
 
 11. **Rationalize search/scoring mode exposure** — **L**
 - Keep internal capabilities, reduce user-facing controls to default + experimental toggle.
-- Files: `web/src/pages/Optimize.tsx`, `optimizer/mode_router.py`, `optimizer/search.py`, `evals/scorer.py`, `autoagent.yaml` docs.
+- Files: `web/src/pages/Optimize.tsx`, `optimizer/mode_router.py`, `optimizer/search.py`, `evals/scorer.py`, `agentlab.yaml` docs.
 
 12. **Library IA consolidation** — **L**
 - Merge Skills/Runbooks/Registry/Agent Skills UX and reduce API fragmentation where possible.
@@ -390,7 +390,7 @@ Effort scale:
 
 The engine is strong. The product is overloaded.
 
-AutoAgent already has the ingredients to be exceptional:
+AgentLab already has the ingredients to be exceptional:
 - Real optimization loop and gating (`optimizer/loop.py`, `evals/*`, `observer/*`).
 - Rich operator controls (`runner.py`, `api/routes/*`).
 - Deep diagnostics and improvement primitives.

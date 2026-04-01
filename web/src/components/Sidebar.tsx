@@ -92,7 +92,7 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const [simpleMode, setSimpleMode] = useState(() => {
     try {
-      return localStorage.getItem('autoagent-sidebar-mode') !== 'pro';
+      return localStorage.getItem('agentlab-sidebar-mode') !== 'pro';
     } catch {
       return true;
     }
@@ -100,7 +100,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
   useEffect(() => {
     try {
-      localStorage.setItem('autoagent-sidebar-mode', simpleMode ? 'simple' : 'pro');
+      localStorage.setItem('agentlab-sidebar-mode', simpleMode ? 'simple' : 'pro');
     } catch {
       // ignore
     }
@@ -134,7 +134,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         )}
       >
         <div className="flex items-center gap-2 px-5 py-5">
-          <span className="text-[15px] font-semibold tracking-tight text-gray-900">AutoAgent</span>
+          <span className="text-[15px] font-semibold tracking-tight text-gray-900">AgentLab</span>
           <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
             VNextCC
           </span>

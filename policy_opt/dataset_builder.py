@@ -22,7 +22,7 @@ class RewardDatasetBuilder:
     4. reward_audit_set.jsonl — for reward auditing and anti-hacking tests
     """
 
-    def __init__(self, output_dir: str = ".autoagent") -> None:
+    def __init__(self, output_dir: str = ".agentlab") -> None:
         self._output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
 

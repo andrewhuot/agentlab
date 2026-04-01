@@ -94,9 +94,9 @@ describe('getRouteContext', () => {
     });
   });
 
-  it('falls back to AutoAgent when a route is unknown', () => {
+  it('falls back to AgentLab when a route is unknown', () => {
     expect(getRouteContext('/totally-unknown')).toEqual({
-      title: 'AutoAgent',
+      title: 'AgentLab',
       breadcrumbs: [],
     });
   });
@@ -123,7 +123,7 @@ describe('Sidebar', () => {
     expect(
       screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)
     ).toEqual(getNavigationSections().map((section) => section.label));
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('autoagent-sidebar-mode', 'pro');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('agentlab-sidebar-mode', 'pro');
   });
 });
 
@@ -180,7 +180,7 @@ describe('App', () => {
     expect(window.location.pathname).toBe('/evals');
     expect(await screen.findByText('No eval runs yet')).toBeInTheDocument();
     expect(screen.getByText('Run your first eval:')).toBeInTheDocument();
-    expect(screen.getByText('autoagent eval run')).toBeInTheDocument();
+    expect(screen.getByText('agentlab eval run')).toBeInTheDocument();
   });
 
   it('redirects /review to the plural review route', async () => {

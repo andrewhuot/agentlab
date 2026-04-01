@@ -1,7 +1,7 @@
 # Magic UX Brief — Make the Golden Path Magical
 
 ## Overview
-Implement 8 features that transform AutoAgent from "nice demo" to "wow, this just works."
+Implement 8 features that transform AgentLab from "nice demo" to "wow, this just works."
 All changes are additive — don't break existing functionality.
 
 ## Feature 1: Before/After Storytelling in Quickstart
@@ -55,7 +55,7 @@ When enabled, after the summary:
 3. Print "Web console running at http://localhost:8080 — press Ctrl+C to stop"
 
 Use `import webbrowser` and `import threading`. Start the uvicorn server in a daemon thread.
-If the server can't start (port in use), just print the "run autoagent server" hint instead.
+If the server can't start (port in use), just print the "run agentlab server" hint instead.
 
 ## Feature 4: "What Next?" Recommendations
 **File: `runner.py`** (modify quickstart + demo + new helper)
@@ -63,9 +63,9 @@ If the server can't start (port in use), just print the "run autoagent server" h
 After optimization summary, analyze the failure distribution and recommend next actions:
 ```
   ⚡ Recommended next steps:
-    1. Routing errors are 34% of failures → autoagent runbook apply fix-retrieval-grounding
-    2. 3 safety violations detected → autoagent runbook apply tighten-safety-policy
-    3. Latency p95 is 4.2s → autoagent runbook apply reduce-tool-latency
+    1. Routing errors are 34% of failures → agentlab runbook apply fix-retrieval-grounding
+    2. 3 safety violations detected → agentlab runbook apply tighten-safety-policy
+    3. Latency p95 is 4.2s → agentlab runbook apply reduce-tool-latency
 ```
 
 Create `_generate_recommendations(report, score)` that:
@@ -74,12 +74,12 @@ Create `_generate_recommendations(report, score)` that:
 - Returns top-3 sorted by frequency
 - Includes the exact CLI command to run
 
-## Feature 5: Rich `autoagent status` Command
+## Feature 5: Rich `agentlab status` Command
 **File: `runner.py`** (modify existing status command)
 
 Make it the "git status" of agent optimization:
 ```
-AutoAgent Status
+AgentLab Status
 ━━━━━━━━━━━━━━━
   Config:     v003 (deployed 2h ago)
   Eval score: 0.8342 (↑ 0.12 from baseline)
@@ -91,7 +91,7 @@ AutoAgent Status
     quality_issue    ███░░░░░░░  15% (5 conversations)
     safety_violation █░░░░░░░░░   3% (1 conversation)
 
-  Recommended: autoagent runbook apply fix-retrieval-grounding
+  Recommended: agentlab runbook apply fix-retrieval-grounding
 
   Loop: paused | Last cycle: 45m ago
 ```
@@ -121,11 +121,11 @@ interface DiffViewerProps {
 }
 ```
 
-## Feature 7: `autoagent explain` Command
+## Feature 7: `agentlab explain` Command
 **File: `runner.py`** (add new command)
 
 ```
-autoagent explain [--verbose]
+agentlab explain [--verbose]
 ```
 
 Generates a plain-English summary of the agent's current state. In mock mode, build it from data:
@@ -149,21 +149,21 @@ Weaknesses:
   ✗ Tool latency: p95 at 4.2s (target: 3.0s)
 
 Recommendation: Focus on routing accuracy. Run:
-  autoagent runbook apply fix-retrieval-grounding
+  agentlab runbook apply fix-retrieval-grounding
 ```
 
 Build this from observer report + eval scores + config history. No LLM needed for mock mode.
 
-## Feature 8: `autoagent replay` Command
+## Feature 8: `agentlab replay` Command
 **File: `runner.py`** (add new command)
 
 ```
-autoagent replay [--limit N]
+agentlab replay [--limit N]
 ```
 
 Prints the optimization evolution like `git log --oneline`:
 ```
-AutoAgent Optimization History
+AgentLab Optimization History
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   v007  0.8342  ✓ +0.02  Tightened safety guardrails          2h ago

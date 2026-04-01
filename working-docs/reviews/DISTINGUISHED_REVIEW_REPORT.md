@@ -2,13 +2,13 @@
 
 ## Executive Summary
 
-AutoAgent VNextCC is now in materially better shape than it was at the start of this review. The core architecture is directionally sound: the product has a coherent backend/API surface, a broad frontend, meaningful CLI coverage, and an unusually deep automated test suite. The main problems were not "missing product vision" problems. They were integration honesty, route-contract drift, packaging gaps, and a few real security flaws hiding behind preview-mode and demo flows.
+AgentLab VNextCC is now in materially better shape than it was at the start of this review. The core architecture is directionally sound: the product has a coherent backend/API surface, a broad frontend, meaningful CLI coverage, and an unusually deep automated test suite. The main problems were not "missing product vision" problems. They were integration honesty, route-contract drift, packaging gaps, and a few real security flaws hiding behind preview-mode and demo flows.
 
 The biggest change from this review is that the most embarrassing failures are no longer latent:
 
 - The verified P0 arbitrary file write in Agent Skills apply is fixed.
 - The verified P1 arbitrary file read / crash path in CX preview is fixed.
-- The broken CLI install path is fixed, so `autoagent` now actually works after editable install.
+- The broken CLI install path is fixed, so `agentlab` now actually works after editable install.
 - The first-run dashboard/demo journey, quick-fix honesty, assistant honesty, policy candidate workflow, and route shortcut flows now hold up under live browser verification.
 
 ### Top 3 strengths
@@ -32,7 +32,7 @@ The biggest change from this review is that the most embarrassing failures are n
 | P1 | Product trust | Dashboard quick-fix flow reported a successful fix even though the backend response was mock/simulated. | Fixed |
 | P1 | Product trust | Assistant page and assistant actions were simulated but not clearly labeled as preview-only behavior. | Fixed |
 | P1 | Shared layout | The mock-mode banner was mounted as a sibling in the root horizontal flex layout, collapsing the main content area on non-builder routes. This made real content exist in the DOM but fail visibility checks. | Fixed |
-| P1 | CLI packaging | `autoagent` console script pointed at `runner:cli`, but `runner.py` was not packaged, causing `ModuleNotFoundError` after install. | Fixed |
+| P1 | CLI packaging | `agentlab` console script pointed at `runner:cli`, but `runner.py` was not packaged, causing `ModuleNotFoundError` after install. | Fixed |
 | P1 | First-run journey | `start.sh` opened `/`, landing new users in the builder shell instead of the intended dashboard scorecard flow. | Fixed |
 | P1 | Demo credibility | `setup.sh` seeded conversations only; traces and optimization history were missing, undermining the first-run demo. | Fixed |
 | P1 | Runtime isolation | Quickstart/demo runtime artifacts were shared across directories, risking state collisions between runs. | Fixed |
@@ -100,11 +100,11 @@ The following checks were run during this review:
   - policy candidate training + OPE flow
   - broken-route regression pages
 - CLI smoke tests:
-  - `autoagent --version`
-  - `autoagent init --dir /tmp/autoagent-review-cli`
-  - `autoagent loop --help`
-  - `autoagent server --help`
-  - live `autoagent server --host 127.0.0.1 --port 8011` boot + `/api/health` probe
+  - `agentlab --version`
+  - `agentlab init --dir /tmp/agentlab-review-cli`
+  - `agentlab loop --help`
+  - `agentlab server --help`
+  - live `agentlab server --host 127.0.0.1 --port 8011` boot + `/api/health` probe
 
 ### Verification result
 
@@ -142,7 +142,7 @@ The following checks were run during this review:
    Move CLI domains into dedicated modules so packaging, testing, and ownership are clearer.
 
 3. Add journey-level install verification to setup/release checks.
-   A small smoke test for `autoagent --version`, `autoagent init`, and `autoagent server --help` would have caught the packaging bug immediately.
+   A small smoke test for `agentlab --version`, `agentlab init`, and `agentlab server --help` would have caught the packaging bug immediately.
 
 ### Priority 2
 

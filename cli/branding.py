@@ -1,4 +1,4 @@
-"""Branding helpers for the AutoAgent CLI."""
+"""Branding helpers for the AgentLab CLI."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import click
 
 
 @lru_cache(maxsize=1)
-def get_autoagent_version() -> str:
+def get_agentlab_version() -> str:
     """Return the project version from source so local CLI runs stay honest."""
     pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
     with pyproject_path.open("rb") as handle:
@@ -60,4 +60,4 @@ def render_startup_banner(version: str) -> str:
 def echo_startup_banner(ctx: click.Context | None) -> None:
     """Print the branded banner only when the active command tree allows it."""
     if banner_enabled(ctx):
-        click.echo(render_startup_banner(get_autoagent_version()))
+        click.echo(render_startup_banner(get_agentlab_version()))

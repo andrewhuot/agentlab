@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — PM Review
+# AgentLab VNextCC — PM Review
 
 *Reviewed 2026-03-23 by Senior PM (frontier lab perspective)*
 
@@ -6,7 +6,7 @@
 
 ## 1. Executive Assessment
 
-AutoAgent VNextCC has the most ambitious architecture I've seen in the self-hosted agent optimization space. The full closed loop — trace → diagnose → queue opportunities → multi-hypothesis search → constrained eval → statistical gate → canary deploy — is genuinely novel. Only OpenAI (bundled with their API) and Braintrust (Loop) have anything approaching this, and neither is self-hosted or model-agnostic. The statistical rigor (permutation tests, O'Brien-Fleming sequential testing, Holm-Bonferroni correction) is research-grade. **However, I would not greenlight this for GA today.** The core problem: nothing works end-to-end without manual wiring. TraceCollector isn't connected to the agent, all LLM calls go to a mock provider by default, the frontend is missing API hooks for 3 of the 12 pages, and stub operators are registered in the mutation registry without guardrails. A customer would install this, see fake data, and churn. The bones are excellent — the last mile is missing.
+AgentLab VNextCC has the most ambitious architecture I've seen in the self-hosted agent optimization space. The full closed loop — trace → diagnose → queue opportunities → multi-hypothesis search → constrained eval → statistical gate → canary deploy — is genuinely novel. Only OpenAI (bundled with their API) and Braintrust (Loop) have anything approaching this, and neither is self-hosted or model-agnostic. The statistical rigor (permutation tests, O'Brien-Fleming sequential testing, Holm-Bonferroni correction) is research-grade. **However, I would not greenlight this for GA today.** The core problem: nothing works end-to-end without manual wiring. TraceCollector isn't connected to the agent, all LLM calls go to a mock provider by default, the frontend is missing API hooks for 3 of the 12 pages, and stub operators are registered in the mutation registry without guardrails. A customer would install this, see fake data, and churn. The bones are excellent — the last mile is missing.
 
 ---
 
@@ -60,17 +60,17 @@ AutoAgent VNextCC has the most ambitious architecture I've seen in the self-host
 
 ### 3.5 Mock-first defaults hide the product
 
-`autoagent.yaml` ships with `use_mock: true`. The eval runner uses `mock_agent_response` by default. A new user runs `autoagent eval run` and gets... deterministic fake scores. This is useful for development but catastrophic for first impressions. The first 5 minutes of product experience determine adoption — and right now those 5 minutes show fake data.
+`agentlab.yaml` ships with `use_mock: true`. The eval runner uses `mock_agent_response` by default. A new user runs `agentlab eval run` and gets... deterministic fake scores. This is useful for development but catastrophic for first impressions. The first 5 minutes of product experience determine adoption — and right now those 5 minutes show fake data.
 
 ### 3.6 No integration SDK
 
-There's no `autoagent.instrument()` decorator, no SDK, no middleware that a customer would use to connect their agent. The demo agent is self-contained. A real customer with a LangChain/CrewAI/custom agent has no path to integration. Compare to Braintrust (`braintrust.init()`) or LangSmith (`@traceable`).
+There's no `agentlab.instrument()` decorator, no SDK, no middleware that a customer would use to connect their agent. The demo agent is self-contained. A real customer with a LangChain/CrewAI/custom agent has no path to integration. Compare to Braintrust (`braintrust.init()`) or LangSmith (`@traceable`).
 
 ---
 
 ## 4. UX/DX Problems
 
-**Onboarding is a cliff.** `autoagent init` copies a config file. Then what? There's no `autoagent connect`, no guided setup, no "here's how to send your first trace." The README lists 11 CLI commands but doesn't walk through the core workflow.
+**Onboarding is a cliff.** `agentlab init` copies a config file. Then what? There's no `agentlab connect`, no guided setup, no "here's how to send your first trace." The README lists 11 CLI commands but doesn't walk through the core workflow.
 
 **12 pages, no guided flow.** Dashboard → Evals → Optimize → Config → Conversations → Deploy → Loop → Opportunities → Experiments → Traces → Settings — that's a lot of surface area. There's no visual indicator of "what to do next" or which pages have data. A new user will click through empty pages and leave.
 
@@ -82,7 +82,7 @@ There's no `autoagent.instrument()` decorator, no SDK, no middleware that a cust
 
 ## 5. Competitive Position
 
-| Dimension | AutoAgent | Braintrust | OpenAI Evals | LangSmith |
+| Dimension | AgentLab | Braintrust | OpenAI Evals | LangSmith |
 |---|---|---|---|---|
 | Self-optimization loop | Yes (most complete) | Yes (Loop) | Yes (prompt optimizer + RFT) | No |
 | Self-hosted | Yes | Enterprise only | No | Enterprise only |
@@ -93,11 +93,11 @@ There's no `autoagent.instrument()` decorator, no SDK, no middleware that a cust
 | Pricing | Free (self-hosted) | $0-$249/mo | Bundled with API | $0-$39/seat |
 | Agent tracing | Built but unwired | Yes | Partial | Yes (best) |
 
-**Where AutoAgent wins:** Statistical rigor, self-hosted + model-agnostic combination, most complete closed loop (trace → deploy), reliability primitives for long-running loops, constrained scoring with safety-as-hard-constraint.
+**Where AgentLab wins:** Statistical rigor, self-hosted + model-agnostic combination, most complete closed loop (trace → deploy), reliability primitives for long-running loops, constrained scoring with safety-as-hard-constraint.
 
-**Where AutoAgent loses:** No integration path, mock defaults, incomplete frontend, no production customers. Braintrust Loop is shipped and used by Stripe/Notion. OpenAI's optimizer is free for their customers. LangSmith has the largest ecosystem.
+**Where AgentLab loses:** No integration path, mock defaults, incomplete frontend, no production customers. Braintrust Loop is shipped and used by Stripe/Notion. OpenAI's optimizer is free for their customers. LangSmith has the largest ecosystem.
 
-**Strategic position:** AutoAgent occupies a unique niche — self-hosted, model-agnostic, closed-loop optimization. This is the only tool that could work inside a bank, a government agency, or any environment where data can't leave the network. The open-source competitors (Arize Phoenix, Langfuse) don't have optimization. The commercial competitors with optimization (Braintrust, OpenAI) don't self-host easily. **This is a defensible position if the product actually works end-to-end.**
+**Strategic position:** AgentLab occupies a unique niche — self-hosted, model-agnostic, closed-loop optimization. This is the only tool that could work inside a bank, a government agency, or any environment where data can't leave the network. The open-source competitors (Arize Phoenix, Langfuse) don't have optimization. The commercial competitors with optimization (Braintrust, OpenAI) don't self-host easily. **This is a defensible position if the product actually works end-to-end.**
 
 ---
 
@@ -111,23 +111,23 @@ There's no `autoagent.instrument()` decorator, no SDK, no middleware that a cust
 
 **P0-2: Persist OperatorPerformanceTracker to SQLite**
 - **Why:** The search engine's ability to learn which operators work for which failure families is a core differentiator. Losing this on every restart makes the "self-optimizing" claim hollow.
-- **How:** Add a SQLite store (`.autoagent/operator_performance.db`) with a table tracking `(operator_name, failure_family, attempts, successes, avg_lift, last_updated)`. Load on startup, persist after each search cycle.
+- **How:** Add a SQLite store (`.agentlab/operator_performance.db`) with a table tracking `(operator_name, failure_family, attempts, successes, avg_lift, last_updated)`. Load on startup, persist after each search cycle.
 
 **P0-3: Gate stub operators out of the default registry**
 - **Why:** Google operators raise `NotImplementedError`. Topology operators return dummy data. If the search engine picks these, the cycle crashes or produces garbage.
-- **How:** Don't register Google/Topology operators in `create_default_registry()`. Only register them when explicitly enabled via config (e.g., `autoagent.yaml: experimental_operators: [google, topology]`). Add a `ready: bool` field to `MutationOperator` — search engine skips operators where `ready=False`.
+- **How:** Don't register Google/Topology operators in `create_default_registry()`. Only register them when explicitly enabled via config (e.g., `agentlab.yaml: experimental_operators: [google, topology]`). Add a `ready: bool` field to `MutationOperator` — search engine skips operators where `ready=False`.
 
 **P0-4: Wire TraceCollector into the demo agent with middleware**
 - **Why:** Without traces, the entire trace → diagnose → optimize pipeline produces nothing. This is the foundation.
 - **How:** Add `agent/tracing.py` that wraps the agent's `Runner` with `TraceCollector` hooks. On agent invocation: `start_trace()`, then instrument tool calls and model calls via ADK callbacks. This gives the demo agent real trace data. For external agents, this middleware pattern becomes the integration SDK.
 
-**P0-5: Fix mock-first defaults — add `autoagent doctor` command**
-- **Why:** A customer who installs and runs `autoagent eval run` sees fake data. Bad first impression.
-- **How:** Add `autoagent doctor` that checks: (a) are API keys configured? (b) is `use_mock` still true? (c) does the trace store have data? (d) are eval cases loaded? Print clear status with fix instructions. Also: change `autoagent eval run` to warn if running with mock provider.
+**P0-5: Fix mock-first defaults — add `agentlab doctor` command**
+- **Why:** A customer who installs and runs `agentlab eval run` sees fake data. Bad first impression.
+- **How:** Add `agentlab doctor` that checks: (a) are API keys configured? (b) is `use_mock` still true? (c) does the trace store have data? (d) are eval cases loaded? Print clear status with fix instructions. Also: change `agentlab eval run` to warn if running with mock provider.
 
 ### P1 (Should fix before beta)
 
-**P1-1: Add integration SDK** — Create `autoagent.instrument(agent_fn)` wrapper that automatically traces any callable agent. Support LangChain, CrewAI, and plain functions.
+**P1-1: Add integration SDK** — Create `agentlab.instrument(agent_fn)` wrapper that automatically traces any callable agent. Support LangChain, CrewAI, and plain functions.
 
 **P1-2: Add experiment comparison view** — Side-by-side experiment cards with score deltas, diff highlighting, and "promote winner" action.
 

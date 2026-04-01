@@ -23,7 +23,7 @@ def runner() -> CliRunner:
 
 def _write_settings(root: Path, *, mode: str, rules: dict[str, list[str]] | None = None) -> Path:
     """Write workspace settings with a permissions block."""
-    settings_path = root / ".autoagent" / "settings.json"
+    settings_path = root / ".agentlab" / "settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     settings_path.write_text(
         json.dumps(
@@ -46,7 +46,7 @@ def _seed_pending_change_card(root: Path) -> ProposedChangeCard:
         title="Tighten billing policy",
         why="Reduce misroutes for billing conversations.",
     )
-    store = ChangeCardStore(db_path=str(root / ".autoagent" / "change_cards.db"))
+    store = ChangeCardStore(db_path=str(root / ".agentlab" / "change_cards.db"))
     store.save(card)
     return card
 
@@ -213,5 +213,5 @@ def test_permissions_show_and_set_surface_workspace_mode(runner: CliRunner) -> N
         assert "default" in show_result.output
         assert set_result.exit_code == 0, set_result.output
 
-        settings = json.loads((Path(".autoagent") / "settings.json").read_text(encoding="utf-8"))
+        settings = json.loads((Path(".agentlab") / "settings.json").read_text(encoding="utf-8"))
         assert settings["permissions"]["mode"] == "acceptEdits"

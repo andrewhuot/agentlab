@@ -85,7 +85,7 @@ def runner() -> CliRunner:
 
 
 def test_eval_compare_runs_pairwise_config_comparison(runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
-    """`autoagent eval compare --config-a/--config-b` should run a stored pairwise comparison."""
+    """`agentlab eval compare --config-a/--config-b` should run a stored pairwise comparison."""
     monkeypatch.setattr(
         runner_module,
         "_build_eval_runner",
@@ -179,7 +179,7 @@ def test_eval_compare_show_and_list_use_persisted_pairwise_runs(
     runner: CliRunner,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`autoagent eval compare show/list` should inspect stored pairwise comparisons."""
+    """`agentlab eval compare show/list` should inspect stored pairwise comparisons."""
     monkeypatch.setattr(
         runner_module,
         "_build_eval_runner",

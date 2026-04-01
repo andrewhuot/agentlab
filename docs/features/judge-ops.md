@@ -55,18 +55,18 @@ Run calibration from the CLI:
 
 ```bash
 # Calibrate all judges against a 50-case sample
-autoagent judges calibrate --sample 50
+agentlab judges calibrate --sample 50
 
 # Calibrate a specific judge
-autoagent judges calibrate --judge-id binary_rubric --sample 100
+agentlab judges calibrate --judge-id binary_rubric --sample 100
 ```
 
 ## CLI commands
 
 ```bash
-autoagent judges list          # List judges and versions
-autoagent judges calibrate     # Run calibration analysis
-autoagent judges drift         # Check for scoring drift
+agentlab judges list          # List judges and versions
+agentlab judges calibrate     # Run calibration analysis
+agentlab judges drift         # Check for scoring drift
 ```
 
 ## API endpoints
@@ -80,7 +80,7 @@ autoagent judges drift         # Check for scoring drift
 
 ## The judge stack
 
-AutoAgent uses a layered judge stack that fires in order:
+AgentLab uses a layered judge stack that fires in order:
 
 1. **Deterministic** -- Pattern matching, schema checks (zero cost)
 2. **Similarity** -- Embedding comparison against references (low cost)

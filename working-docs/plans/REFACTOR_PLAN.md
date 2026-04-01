@@ -2,7 +2,7 @@
 
 ## Overview
 
-Transform AutoAgent from a prompt optimizer into **CI/CD for agents**. The core insight: the moat is not "we mutate prompts" — it's "we can faithfully replay, grade, and safely improve real enterprise agent workflows."
+Transform AgentLab from a prompt optimizer into **CI/CD for agents**. The core insight: the moat is not "we mutate prompts" — it's "we can faithfully replay, grade, and safely improve real enterprise agent workflows."
 
 ## Architecture Summary
 
@@ -235,5 +235,5 @@ New components:
 - Gemini stays default; judge uses different model family config
 - Single-process; code structured into control/execution/data planes
 - Frontend stays Apple/Linear aesthetic
-- `autoagent run` with `search_strategy: simple` works identically
+- `agentlab run` with `search_strategy: simple` works identically
 - Failure-bucket proposer stays as simple mode

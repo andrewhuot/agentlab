@@ -1,8 +1,8 @@
-# Product Cohesion Audit: AutoAgent CLI + UI
+# Product Cohesion Audit: AgentLab CLI + UI
 
 ## Executive Summary
 
-AutoAgent has a real product core: the build → eval → optimize → review → deploy loop is understandable, mock mode makes first-run exploration practical, and the UI navigation now broadly follows the same workflow as the CLI. The biggest cohesion risk is not missing capability, but drift: command names, page names, startup instructions, and transition language have diverged enough that a new user can tell the system is one product conceptually while still feeling like they are learning two different interfaces.
+AgentLab has a real product core: the build → eval → optimize → review → deploy loop is understandable, mock mode makes first-run exploration practical, and the UI navigation now broadly follows the same workflow as the CLI. The biggest cohesion risk is not missing capability, but drift: command names, page names, startup instructions, and transition language have diverged enough that a new user can tell the system is one product conceptually while still feeling like they are learning two different interfaces.
 
 The highest-priority work is to enforce one shared taxonomy across CLI, UI, and docs, and to make the mock-to-live transition an explicit phase change instead of an ambient concept sprinkled through multiple surfaces. Once those are tightened, the rest of the product will feel substantially more intentional.
 
@@ -18,7 +18,7 @@ The highest-priority work is to enforce one shared taxonomy across CLI, UI, and 
 ## Cohesion Gaps
 
 1. **Severity: P0**
-   **Description:** AutoAgent does not yet enforce a single canonical taxonomy across CLI, UI, and docs. Examples include `server` vs `serve`, `judges` vs **Judge Ops**, `skill` vs **Skills**, `logs` vs **Conversations**, and `trace blame` vs **Blame Map**. This creates the feeling that the UI uses product language while the CLI uses implementation language.
+   **Description:** AgentLab does not yet enforce a single canonical taxonomy across CLI, UI, and docs. Examples include `server` vs `serve`, `judges` vs **Judge Ops**, `skill` vs **Skills**, `logs` vs **Conversations**, and `trace blame` vs **Blame Map**. This creates the feeling that the UI uses product language while the CLI uses implementation language.
    **Recommended fix:** Define one shared command-and-surface taxonomy as the source of truth, then drive CLI help copy, sidebar labels, quickstart docs, and route metadata from it. Where legacy names are important, implement explicit aliases instead of letting docs invent them.
 
 2. **Severity: P0**
@@ -43,14 +43,14 @@ The highest-priority work is to enforce one shared taxonomy across CLI, UI, and 
 
 7. **Severity: P1**
    **Description:** The permission model exists, but it is not yet a first-class cross-surface concept. There is a CLI command group, a settings file, and prompt-based enforcement, but no obvious UI home and no single explanation users are likely to discover organically.
-   **Recommended fix:** Add a canonical permissions surface to the UI and point both guides to `autoagent permissions show` / `set`. Also decide whether `bypass` is truly user-facing or internal automation vocabulary.
+   **Recommended fix:** Add a canonical permissions surface to the UI and point both guides to `agentlab permissions show` / `set`. Also decide whether `bypass` is truly user-facing or internal automation vocabulary.
 
 8. **Severity: P2**
    **Description:** Build terminology still carries legacy drift. The product contains references to Build, Builder, Agent Studio, Assistant, Prompt Studio, Transcript Studio, Prompt, and Transcript across routes, docs, and page content.
    **Recommended fix:** Keep the route redirects for backward compatibility, but consolidate user-facing language to one vocabulary and document legacy terms only as redirects.
 
 9. **Severity: P2**
-   **Description:** Setup, Dashboard, and CLI Status overlap in purpose, but their roles are not sharply explained. New users can reasonably ask: when do I use Setup vs Dashboard vs `autoagent status`?
+   **Description:** Setup, Dashboard, and CLI Status overlap in purpose, but their roles are not sharply explained. New users can reasonably ask: when do I use Setup vs Dashboard vs `agentlab status`?
    **Recommended fix:** Codify the mental model: Setup = readiness, Dashboard = health and recent performance, Status = compact CLI snapshot. Repeat that framing in docs and page descriptions.
 
 10. **Severity: P2**
@@ -71,11 +71,11 @@ The highest-priority work is to enforce one shared taxonomy across CLI, UI, and 
 
 ## Naming/Terminology Inconsistencies
 
-- `autoagent server` vs the previously documented `autoagent serve`
-- **Judge Ops** page vs `autoagent judges`
-- **Skills** page vs `autoagent skill`
-- **Conversations** page vs `autoagent logs`
-- **Blame Map** page vs `autoagent trace blame`
+- `agentlab server` vs the previously documented `agentlab serve`
+- **Judge Ops** page vs `agentlab judges`
+- **Skills** page vs `agentlab skill`
+- **Conversations** page vs `agentlab logs`
+- **Blame Map** page vs `agentlab trace blame`
 - **Prompt** / **Transcript** tabs vs older “Prompt Studio” / “Transcript Studio” language
 - **Build** as the primary page vs legacy **Builder**, **Agent Studio**, and **Assistant** route names
 - **Memory** in the nav vs **Project Memory** in page/component naming
@@ -83,7 +83,7 @@ The highest-priority work is to enforce one shared taxonomy across CLI, UI, and 
 
 ## Dead Ends and Missing Transitions
 
-- `autoagent compare candidates` often produces no useful output immediately after a normal optimize run, so it does not work as a dependable “next step” in onboarding.
+- `agentlab compare candidates` often produces no useful output immediately after a normal optimize run, so it does not work as a dependable “next step” in onboarding.
 - The Build UI produces a config successfully, but the old docs described a nonexistent **Save & Continue** action instead of the real next actions in the YAML panel.
 - The UI root opens **Build** without a strong nudge toward **Setup**, which creates an avoidable first-run branch.
 - Event Log is informative, but it does not naturally point users toward the next corrective action.

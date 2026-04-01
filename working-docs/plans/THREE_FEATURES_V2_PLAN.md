@@ -2,7 +2,7 @@
 
 ## Architecture Summary
 
-AutoAgent currently has:
+AgentLab currently has:
 - **core/types.py** — Rich domain objects (AgentGraphVersion with nodes/edges, SkillVersion, ToolContractVersion, PolicyPackVersion, GraderBundle, EvalCase, MetricLayer hierarchy)
 - **optimizer/mutations.py** — 9 mutation operators with typed surfaces (instruction, few_shot, tool_description, model, etc.)
 - **observer/traces.py** — SQLite-backed TraceStore with TraceEvent + TraceSpan
@@ -41,10 +41,10 @@ AutoAgent currently has:
 - HandoffArtifact from core/handoff.py gets a registry wrapper for schema definitions
 
 ### User Journey
-1. `autoagent registry import agent_modules.yaml` → bulk import skills/policies/tools/handoffs
-2. `autoagent registry list --type skills` → see all registered skills
+1. `agentlab registry import agent_modules.yaml` → bulk import skills/policies/tools/handoffs
+2. `agentlab registry list --type skills` → see all registered skills
 3. Mutations now target `skill:returns_handling:v3` instead of "the whole prompt"
-4. `autoagent registry diff skills returns_handling 2 3` → see what changed between versions
+4. `agentlab registry diff skills returns_handling 2 3` → see what changed between versions
 
 ### Non-Goals
 - No live syncing between registries across instances
@@ -73,7 +73,7 @@ AutoAgent currently has:
 
 ### User Journey
 1. Quality drops from 0.82 → 0.71
-2. `autoagent trace blame --window 24h` → "73% tool_argument errors in order_lookup, 18% routing to wrong specialist"
+2. `agentlab trace blame --window 24h` → "73% tool_argument errors in order_lookup, 18% routing to wrong specialist"
 3. Click into tool_argument cluster → see specific traces with graded spans
 4. AutoFix targets: "Fix the order_lookup tool description"
 
@@ -109,7 +109,7 @@ AutoAgent currently has:
 1. PM types: "Good means resolves on first contact, doesn't hallucinate, stays professional, responds under 5s"
 2. System generates 4 dimensions: first_contact_resolution (quality, w=0.35), no_hallucination (safety, w=0.3), professionalism (quality, w=0.2), latency (SLO, threshold=5000ms)
 3. PM reviews, refines: "Also check tool usage" → dimension added
-4. `autoagent scorer test my_scorer --trace abc123` → test against real trace
+4. `agentlab scorer test my_scorer --trace abc123` → test against real trace
 5. Scorer used in all future eval runs
 
 ### Non-Goals

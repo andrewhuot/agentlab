@@ -1,4 +1,4 @@
-"""Usage and budget surfaces for the AutoAgent CLI."""
+"""Usage and budget surfaces for the AgentLab CLI."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _unwrap_eval_payload(data: dict[str, Any]) -> dict[str, Any]:
 
 def _candidate_eval_result_paths(root: Path) -> list[Path]:
     candidates: list[Path] = []
-    for base in (root, root / ".autoagent"):
+    for base in (root, root / ".agentlab"):
         if not base.exists():
             continue
         candidates.extend(path for path in base.glob("*eval*result*.json") if path.is_file())
@@ -56,7 +56,7 @@ def load_latest_eval_usage(root: str | Path = ".") -> dict[str, Any] | None:
 def build_usage_snapshot(root: str | Path = ".") -> dict[str, Any]:
     """Build the workspace usage and budget summary."""
     workspace_root = Path(root)
-    runtime = load_runtime_config(str(workspace_root / "autoagent.yaml"))
+    runtime = load_runtime_config(str(workspace_root / "agentlab.yaml"))
     tracker_path = workspace_root / runtime.budget.tracker_db_path
     tracker = CostTracker(
         db_path=str(tracker_path),
@@ -108,15 +108,15 @@ def enforce_workspace_budget(
 def usage_command(json_output: bool = False) -> None:
     """Show recent eval/optimize cost and budget state."""
     workspace_root = Path(".")
-    if not (workspace_root / ".autoagent").exists():
-        raise click_error("No AutoAgent workspace found.")
+    if not (workspace_root / ".agentlab").exists():
+        raise click_error("No AgentLab workspace found.")
 
     snapshot = build_usage_snapshot(workspace_root)
     if json_output:
-        click.echo(render_json_envelope("ok", snapshot, next_command="autoagent status"))
+        click.echo(render_json_envelope("ok", snapshot, next_command="agentlab status"))
         return
 
-    click.echo("AutoAgent Usage")
+    click.echo("AgentLab Usage")
     click.echo("━━━━━━━━━━━━━━━")
     last_eval = snapshot.get("last_eval") or {}
     last_optimize = snapshot.get("last_optimize") or {}

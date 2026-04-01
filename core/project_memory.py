@@ -8,15 +8,15 @@ from pathlib import Path
 from typing import Any
 
 
-AUTOAGENT_MD_FILENAME = "AUTOAGENT.md"
-AUTOAGENT_LOCAL_MD_FILENAME = "AUTOAGENT.local.md"
-RULES_DIRNAME = ".autoagent/rules"
-MEMORY_DIRNAME = ".autoagent/memory"
+AGENTLAB_MD_FILENAME = "AGENTLAB.md"
+AGENTLAB_LOCAL_MD_FILENAME = "AGENTLAB.local.md"
+RULES_DIRNAME = ".agentlab/rules"
+MEMORY_DIRNAME = ".agentlab/memory"
 
-INTEL_BEGIN = "<!-- BEGIN AUTOAGENT INTELLIGENCE — auto-updated, do not edit -->"
-INTEL_END = "<!-- END AUTOAGENT INTELLIGENCE -->"
+INTEL_BEGIN = "<!-- BEGIN AGENTLAB INTELLIGENCE — auto-updated, do not edit -->"
+INTEL_END = "<!-- END AGENTLAB INTELLIGENCE -->"
 
-AUTOAGENT_MD_TEMPLATE = '''# AUTOAGENT.md — Project Memory
+AGENTLAB_MD_TEMPLATE = '''# AGENTLAB.md — Project Memory
 
 ## Agent Identity
 - Name: {agent_name}
@@ -85,15 +85,15 @@ def _paths(root: str | Path = ".") -> dict[str, Path]:
     base = Path(root)
     return {
         "root": base,
-        "shared": base / AUTOAGENT_MD_FILENAME,
-        "local": base / AUTOAGENT_LOCAL_MD_FILENAME,
+        "shared": base / AGENTLAB_MD_FILENAME,
+        "local": base / AGENTLAB_LOCAL_MD_FILENAME,
         "rules_dir": base / RULES_DIRNAME,
         "memory_dir": base / MEMORY_DIRNAME,
     }
 
 
 def ensure_layered_memory_dirs(root: str | Path = ".") -> tuple[Path, Path]:
-    """Create the `.autoagent/rules` and `.autoagent/memory` directories."""
+    """Create the `.agentlab/rules` and `.agentlab/memory` directories."""
     resolved = _paths(root)
     resolved["rules_dir"].mkdir(parents=True, exist_ok=True)
     resolved["memory_dir"].mkdir(parents=True, exist_ok=True)
@@ -106,8 +106,8 @@ def list_memory_sources(root: str | Path = ".") -> list[MemorySource]:
     ensure_layered_memory_dirs(root)
 
     sources: list[MemorySource] = [
-        MemorySource(kind="shared", path=resolved["shared"], label=AUTOAGENT_MD_FILENAME, exists=resolved["shared"].exists()),
-        MemorySource(kind="local", path=resolved["local"], label=AUTOAGENT_LOCAL_MD_FILENAME, exists=resolved["local"].exists()),
+        MemorySource(kind="shared", path=resolved["shared"], label=AGENTLAB_MD_FILENAME, exists=resolved["shared"].exists()),
+        MemorySource(kind="local", path=resolved["local"], label=AGENTLAB_LOCAL_MD_FILENAME, exists=resolved["local"].exists()),
     ]
 
     for path in sorted(resolved["rules_dir"].glob("*.md")):
@@ -171,7 +171,7 @@ def append_memory_text(root: str | Path, target: str, text: str) -> Path:
 
 
 def write_session_summary(root: str | Path, *, title: str, summary: str) -> Path:
-    """Write a generated session summary into `.autoagent/memory/`."""
+    """Write a generated session summary into `.agentlab/memory/`."""
     _, memory_dir = ensure_layered_memory_dirs(root)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     path = memory_dir / f"{timestamp}_session.md"
@@ -191,7 +191,7 @@ def write_session_summary(root: str | Path, *, title: str, summary: str) -> Path
 
 @dataclass
 class ProjectMemory:
-    """Structured representation of `AUTOAGENT.md` project memory."""
+    """Structured representation of `AGENTLAB.md` project memory."""
 
     agent_name: str = ""
     platform: str = ""
@@ -313,7 +313,7 @@ class ProjectMemory:
         recent_changes: list[dict] | None = None,
         skill_gaps: list[dict] | None = None,
     ) -> None:
-        """Update `AUTOAGENT.md` with current agent intelligence."""
+        """Update `AGENTLAB.md` with current agent intelligence."""
         if not self.file_path:
             self.save()
 
@@ -339,8 +339,8 @@ class ProjectMemory:
 
     @classmethod
     def load(cls, directory: str = ".") -> ProjectMemory | None:
-        """Load `AUTOAGENT.md` from disk, returning `None` when absent."""
-        path = Path(directory) / AUTOAGENT_MD_FILENAME
+        """Load `AGENTLAB.md` from disk, returning `None` when absent."""
+        path = Path(directory) / AGENTLAB_MD_FILENAME
         if not path.exists():
             return None
         content = path.read_text(encoding="utf-8")
@@ -350,8 +350,8 @@ class ProjectMemory:
         return memory
 
     def save(self, directory: str = ".") -> str:
-        """Save `AUTOAGENT.md` and return the file path."""
-        path = Path(directory) / AUTOAGENT_MD_FILENAME
+        """Save `AGENTLAB.md` and return the file path."""
+        path = Path(directory) / AGENTLAB_MD_FILENAME
         content = self._render()
         path.write_text(content, encoding="utf-8")
         self.file_path = str(path)
@@ -382,8 +382,8 @@ class ProjectMemory:
         platform: str = "Google ADK",
         use_case: str = "General purpose assistant",
     ) -> str:
-        """Generate a fresh starter template for `AUTOAGENT.md`."""
-        return AUTOAGENT_MD_TEMPLATE.format(
+        """Generate a fresh starter template for `AGENTLAB.md`."""
+        return AGENTLAB_MD_TEMPLATE.format(
             agent_name=agent_name,
             platform=platform,
             use_case=use_case,
@@ -413,8 +413,8 @@ class ProjectMemory:
         return memory
 
     def _render(self) -> str:
-        """Render the object back into `AUTOAGENT.md` format."""
-        lines = ["# AUTOAGENT.md — Project Memory", ""]
+        """Render the object back into `AGENTLAB.md` format."""
+        lines = ["# AGENTLAB.md — Project Memory", ""]
         lines.append("## Agent Identity")
         lines.append(f"- Name: {self.agent_name}")
         lines.append(f"- Platform: {self.platform}")

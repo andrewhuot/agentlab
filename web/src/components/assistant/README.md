@@ -1,6 +1,6 @@
-# AutoAgent Assistant Components
+# AgentLab Assistant Components
 
-Rich, interactive card components for the AutoAgent Assistant conversational interface.
+Rich, interactive card components for the AgentLab Assistant conversational interface.
 
 ## Components
 

@@ -9,13 +9,13 @@ Method:
 - Researched the 10 requested competitors using official product, pricing, and documentation pages.
 
 Important framing:
-- When I say "what we do better," I mean where AutoAgent's product direction or existing architecture is stronger, not where execution maturity is currently superior. On polish and reliability, several competitors are materially ahead.
+- When I say "what we do better," I mean where AgentLab's product direction or existing architecture is stronger, not where execution maturity is currently superior. On polish and reliability, several competitors are materially ahead.
 
 ## Part 1. Product Assessment
 
 ### Executive summary
 
-AutoAgent is not a thin mock demo. There is real product substance here, especially in the Builder Workspace, the CLI, the eval/optimize/deploy pipeline, the traces/conversations/configs surfaces, and the Google-oriented CX/ADK import and deploy flows. The codebase has enough real implementation to support a compelling story.
+AgentLab is not a thin mock demo. There is real product substance here, especially in the Builder Workspace, the CLI, the eval/optimize/deploy pipeline, the traces/conversations/configs surfaces, and the Google-oriented CX/ADK import and deploy flows. The codebase has enough real implementation to support a compelling story.
 
 At the same time, the product is not yet the fully coherent "continuous optimization platform" the docs imply. The current reality is a hybrid:
 - one strong, real subsystem: Builder Workspace
@@ -45,7 +45,7 @@ My PM verdict is straightforward:
 
 | Product claim | What is true today | Assessment |
 | --- | --- | --- |
-| AutoAgent is a continuous optimization platform for AI agents. | Broadly true in architecture. The codebase supports trace -> diagnose -> eval -> optimize -> deploy -> learn. Some of that loop is real, some is mock-mode or simulated. | Partially true |
+| AgentLab is a continuous optimization platform for AI agents. | Broadly true in architecture. The codebase supports trace -> diagnose -> eval -> optimize -> deploy -> learn. Some of that loop is real, some is mock-mode or simulated. | Partially true |
 | It works out of the box and lands users in a demo-ready dashboard. | `./start.sh` opens `http://localhost:5173`, but `/` routes to Builder Workspace, not `/dashboard`. The README says users land on the dashboard. | False as written |
 | The Assistant can build, optimize, and debug agents through natural language. | The Assistant UI renders and streams, but `api/routes/assistant.py` is backed by in-memory sessions and a `MockOrchestrator`. | Mostly demo-grade |
 | The Builder Workspace is a serious authoring and approval surface. | True. `builder/store.py`, `builder/projects.py`, `builder/execution.py`, `builder/permissions.py`, `builder/orchestrator.py`, and related services form a real SQLite-backed subsystem. | True |
@@ -264,7 +264,7 @@ The market splits into three clear lanes:
 - customer service AI platforms: Sierra, Observe.AI, Parloa
 - hyperscaler platform context: Google Vertex AI Agent Builder
 
-AutoAgent sits awkwardly but promisingly across all three:
+AgentLab sits awkwardly but promisingly across all three:
 - it has the observability and eval ambition of the AI engineering tools
 - it has the workflow and deployment ambition of customer-service AI platforms
 - it has the ecosystem ambition of a Google-native platform extension
@@ -427,7 +427,7 @@ What they did better than us:
 - simpler positioning
 
 What we do better than them:
-- AutoAgent is still an actively developed product codebase
+- AgentLab is still an actively developed product codebase
 - broader Builder and Google integration direction
 - more complete vision for closed-loop optimization
 
@@ -695,7 +695,7 @@ Sources:
 
 ### Comparison matrix
 
-| Competitor | Primary lane | Public pricing clarity | Strongest advantage | Main lesson for AutoAgent |
+| Competitor | Primary lane | Public pricing clarity | Strongest advantage | Main lesson for AgentLab |
 | --- | --- | --- | --- | --- |
 | Braintrust | AI eval + observability | High | unified production-to-eval workflow | stabilize traces, evals, and monitors first |
 | LangSmith | tracing + eval + prompt + runtime | High | cohesive developer workflow | connect prompts, evals, and deployment into one flow |
@@ -864,7 +864,7 @@ Prioritization logic:
 **Effort:** L
 **Impact:** 9
 **Competitors who have this:** LangSmith, Arize AX, Braintrust, W&B Weave
-**Description:** AutoAgent needs a clear production-quality monitoring layer for live traffic, thresholds, regressions, and drift. Today that story is fragmented across traces, events, and dashboards.
+**Description:** AgentLab needs a clear production-quality monitoring layer for live traffic, thresholds, regressions, and drift. Today that story is fragmented across traces, events, and dashboards.
 **Acceptance criteria:**
 - Users can define monitor rules on live quality, safety, latency, and cost metrics.
 - Alerts can route to email, Slack, or webhook subscriptions with actionable payloads.
@@ -884,7 +884,7 @@ Prioritization logic:
 **Effort:** L
 **Impact:** 8
 **Competitors who have this:** LangSmith, Arize Phoenix, Braintrust, W&B Weave
-**Description:** AutoAgent needs a place to safely test prompt edits, compare outputs, and promote changes into versioned artifacts.
+**Description:** AgentLab needs a place to safely test prompt edits, compare outputs, and promote changes into versioned artifacts.
 **Acceptance criteria:**
 - Users can run side-by-side prompt variants against the same inputs.
 - Successful prompt iterations can be committed into versioned configs or registry objects.
@@ -926,7 +926,7 @@ Prioritization logic:
 **Effort:** L
 **Impact:** 9
 **Competitors who have this:** W&B Weave, LangSmith, Vertex AI Agent Builder
-**Description:** AutoAgent's biggest differentiated opportunity is showing how a production issue becomes a plan, proposal, artifact, eval bundle, approval, and release. No current route tells that story cleanly enough.
+**Description:** AgentLab's biggest differentiated opportunity is showing how a production issue becomes a plan, proposal, artifact, eval bundle, approval, and release. No current route tells that story cleanly enough.
 **Acceptance criteria:**
 - Users can open any release and trace its lineage back to conversations, traces, evals, and approvals.
 - The lineage graph is visible in both Builder and release-oriented surfaces.
@@ -936,10 +936,10 @@ Prioritization logic:
 **Effort:** L
 **Impact:** 9
 **Competitors who have this:** Vertex AI Agent Builder, Sierra, Parloa
-**Description:** AutoAgent should lean into CX, ADK, A2A, and Vertex rather than treating them as side tabs. This is the strongest strategic wedge available.
+**Description:** AgentLab should lean into CX, ADK, A2A, and Vertex rather than treating them as side tabs. This is the strongest strategic wedge available.
 **Acceptance criteria:**
 - One hub coordinates CX import, ADK import, deployment targets, snapshots, and rollback status.
-- The product clearly explains when AutoAgent complements Vertex vs. when it hands off to Vertex.
+- The product clearly explains when AgentLab complements Vertex vs. when it hands off to Vertex.
 
 ### [P1] Add outcome-linked optimization scorecards
 **Category:** Competitive
@@ -966,7 +966,7 @@ Prioritization logic:
 **Effort:** XL
 **Impact:** 8
 **Competitors who have this:** Vertex AI Agent Builder, Sierra, Parloa
-**Description:** AutoAgent can become uniquely strong if it optimizes not just one prompt or one agent, but multi-agent systems connected through A2A and tool chains.
+**Description:** AgentLab can become uniquely strong if it optimizes not just one prompt or one agent, but multi-agent systems connected through A2A and tool chains.
 **Acceptance criteria:**
 - Users can visualize agent handoffs, bottlenecks, and failure propagation across a topology.
 - Optimization recommendations can target routing, delegation, and tool boundaries, not just single-agent prompt edits.
@@ -1062,7 +1062,7 @@ Prioritization logic:
 **Effort:** XL
 **Impact:** 9
 **Competitors who have this:** Sierra, Observe.AI, Parloa, Vertex AI Agent Builder
-**Description:** AutoAgent should move beyond CX and ADK into the real systems customers already use: Zendesk, Salesforce, Intercom, Genesys, Five9, and related stacks.
+**Description:** AgentLab should move beyond CX and ADK into the real systems customers already use: Zendesk, Salesforce, Intercom, Genesys, Five9, and related stacks.
 **Acceptance criteria:**
 - At least three major production connectors support import, sync, and outcome ingestion flows.
 - Connected systems can be used as trace sources and deployment targets where applicable.
@@ -1072,7 +1072,7 @@ Prioritization logic:
 **Effort:** M
 **Impact:** 7
 **Competitors who have this:** Observe.AI, W&B Weave, Vertex AI Agent Builder
-**Description:** Enterprises want AI quality data in their existing analytics stack. AutoAgent should export traces, evals, and business outcomes to BigQuery and common warehouses.
+**Description:** Enterprises want AI quality data in their existing analytics stack. AgentLab should export traces, evals, and business outcomes to BigQuery and common warehouses.
 **Acceptance criteria:**
 - Users can schedule exports to BigQuery and at least one non-Google warehouse.
 - Export schemas are documented, versioned, and stable enough for BI dashboards.
@@ -1183,4 +1183,4 @@ If I were sequencing this as a PM, I would do it in this order:
 3. Reach competitive minimum: monitors, annotation queues, prompt playground, datasets, saved trace views.
 4. Then invest in differentiation: artifact lineage, approval-aware release bundles, outcome scorecards, and multi-agent optimization.
 
-That sequence gives AutoAgent the best chance to feel real before it tries to feel expansive.
+That sequence gives AgentLab the best chance to feel real before it tries to feel expansive.

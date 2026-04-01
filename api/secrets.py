@@ -39,7 +39,7 @@ class SecretStore:
 
     def __init__(
         self,
-        db_path: str = ".autoagent/secrets.db",
+        db_path: str = ".agentlab/secrets.db",
         encryption_key: str = "",
     ) -> None:
         self.db_path = db_path

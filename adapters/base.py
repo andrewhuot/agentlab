@@ -72,7 +72,7 @@ class ImportedAgentSpec:
             }
 
     def build_config(self) -> dict[str, Any]:
-        """Build a starter AutoAgent config from imported features."""
+        """Build a starter AgentLab config from imported features."""
 
         routing_rules = []
         for handoff in self.handoffs:
@@ -96,7 +96,7 @@ class ImportedAgentSpec:
             if tool.get("name")
         }
         root_prompt = self.system_prompts[0] if self.system_prompts else (
-            f"Imported from {self.platform}. Preserve the source runtime behavior while AutoAgent evaluates improvements."
+            f"Imported from {self.platform}. Preserve the source runtime behavior while AgentLab evaluates improvements."
         )
         return {
             "model": self.metadata.get("model", f"imported-{self.adapter}"),

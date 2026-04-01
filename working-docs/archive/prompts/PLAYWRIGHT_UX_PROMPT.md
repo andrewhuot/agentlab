@@ -7,8 +7,8 @@ You are performing a comprehensive visual QA and UX testing pass on the newly bu
 The app is a Python FastAPI backend + React Vite frontend.
 
 **Start the servers:**
-1. Backend: `cd /Users/andrew/Desktop/AutoAgent-VNextCC && .venv/bin/uvicorn api.server:app --host 0.0.0.0 --port 8000`
-2. Frontend: `cd /Users/andrew/Desktop/AutoAgent-VNextCC/web && npm run dev -- --port 5173`
+1. Backend: `cd /Users/andrew/Desktop/AgentLab-VNextCC && .venv/bin/uvicorn api.server:app --host 0.0.0.0 --port 8000`
+2. Frontend: `cd /Users/andrew/Desktop/AgentLab-VNextCC/web && npm run dev -- --port 5173`
 
 **Screenshot directory:** Save all screenshots to `/Users/andrew/Desktop/BuilderWorkspace-Screenshots/`
 

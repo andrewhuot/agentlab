@@ -1,4 +1,4 @@
-"""Composable guardrail primitives for AutoAgent VNextCC (P1-3).
+"""Composable guardrail primitives for AgentLab VNextCC (P1-3).
 
 Guardrails are first-class objects: they can be registered, chained, and
 inherited.  Every guardrail produces a structured GuardrailResult so the

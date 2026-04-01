@@ -181,7 +181,7 @@ class OperatorPerformanceTracker:
     database so history survives process restarts.
     """
 
-    def __init__(self, db_path: str = ".autoagent/operator_performance.db") -> None:
+    def __init__(self, db_path: str = ".agentlab/operator_performance.db") -> None:
         self.db_path = db_path
         # Ensure the backing directory exists so SQLite can always create the DB file.
         db_parent = Path(db_path).expanduser().resolve().parent

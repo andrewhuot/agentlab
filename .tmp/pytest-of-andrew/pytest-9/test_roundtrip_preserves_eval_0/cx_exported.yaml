@@ -49,7 +49,7 @@ skills:
     threshold: 0.8
     operator: lt
     blame_pattern: null
-  author: autoagent-builtin
+  author: agentlab-builtin
   tags:
   - quality
   - cx-agent-studio

@@ -8,8 +8,8 @@ from typing import Any
 
 from shared.contracts import BuildArtifact
 
-DEFAULT_BUILD_ARTIFACT_STORE_PATH = Path(".autoagent") / "build_artifacts.json"
-DEFAULT_LATEST_BUILD_ARTIFACT_PATH = Path(".autoagent") / "build_artifact_latest.json"
+DEFAULT_BUILD_ARTIFACT_STORE_PATH = Path(".agentlab") / "build_artifacts.json"
+DEFAULT_LATEST_BUILD_ARTIFACT_PATH = Path(".agentlab") / "build_artifact_latest.json"
 
 
 class BuildArtifactStore:

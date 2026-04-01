@@ -1,4 +1,4 @@
-"""Tests for AUTOAGENT.md intelligence auto-update."""
+"""Tests for AGENTLAB.md intelligence auto-update."""
 from __future__ import annotations
 
 import tempfile
@@ -22,7 +22,7 @@ class TestIntelligenceUpdate:
                 skill_gaps=[{"description": "No warranty lookup", "count": 8, "handled": 0}],
             )
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert INTEL_BEGIN in content
             assert INTEL_END in content
             assert "Score: 0.87" in content
@@ -41,7 +41,7 @@ class TestIntelligenceUpdate:
             # Second update
             mem.update_with_intelligence(eval_score=0.90)
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert content.count(INTEL_BEGIN) == 1  # Only one section
             assert "Score: 0.90" in content
             assert "Score: 0.80" not in content
@@ -55,7 +55,7 @@ class TestIntelligenceUpdate:
 
             mem.update_with_intelligence(eval_score=0.85)
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert "Pattern A works great" in content
             assert INTEL_BEGIN in content
 
@@ -66,7 +66,7 @@ class TestIntelligenceUpdate:
             mem.save(tmpdir)
             mem.update_with_intelligence()  # All None
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert INTEL_BEGIN in content
             assert "No active issues" in content or "n/a" in content.lower()
 
@@ -77,7 +77,7 @@ class TestIntelligenceUpdate:
             mem.save(tmpdir)
             mem.update_with_intelligence(eval_score=0.85, recent_changes=[])
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert INTEL_BEGIN in content
             assert "No recent changes" in content
 
@@ -93,7 +93,7 @@ class TestIntelligenceUpdate:
                 ],
             )
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert "warranty" in content
             assert "Spanish" in content
 
@@ -106,7 +106,7 @@ class TestIntelligenceUpdate:
             for score in [0.70, 0.75, 0.80, 0.85]:
                 mem.update_with_intelligence(eval_score=score)
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert content.count(INTEL_BEGIN) == 1
             assert content.count(INTEL_END) == 1
             assert "Score: 0.85" in content
@@ -118,7 +118,7 @@ class TestIntelligenceUpdate:
             mem.save(tmpdir)
             mem.update_with_intelligence(eval_score=0.88)
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             begin_pos = content.index(INTEL_BEGIN)
             end_pos = content.index(INTEL_END)
             assert begin_pos < end_pos
@@ -137,7 +137,7 @@ class TestIntelligenceUpdate:
                 eval_score=0.95,
             )
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert "95%" in content
             assert "1.5s" in content
             assert "0.01" in content
@@ -154,7 +154,7 @@ class TestIntelligenceUpdate:
                 ],
             )
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert "v3" in content
             assert "+0.05" in content
             assert "routing logic" in content
@@ -172,7 +172,7 @@ class TestIntelligenceUpdate:
                 ],
             )
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert "Order tracking" in content
             assert "12 user requests" in content
             assert "3 handled" in content
@@ -183,11 +183,11 @@ class TestIntelligenceUpdate:
         # Do NOT call save() first — file_path is empty
         mem.file_path = ""
         mem.save(str(tmp_path))  # Establish the path via save
-        mem.file_path = str(tmp_path / "AUTOAGENT.md")
+        mem.file_path = str(tmp_path / "AGENTLAB.md")
 
         mem.update_with_intelligence(eval_score=0.77)
 
-        content = (tmp_path / "AUTOAGENT.md").read_text()
+        content = (tmp_path / "AGENTLAB.md").read_text()
         assert "Score: 0.77" in content
 
     def test_no_active_issues_when_report_has_no_issues(self):
@@ -199,7 +199,7 @@ class TestIntelligenceUpdate:
                 report={"success_rate": 0.9, "avg_latency_ms": 800},
             )
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert "No active issues" in content
 
     def test_no_skill_gaps_message(self):
@@ -209,5 +209,5 @@ class TestIntelligenceUpdate:
             mem.save(tmpdir)
             mem.update_with_intelligence(eval_score=0.83)
 
-            content = (Path(tmpdir) / "AUTOAGENT.md").read_text()
+            content = (Path(tmpdir) / "AGENTLAB.md").read_text()
             assert "No skill gaps identified" in content

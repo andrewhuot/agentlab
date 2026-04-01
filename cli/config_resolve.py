@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from agent.config.runtime import load_runtime_config
-from cli.workspace import AutoAgentWorkspace, discover_workspace
+from cli.workspace import AgentLabWorkspace, discover_workspace
 
 
 @dataclass(slots=True)
@@ -40,14 +40,14 @@ def _resolve_path(path: str | None) -> Path | None:
     return Path(path).expanduser().resolve()
 
 
-def _workspace_or_cwd_lockfile_path(workspace: AutoAgentWorkspace | None) -> Path:
+def _workspace_or_cwd_lockfile_path(workspace: AgentLabWorkspace | None) -> Path:
     """Persist the lockfile in the workspace root when available, else current directory."""
     if workspace is not None:
-        return workspace.root / "autoagent.lock"
-    return Path.cwd() / "autoagent.lock"
+        return workspace.root / "agentlab.lock"
+    return Path.cwd() / "agentlab.lock"
 
 
-def _load_config_summary(path: Path | None, workspace: AutoAgentWorkspace | None) -> tuple[int | None, str]:
+def _load_config_summary(path: Path | None, workspace: AgentLabWorkspace | None) -> tuple[int | None, str]:
     """Load the selected config and return `(version, summary)` for UX surfaces."""
     if path is None or not path.exists():
         return None, "No config selected"
@@ -92,7 +92,7 @@ def resolve_config_snapshot(
         if candidate.exists():
             resolved_runtime_path = candidate
     if resolved_runtime_path is None:
-        fallback = Path("autoagent.yaml").resolve()
+        fallback = Path("agentlab.yaml").resolve()
         if fallback.exists():
             resolved_runtime_path = fallback
 
@@ -112,7 +112,7 @@ def resolve_config_snapshot(
 
 
 def persist_config_lockfile(resolution: ConfigResolution) -> Path:
-    """Write the resolved config snapshot to `autoagent.lock`."""
+    """Write the resolved config snapshot to `agentlab.lock`."""
     workspace = discover_workspace()
     lockfile_path = _workspace_or_cwd_lockfile_path(workspace)
     lockfile_path.write_text(
@@ -140,6 +140,6 @@ def render_config_resolution(resolution: ConfigResolution) -> str:
             f"  Config:    {config_label}",
             f"  Summary:   {resolution.config_summary}",
             f"  Runtime:   {runtime_label} ({resolution.runtime_mode})",
-            "  Lockfile:  autoagent.lock",
+            "  Lockfile:  agentlab.lock",
         ]
     )

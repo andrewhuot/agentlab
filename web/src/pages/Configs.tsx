@@ -288,7 +288,7 @@ export function Configs() {
             <input
               value={migrateInputPath}
               onChange={(event) => setMigrateInputPath(event.target.value)}
-              placeholder="legacy/autoagent.yaml"
+              placeholder="legacy/agentlab.yaml"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             />
             <input

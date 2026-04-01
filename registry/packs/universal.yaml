@@ -36,7 +36,7 @@ skills:
         metric_name: routing_accuracy
         threshold: 0.85
         operator: lt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [routing, keywords, core]
 
   - name: instruction_hardening
@@ -82,7 +82,7 @@ skills:
         metric_name: task_completion_rate
         threshold: 0.80
         operator: lt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [quality, instructions, core]
 
   - name: fewshot_optimization
@@ -129,7 +129,7 @@ skills:
         metric_name: response_quality_score
         threshold: 0.75
         operator: lt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [quality, fewshot, examples]
 
   - name: safety_guardrail_tightening
@@ -184,7 +184,7 @@ skills:
         metric_name: pii_disclosure_rate
         threshold: 0.005
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [safety, pii, guardrails, core]
 
   - name: tool_timeout_tuning
@@ -231,7 +231,7 @@ skills:
         metric_name: tool_timeout_error_rate
         threshold: 0.03
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [latency, tools, timeouts]
 
   - name: retry_policy_optimization
@@ -282,7 +282,7 @@ skills:
         metric_name: tool_transient_error_rate
         threshold: 0.05
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [latency, retry, reliability, tools]
 
   - name: context_pruning
@@ -334,7 +334,7 @@ skills:
         metric_name: cost_per_conversation_usd
         threshold: 0.08
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [cost, context, tokens]
 
   - name: response_compression
@@ -381,7 +381,7 @@ skills:
         metric_name: output_token_cost_per_conversation
         threshold: 0.04
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [cost, response_length, tokens]
 
   - name: routing_disambiguation
@@ -434,7 +434,7 @@ skills:
         metric_name: re_routing_rate
         threshold: 0.10
         operator: gt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [routing, disambiguation, intents]
 
   - name: handoff_schema_refinement
@@ -496,5 +496,5 @@ skills:
         metric_name: handoff_success_rate
         threshold: 0.90
         operator: lt
-    author: autoagent-builtin
+    author: agentlab-builtin
     tags: [quality, handoff, schema, core]

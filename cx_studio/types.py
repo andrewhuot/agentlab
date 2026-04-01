@@ -1,6 +1,6 @@
 """Pydantic models for CX Studio and Dialogflow CX resources.
 
-The current AutoAgent integration needs to work with the real Dialogflow CX
+The current AgentLab integration needs to work with the real Dialogflow CX
 resource hierarchy for agents, flows, intents, entity types, webhooks, pages,
 and playbooks while still tolerating a few legacy CX Agent Studio code paths.
 """
@@ -224,7 +224,7 @@ class CxWidgetConfig(BaseModel):
 
 
 class ImportResult(BaseModel):
-    """Result of a successful CX-to-AutoAgent import."""
+    """Result of a successful CX-to-AgentLab import."""
 
     config_path: str
     eval_path: str | None = None
@@ -236,7 +236,7 @@ class ImportResult(BaseModel):
 
 
 class ExportResult(BaseModel):
-    """Result of diffing or pushing AutoAgent changes back to CX."""
+    """Result of diffing or pushing AgentLab changes back to CX."""
 
     changes: list[dict[str, Any]] = Field(default_factory=list)
     pushed: bool = False

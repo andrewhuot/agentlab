@@ -101,25 +101,25 @@ class DashboardDataService:
             stage = "Set up and collect your first traces"
             next_action = {
                 "label": "Run quickstart",
-                "command": "autoagent quickstart",
+                "command": "agentlab quickstart",
             }
         elif completed_steps == 1:
             stage = "Great start — run your first optimization cycle"
             next_action = {
                 "label": "Run one loop cycle",
-                "command": "autoagent loop --max-cycles 1",
+                "command": "agentlab loop --max-cycles 1",
             }
         elif completed_steps in (2, 3):
             stage = "Build momentum with repeatable improvements"
             next_action = {
                 "label": "Run guided quickstart",
-                "command": "autoagent quickstart --verbose",
+                "command": "agentlab quickstart --verbose",
             }
         else:
             stage = "Pro mode unlocked — scale with canaries and automation"
             next_action = {
                 "label": "Run continuous loop",
-                "command": "autoagent loop --max-cycles 20 --stop-on-plateau",
+                "command": "agentlab loop --max-cycles 20 --stop-on-plateau",
             }
 
         momentum_points = round(sum(max(0.0, a.score_after - a.score_before) * 1000 for a in accepted))

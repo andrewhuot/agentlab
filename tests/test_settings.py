@@ -96,9 +96,9 @@ def test_resolve_defaults_when_no_files(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_resolve_project_overrides_defaults(tmp_path: Path) -> None:
-    autoagent_dir = tmp_path / ".autoagent"
-    autoagent_dir.mkdir()
-    (autoagent_dir / "settings.json").write_text(
+    agentlab_dir = tmp_path / ".agentlab"
+    agentlab_dir.mkdir()
+    (agentlab_dir / "settings.json").write_text(
         json.dumps({"shell.prompt": "project> "}),
         encoding="utf-8",
     )
@@ -107,13 +107,13 @@ def test_resolve_project_overrides_defaults(tmp_path: Path) -> None:
 
 
 def test_resolve_local_overrides_project(tmp_path: Path) -> None:
-    autoagent_dir = tmp_path / ".autoagent"
-    autoagent_dir.mkdir()
-    (autoagent_dir / "settings.json").write_text(
+    agentlab_dir = tmp_path / ".agentlab"
+    agentlab_dir.mkdir()
+    (agentlab_dir / "settings.json").write_text(
         json.dumps({"shell.prompt": "project> "}),
         encoding="utf-8",
     )
-    (autoagent_dir / "settings.local.json").write_text(
+    (agentlab_dir / "settings.local.json").write_text(
         json.dumps({"shell.prompt": "local> "}),
         encoding="utf-8",
     )
@@ -122,9 +122,9 @@ def test_resolve_local_overrides_project(tmp_path: Path) -> None:
 
 
 def test_resolve_session_overrides_local(tmp_path: Path) -> None:
-    autoagent_dir = tmp_path / ".autoagent"
-    autoagent_dir.mkdir()
-    (autoagent_dir / "settings.local.json").write_text(
+    agentlab_dir = tmp_path / ".agentlab"
+    agentlab_dir.mkdir()
+    (agentlab_dir / "settings.local.json").write_text(
         json.dumps({"mode": "local-mode"}),
         encoding="utf-8",
     )
@@ -145,7 +145,7 @@ def test_resolve_flags_override_everything(tmp_path: Path) -> None:
 
 
 def test_save_project_settings(tmp_path: Path) -> None:
-    (tmp_path / ".autoagent").mkdir()
+    (tmp_path / ".agentlab").mkdir()
     path = save_project_settings(tmp_path, {"shell.prompt": "saved> "})
     assert path.exists()
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -153,7 +153,7 @@ def test_save_project_settings(tmp_path: Path) -> None:
 
 
 def test_save_local_settings(tmp_path: Path) -> None:
-    (tmp_path / ".autoagent").mkdir()
+    (tmp_path / ".agentlab").mkdir()
     path = save_local_settings(tmp_path, {"mode": "test"})
     assert path.exists()
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -165,11 +165,11 @@ def test_save_user_config(tmp_path: Path, monkeypatch: "pytest.MonkeyPatch") -> 
     fake_home.mkdir()
     import cli.settings as settings_mod
 
-    monkeypatch.setattr(settings_mod, "USER_CONFIG_DIR", fake_home / ".autoagent")
+    monkeypatch.setattr(settings_mod, "USER_CONFIG_DIR", fake_home / ".agentlab")
     monkeypatch.setattr(
         settings_mod,
         "USER_CONFIG_PATH",
-        fake_home / ".autoagent" / "config.json",
+        fake_home / ".agentlab" / "config.json",
     )
     path = save_user_config({"output.color": False})
     assert path.exists()

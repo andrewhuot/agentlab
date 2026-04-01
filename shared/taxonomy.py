@@ -1,4 +1,4 @@
-"""Canonical AutoAgent command taxonomy shared across CLI and UI shells."""
+"""Canonical AgentLab command taxonomy shared across CLI and UI shells."""
 
 from __future__ import annotations
 

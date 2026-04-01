@@ -1,4 +1,4 @@
-"""Main FastAPI application for AutoAgent VNextCC API.
+"""Main FastAPI application for AgentLab VNextCC API.
 
 Start with: uvicorn api.server:app --reload
 """
@@ -78,17 +78,17 @@ from api.websocket import ConnectionManager
 # ---------------------------------------------------------------------------
 # Paths (configurable via env vars)
 # ---------------------------------------------------------------------------
-CONVERSATIONS_DB = os.environ.get("AUTOAGENT_DB", "conversations.db")
-CONFIGS_DIR = os.environ.get("AUTOAGENT_CONFIGS", "configs")
-OPTIMIZER_MEMORY_DB = os.environ.get("AUTOAGENT_MEMORY_DB", "optimizer_memory.db")
-EXPERIMENTS_DB = os.environ.get("AUTOAGENT_EXPERIMENTS_DB", ".autoagent/experiments.db")
+CONVERSATIONS_DB = os.environ.get("AGENTLAB_DB", "conversations.db")
+CONFIGS_DIR = os.environ.get("AGENTLAB_CONFIGS", "configs")
+OPTIMIZER_MEMORY_DB = os.environ.get("AGENTLAB_MEMORY_DB", "optimizer_memory.db")
+EXPERIMENTS_DB = os.environ.get("AGENTLAB_EXPERIMENTS_DB", ".agentlab/experiments.db")
 TRANSCRIPT_REPORT_STORE_PATH = os.environ.get(
-    "AUTOAGENT_TRANSCRIPT_REPORTS",
-    ".autoagent/intelligence_reports.json",
+    "AGENTLAB_TRANSCRIPT_REPORTS",
+    ".agentlab/intelligence_reports.json",
 )
 BUILD_ARTIFACT_STORE_PATH = os.environ.get(
-    "AUTOAGENT_BUILD_ARTIFACTS",
-    ".autoagent/build_artifacts.json",
+    "AGENTLAB_BUILD_ARTIFACTS",
+    ".agentlab/build_artifacts.json",
 )
 WEB_DIST_DIR = Path(__file__).parent.parent / "web" / "dist"
 
@@ -154,7 +154,7 @@ async def lifespan(app: FastAPI):
 
     runtime = load_runtime_config()
     startup_epoch = time.time()
-    trace_store = TraceStore(db_path=os.environ.get("AUTOAGENT_TRACE_DB", ".autoagent/traces.db"))
+    trace_store = TraceStore(db_path=os.environ.get("AGENTLAB_TRACE_DB", ".agentlab/traces.db"))
 
     structured_logger = configure_structured_logging(
         log_path=runtime.loop.structured_log_path,
@@ -206,7 +206,7 @@ async def lifespan(app: FastAPI):
     )
 
     # Initialize skills system
-    skill_store = SkillStore(db_path=".autoagent/core_skills.db")
+    skill_store = SkillStore(db_path=".agentlab/core_skills.db")
     skill_engine = SkillEngine(store=skill_store)
     adversarial_simulator = None
     if runtime.optimizer.adversarial_simulation_enabled:
@@ -259,7 +259,7 @@ async def lifespan(app: FastAPI):
     )
 
     builder_store = BuilderStore(
-        db_path=os.environ.get("AUTOAGENT_BUILDER_DB", ".autoagent/builder.db"),
+        db_path=os.environ.get("AGENTLAB_BUILDER_DB", ".agentlab/builder.db"),
     )
     builder_project_manager = BuilderProjectManager(builder_store)
     builder_orchestrator = BuilderOrchestrator(builder_store)
@@ -282,7 +282,7 @@ async def lifespan(app: FastAPI):
     app.state.eval_runner = eval_runner
     app.state.results_store = eval_runner.results_store
     app.state.pairwise_store = PairwiseComparisonStore(
-        base_dir=os.environ.get("AUTOAGENT_PAIRWISE_DIR", ".autoagent/pairwise")
+        base_dir=os.environ.get("AGENTLAB_PAIRWISE_DIR", ".agentlab/pairwise")
     )
     app.state.auto_eval_generator = AutoEvalGenerator()
     app.state.proposer = proposer
@@ -317,7 +317,7 @@ async def lifespan(app: FastAPI):
     from optimizer.experiments import ExperimentStore
 
     app.state.trace_store = trace_store
-    app.state.opportunity_queue = OpportunityQueue(db_path=".autoagent/opportunities.db")
+    app.state.opportunity_queue = OpportunityQueue(db_path=".agentlab/opportunities.db")
     app.state.experiment_store = ExperimentStore(db_path=EXPERIMENTS_DB)
     app.state.tracing_middleware = getattr(eval_runner, "tracing_middleware")
 
@@ -375,7 +375,7 @@ async def lifespan(app: FastAPI):
     # Registry store
     from registry.store import RegistryStore
     app.state.registry_store = RegistryStore(
-        db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"),
+        db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"),
     )
 
     # NL Scorer
@@ -385,7 +385,7 @@ async def lifespan(app: FastAPI):
     # Runbook store
     from registry.runbooks import RunbookStore, seed_starter_runbooks
     app.state.runbook_store = RunbookStore(
-        db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"),
+        db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"),
     )
     seed_starter_runbooks(app.state.runbook_store)
 
@@ -393,7 +393,7 @@ async def lifespan(app: FastAPI):
     from registry.skill_store import SkillStore as ExecutableSkillStore
     from registry.skill_loader import install_builtin_packs
     app.state.skill_store = ExecutableSkillStore(
-        db_path=os.environ.get("AUTOAGENT_REGISTRY_DB", "registry.db"),
+        db_path=os.environ.get("AGENTLAB_REGISTRY_DB", "registry.db"),
     )
     install_builtin_packs(app.state.skill_store)
 
@@ -412,7 +412,7 @@ async def lifespan(app: FastAPI):
     # Notification manager
     from notifications.manager import NotificationManager
     app.state.notification_manager = NotificationManager(
-        db_path=".autoagent/notifications.db"
+        db_path=".agentlab/notifications.db"
     )
 
     # Auto-seed demo data on first boot if DB is empty
@@ -426,7 +426,7 @@ async def lifespan(app: FastAPI):
 # App setup
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="AutoAgent VNextCC",
+    title="AgentLab VNextCC",
     description=(
         "Product-grade agent optimization platform — "
         "CLI, API, and web console for iterating ADK agent quality."
@@ -593,7 +593,7 @@ else:
     @app.get("/", include_in_schema=False)
     async def root():
         return HTMLResponse(
-            "<h1>AutoAgent VNextCC API</h1>"
+            "<h1>AgentLab VNextCC API</h1>"
             "<p>API is running. Visit <a href='/docs'>/docs</a> for the OpenAPI explorer.</p>"
             "<p>Frontend not found at web/dist/. Run <code>cd web && npm run build</code>.</p>"
         )

@@ -1,4 +1,4 @@
-# AutoAgent VNextCC — Product Vision Review
+# AgentLab VNextCC — Product Vision Review
 ## A Steve Jobs-Style Product Critique
 
 **Date:** March 26, 2026
@@ -162,7 +162,7 @@ That's the product. Everything else is noise.
 
 ### 1. **First-Run Wizard That Actually Works**
 
-**Current:** `autoagent init` creates directories and files. Boring.
+**Current:** `agentlab init` creates directories and files. Boring.
 
 **Magic:** Interactive wizard that:
 - Asks 3 questions: "What platform?" (CX Studio/ADK/Custom), "What's your agent's biggest problem?" (Routing/Safety/Latency), "How many conversations do you have?" (10/100/1000+)
@@ -215,7 +215,7 @@ Copy-paste into Slack. Done.
 
 ### 5. **Undo Button That Actually Undos**
 
-**Current:** `autoagent reject <experiment-id>` (need to find the ID first)
+**Current:** `agentlab reject <experiment-id>` (need to find the ID first)
 
 **Magic:** Every page that shows changes has a big red "Undo Last Change" button
 - Click it → "Are you sure? This will rollback to v42 (deployed 2h ago). Your agent will go back to 74% success rate from 87%."
@@ -256,16 +256,16 @@ Every time you use an academic or insider term, you lose 10% of potential users.
 
 **Current first-run experience:**
 1. `pip install -e ".[dev]"` → installs
-2. `autoagent init` → creates directories
-3. `autoagent eval run` → runs eval (but against what agent? where's the agent?)
+2. `agentlab init` → creates directories
+3. `agentlab eval run` → runs eval (but against what agent? where's the agent?)
 4. User is confused, reads 163 pages of docs
 5. 50% of users give up
 
 **The new first-run experience:**
 
 ```bash
-$ autoagent init
-✨ Welcome to AutoAgent!
+$ agentlab init
+✨ Welcome to AgentLab!
 
 Let me ask you 3 questions:
 
@@ -300,7 +300,7 @@ Perfect. Last question:
 
 Your agent is ready! Let's see what's broken.
 
-$ autoagent diagnose
+$ agentlab diagnose
 
 🔍 Analyzing 50 conversations...
 
@@ -342,9 +342,9 @@ Change deployed ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Next steps:
-  autoagent server   → Open web dashboard
-  autoagent loop     → Run continuous optimization
-  autoagent help     → Learn more
+  agentlab server   → Open web dashboard
+  agentlab loop     → Run continuous optimization
+  agentlab help     → Learn more
 ```
 
 **Total time:** 90 seconds from install to first successful optimization.
@@ -380,10 +380,10 @@ Next steps:
 
 **Morning (2 minutes):**
 ```bash
-$ autoagent status
+$ agentlab status
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🟢 AutoAgent Health: Good (87%)
+🟢 AgentLab Health: Good (87%)
 
 Last 24h:
   ✓ 2 changes deployed
@@ -394,13 +394,13 @@ Current issues:
   🟡 Latency trending up (+120ms over 7 days)
 
 Next action:
-  autoagent fix latency
+  agentlab fix latency
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 **Mid-day (10 seconds):**
 ```bash
-$ autoagent fix latency
+$ agentlab fix latency
 
 🔍 Diagnosing latency...
 
@@ -414,7 +414,7 @@ Apply? [y/n]: y
 
 **End of day (30 seconds):**
 ```bash
-$ autoagent report
+$ agentlab report
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 Daily Report — March 26, 2026
@@ -460,7 +460,7 @@ Slack summary copied to clipboard ✓
 
 [Click "Diagnose"]
 
-> "AutoAgent found the problem: your routing rules don't include 'invoice' or 'refund'. Watch it fix itself."
+> "AgentLab found the problem: your routing rules don't include 'invoice' or 'refund'. Watch it fix itself."
 
 [Click "Fix"]
 
@@ -497,7 +497,7 @@ Slack summary copied to clipboard ✓
 3. **Reduce search strategies to ONE default** [Effort: M]
    - Config: `optimizer.search_strategy` → remove choice, hardcode `adaptive`
    - Kill MIPROv2/BootstrapFewShot/GEPA/SIMBA from main product (move to research branch)
-   - Files: `optimizer/search.py`, `optimizer/prompt_opt/*`, `autoagent.yaml`
+   - Files: `optimizer/search.py`, `optimizer/prompt_opt/*`, `agentlab.yaml`
 
 4. **Rename confusing terms** [Effort: M]
    - "Experiment Cards" → "Changes"
@@ -508,7 +508,7 @@ Slack summary copied to clipboard ✓
    - Files: All `web/src/pages/*.tsx`, `runner.py`, docs
 
 5. **Build first-run wizard** [Effort: L]
-   - `autoagent init --interactive` → asks 3 questions → seeds realistic data → runs first diagnosis
+   - `agentlab init --interactive` → asks 3 questions → seeds realistic data → runs first diagnosis
    - Must complete in <90 seconds
    - File: `runner.py` lines 416-512, new module `evals/wizard.py`
 
@@ -561,7 +561,7 @@ Slack summary copied to clipboard ✓
     - File: `web/src/components/Confetti.tsx` enhancement
 
 14. **Daily report generator** [Effort: M]
-    - `autoagent report` → generates daily summary
+    - `agentlab report` → generates daily summary
     - Auto-copy to clipboard for Slack
     - File: New CLI command in `runner.py`
 

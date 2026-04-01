@@ -21,7 +21,7 @@
 
 **Step 1: Write the failing tests**
 
-- Add a CLI regression test proving `autoagent eval show latest` and `autoagent eval list` disagree today when the latest workspace result only exists in `.autoagent/eval_results_latest.json`.
+- Add a CLI regression test proving `agentlab eval show latest` and `agentlab eval list` disagree today when the latest workspace result only exists in `.agentlab/eval_results_latest.json`.
 - Add an end-to-end test that creates a workspace, runs an eval, runs optimize, and verifies the CLI review list, API change cards, API experiments, and latest eval surfaces all point at the same persisted state.
 
 **Step 2: Run tests to verify they fail**
@@ -82,7 +82,7 @@ pytest tests/test_cli_commands.py tests/test_eval_agent.py -k "mode or require_l
 - Persist run mode in the canonical eval result payload.
 - Label CLI output clearly for mock/live/mixed.
 - Mark fallback cases as `mixed` and attach warnings.
-- Surface the last eval mode in `autoagent status`.
+- Surface the last eval mode in `agentlab status`.
 - Add UI badges for eval mode in list/detail views.
 
 **Step 4: Run focused verification**
@@ -165,7 +165,7 @@ git commit -m "feat: canonical eval object model and unified grader runtime"
 **Step 1: Write the failing tests**
 
 - Add adapter tests for project scanning/import summaries and transcript import.
-- Add CLI tests for `autoagent connect openai-agents`, `anthropic`, `http`, and `transcript`.
+- Add CLI tests for `agentlab connect openai-agents`, `anthropic`, `http`, and `transcript`.
 - Add web tests for the guided Connect page navigation and CTA flow.
 
 **Step 2: Run tests to verify they fail**
@@ -179,7 +179,7 @@ pytest tests/test_cli_integrations.py -k "connect or adapter" -q
 
 - Implement a shared `AgentAdapter` base with discover/import primitives.
 - Implement OpenAI Agents, Anthropic, HTTP, and transcript adapters.
-- Add `autoagent connect ...` CLI that creates/imports a workspace plus starter eval fixtures and adapter config.
+- Add `agentlab connect ...` CLI that creates/imports a workspace plus starter eval fixtures and adapter config.
 - Add the Connect page plus sidebar/navigation entry in the web UI.
 
 **Step 4: Run focused verification**
@@ -192,7 +192,7 @@ pytest tests/test_cli_integrations.py tests/test_adk_importer.py tests/test_cx_s
 **Step 5: Commit**
 
 ```bash
-git commit -m "feat: OpenAI and Anthropic runtime adapters with autoagent connect"
+git commit -m "feat: OpenAI and Anthropic runtime adapters with agentlab connect"
 ```
 
 ### Task 5: Final verification

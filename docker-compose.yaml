@@ -1,18 +1,18 @@
 services:
-  autoagent:
+  agentlab:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - autoagent-data:/app/data
+      - agentlab-data:/app/data
     env_file:
       - .env
     environment:
-      - AUTOAGENT_DB=/app/data/conversations.db
-      - AUTOAGENT_CONFIGS=/app/data/configs
-      - AUTOAGENT_MEMORY_DB=/app/data/optimizer_memory.db
+      - AGENTLAB_DB=/app/data/conversations.db
+      - AGENTLAB_CONFIGS=/app/data/configs
+      - AGENTLAB_MEMORY_DB=/app/data/optimizer_memory.db
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/ready"]
@@ -22,4 +22,4 @@ services:
       start_period: 10s
 
 volumes:
-  autoagent-data:
+  agentlab-data:

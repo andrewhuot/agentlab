@@ -27,9 +27,9 @@ def mapper():
     return AdkMapper()
 
 
-def test_to_autoagent_basic(mapper, sample_tree):
-    """Test basic ADK to AutoAgent mapping."""
-    config = mapper.to_autoagent(sample_tree)
+def test_to_agentlab_basic(mapper, sample_tree):
+    """Test basic ADK to AgentLab mapping."""
+    config = mapper.to_agentlab(sample_tree)
 
     assert "prompts" in config
     assert "tools" in config
@@ -41,9 +41,9 @@ def test_to_autoagent_basic(mapper, sample_tree):
     assert "support" in config["prompts"]["root"].lower()
 
 
-def test_to_autoagent_with_subagents(mapper, sample_tree):
+def test_to_agentlab_with_subagents(mapper, sample_tree):
     """Test hierarchy flattened to prompts + routing."""
-    config = mapper.to_autoagent(sample_tree)
+    config = mapper.to_agentlab(sample_tree)
 
     # Sub-agent instruction should be in prompts
     assert "billing_agent" in config["prompts"]
@@ -64,9 +64,9 @@ def test_to_autoagent_with_subagents(mapper, sample_tree):
     assert "billing" in billing_rule["keywords"]
 
 
-def test_to_autoagent_with_tools(mapper, sample_tree):
+def test_to_agentlab_with_tools(mapper, sample_tree):
     """Test tool docstrings extracted."""
-    config = mapper.to_autoagent(sample_tree)
+    config = mapper.to_agentlab(sample_tree)
 
     assert "tools" in config
     assert len(config["tools"]) > 0
@@ -79,9 +79,9 @@ def test_to_autoagent_with_tools(mapper, sample_tree):
     assert "signature" in tool_config
 
 
-def test_to_autoagent_with_config(mapper, sample_tree):
+def test_to_agentlab_with_config(mapper, sample_tree):
     """Test generation settings mapped."""
-    config = mapper.to_autoagent(sample_tree)
+    config = mapper.to_agentlab(sample_tree)
 
     # Check model
     assert "model" in config
@@ -96,13 +96,13 @@ def test_to_autoagent_with_config(mapper, sample_tree):
 def test_to_adk_roundtrip(mapper, sample_tree):
     """Test config → tree → config preserves data."""
     # Convert to config
-    config1 = mapper.to_autoagent(sample_tree)
+    config1 = mapper.to_agentlab(sample_tree)
 
     # Convert back to tree
     tree2 = mapper.to_adk(config1, sample_tree)
 
     # Convert to config again
-    config2 = mapper.to_autoagent(tree2)
+    config2 = mapper.to_agentlab(tree2)
 
     # Should preserve key fields
     assert config1["prompts"]["root"] == config2["prompts"]["root"]
@@ -127,7 +127,7 @@ def test_apply_prompts_updates_instructions(mapper, sample_tree):
 
 def test_metadata_preserved(mapper, sample_tree):
     """Test _adk_metadata stored."""
-    config = mapper.to_autoagent(sample_tree)
+    config = mapper.to_agentlab(sample_tree)
 
     assert "_adk_metadata" in config
     metadata = config["_adk_metadata"]

@@ -112,8 +112,8 @@ def test_skills_api_defaults_to_shared_lifecycle_store(tmp_path: Path, monkeypat
     response = TestClient(app).get("/api/skills/")
 
     assert response.status_code == 200
-    assert (tmp_path / ".autoagent" / "core_skills.db").exists()
-    assert not (tmp_path / ".autoagent" / "skills.db").exists()
+    assert (tmp_path / ".agentlab" / "core_skills.db").exists()
+    assert not (tmp_path / ".agentlab" / "skills.db").exists()
 
 
 # ---------------------------------------------------------------------------

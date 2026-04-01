@@ -197,7 +197,7 @@ def test_client_list_agents_follows_pagination(monkeypatch) -> None:
 
 
 def test_mapper_round_trip_preserves_flows_intents_entities_webhooks_and_playbooks() -> None:
-    """A CX snapshot should round-trip through the AutoAgent mapping without losing supported surfaces."""
+    """A CX snapshot should round-trip through the AgentLab mapping without losing supported surfaces."""
     mapper = CxAgentMapper()
     snapshot = _make_snapshot()
 
@@ -230,7 +230,7 @@ def test_importer_and_exporter_support_three_way_conflict_detection(tmp_path: Pa
         output_dir=str(tmp_path),
     )
 
-    config = json.loads(Path(result.workspace_path, ".autoagent", "cx", "workspace.json").read_text(encoding="utf-8"))
+    config = json.loads(Path(result.workspace_path, ".agentlab", "cx", "workspace.json").read_text(encoding="utf-8"))
     config["prompts"]["root"] = "Local editor changed escalation instructions."
 
     exporter_client = type(

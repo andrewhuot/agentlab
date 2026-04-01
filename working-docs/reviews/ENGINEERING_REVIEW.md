@@ -1,4 +1,4 @@
-# Engineering Review — AutoAgent VNextCC
+# Engineering Review — AgentLab VNextCC
 
 **Date**: 2026-03-24
 **Reviewer**: Claude Opus 4.6
@@ -83,7 +83,7 @@ control/          ← Self-contained
 - docker-compose.yaml exists with health checks and persistent volume
 - Health endpoints: `/api/health`, `/api/health/system`, `/api/health/cost`, `/api/health/scorecard`
 - Structured JSON logging with rotation (`logger/structured.py`)
-- Runtime config via `autoagent.yaml` with Pydantic validation and sensible defaults
+- Runtime config via `agentlab.yaml` with Pydantic validation and sensible defaults
 - All DB paths configurable via env vars
 - HEALTHCHECK in Dockerfile
 
@@ -109,8 +109,8 @@ Current state: 7 SQLite databases (conversations, eval_history, optimizer_memory
 
 ### Config Management
 
-- Runtime config: `autoagent.yaml` → Pydantic-validated `RuntimeConfig`
-- Env vars: `AUTOAGENT_DB`, `AUTOAGENT_CONFIGS`, `AUTOAGENT_MEMORY_DB`, `AUTOAGENT_REGISTRY_DB`, `AUTOAGENT_TRACE_DB`, `AUTOAGENT_EVAL_HISTORY_DB`
+- Runtime config: `agentlab.yaml` → Pydantic-validated `RuntimeConfig`
+- Env vars: `AGENTLAB_DB`, `AGENTLAB_CONFIGS`, `AGENTLAB_MEMORY_DB`, `AGENTLAB_REGISTRY_DB`, `AGENTLAB_TRACE_DB`, `AGENTLAB_EVAL_HISTORY_DB`
 - API keys: `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` (referenced by name in config, read at runtime)
 
 ### Error Handling
@@ -160,7 +160,7 @@ Cloud Build → Artifact Registry → Cloud Run
 - `pip install -e ".[dev]"` works
 - `python runner.py server` starts API
 - `python -m pytest tests/` runs 1,131 tests in ~3s
-- `autoagent` CLI available after install
+- `agentlab` CLI available after install
 
 ### What's Needed
 - `make dev` to start everything in one command
