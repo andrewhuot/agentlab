@@ -1,6 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Play, Sparkles, Zap, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Bot,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock3,
+  Gauge,
+  Play,
+  Plus,
+  RotateCcw,
+  SlidersHorizontal,
+  Sparkles,
+  Trash2,
+  Workflow,
+  X,
+  XCircle,
+  Zap,
+} from 'lucide-react';
 import { EmptyState } from '../components/EmptyState';
 import { DiffViewer } from '../components/DiffViewer';
 import { LoadingSkeleton } from '../components/LoadingSkeleton';
@@ -8,27 +26,59 @@ import { LiveOptimize } from './LiveOptimize';
 import { PageHeader } from '../components/PageHeader';
 import { ScoreChart } from '../components/ScoreChart';
 import { StatusBadge } from '../components/StatusBadge';
-import { TimelineEntry } from '../components/TimelineEntry';
 import { AgentSelector } from '../components/AgentSelector';
 import { useActiveAgent } from '../lib/active-agent';
 import { useAgents, useOptimizeHistory, useStartOptimize, useTaskStatus } from '../lib/api';
 import { wsClient } from '../lib/websocket';
 import { toastError, toastInfo, toastSuccess } from '../lib/toast';
-import { classNames, formatTimestamp, statusVariant } from '../lib/utils';
-import type { AgentLibraryItem, DiffLine } from '../lib/types';
+import {
+  classNames,
+  formatDuration,
+  formatScore,
+  formatTimestamp,
+  statusVariant,
+  truncate,
+} from '../lib/utils';
+import type {
+  AgentLibraryItem,
+  DiffLine,
+  OptimizationAttempt,
+  OptimizeCycleResult,
+  TaskState,
+} from '../lib/types';
 
 type OptimizeMode = 'standard' | 'advanced' | 'research';
 type OptimizeTab = 'run' | 'live';
+type StepState = 'complete' | 'current' | 'upcoming';
 
 interface OptimizeJourneyState {
   agent?: AgentLibraryItem;
   evalRunId?: string;
 }
 
+interface PersistedOptimizeResult {
+  agent: AgentLibraryItem | null;
+  taskId: string;
+  startedAt: string;
+  completedAt: string;
+  result: OptimizeCycleResult;
+}
+
+interface CompletedOptimizationSummary {
+  agent: AgentLibraryItem | null;
+  accepted: boolean;
+}
+
 const modeDescriptions: Record<OptimizeMode, string> = {
   standard: 'Default optimization with safety gates and regression checks.',
   advanced: 'Advanced mode with adaptive bandit policies and curriculum learning.',
   research: 'Research mode with full algorithm options, custom objectives, and guardrails.',
+};
+
+const modeLabels: Record<OptimizeMode, string> = {
+  standard: 'Standard',
+  advanced: 'Advanced',
+  research: 'Research',
 };
 
 const researchAlgorithms = [
@@ -42,6 +92,49 @@ const optimizeTabs: Array<{ key: OptimizeTab; label: string }> = [
   { key: 'run', label: 'Run' },
   { key: 'live', label: 'Live' },
 ];
+
+const optimizeProgressSteps = [
+  {
+    key: 'observe',
+    label: 'Observing...',
+    shortLabel: 'Observe',
+    description: 'Collecting recent conversations and measuring agent health.',
+    min: 10,
+    max: 20,
+  },
+  {
+    key: 'analyze',
+    label: 'Analyzing failures...',
+    shortLabel: 'Analyze',
+    description: 'Grouping failure patterns and deciding what needs attention.',
+    min: 20,
+    max: 30,
+  },
+  {
+    key: 'generate',
+    label: 'Generating candidates...',
+    shortLabel: 'Generate',
+    description: 'Drafting promising configuration changes for the next evaluation pass.',
+    min: 30,
+    max: 40,
+  },
+  {
+    key: 'evaluate',
+    label: 'Evaluating candidates...',
+    shortLabel: 'Evaluate',
+    description: 'Running score checks to see whether the proposed change improves outcomes.',
+    min: 40,
+    max: 70,
+  },
+  {
+    key: 'deploy',
+    label: 'Deploying...',
+    shortLabel: 'Deploy',
+    description: 'Promoting the accepted candidate to the active configuration.',
+    min: 70,
+    max: 100,
+  },
+] as const;
 
 function parseDiffLines(diff: string): DiffLine[] {
   if (!diff) return [];
@@ -73,6 +166,271 @@ function parseDiffLines(diff: string): DiffLine[] {
       right += 1;
       return mapped;
     });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeScore(value: number | null | undefined): number | null {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return null;
+  }
+  if (value >= 0 && value <= 1) {
+    return value * 100;
+  }
+  return value;
+}
+
+function scoreDelta(before: number | null | undefined, after: number | null | undefined): number | null {
+  const normalizedBefore = normalizeScore(before);
+  const normalizedAfter = normalizeScore(after);
+  if (normalizedBefore === null || normalizedAfter === null) {
+    return null;
+  }
+  return normalizedAfter - normalizedBefore;
+}
+
+function formatScoreValue(value: number | null | undefined): string {
+  const normalized = normalizeScore(value);
+  return normalized === null ? '—' : formatScore(normalized);
+}
+
+function formatDeltaValue(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return '—';
+  }
+  const prefix = value > 0 ? '+' : '';
+  return `${prefix}${formatScore(value)}`;
+}
+
+function deltaTone(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return 'border-gray-200 bg-gray-50 text-gray-700';
+  }
+  if (value > 0) {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  }
+  if (value < 0) {
+    return 'border-rose-200 bg-rose-50 text-rose-700';
+  }
+  return 'border-amber-200 bg-amber-50 text-amber-700';
+}
+
+function prettifyKey(value: string): string {
+  return value
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatContextValue(value: unknown): string {
+  if (typeof value === 'number') {
+    if (Number.isInteger(value)) {
+      return `${value}`;
+    }
+    return value.toFixed(2);
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (isRecord(value)) {
+    return `${Object.keys(value).length} values`;
+  }
+  return String(value);
+}
+
+function getProgressValue(status: TaskState | undefined, progress: number | undefined): number {
+  if (status === 'completed') {
+    return 100;
+  }
+  return Math.max(0, Math.min(100, progress ?? 0));
+}
+
+function getProgressLabel(status: TaskState | undefined, progress: number | undefined): string {
+  if (status === 'failed') {
+    return 'Failed';
+  }
+
+  const value = getProgressValue(status, progress);
+  if (value >= 100) {
+    return 'Complete';
+  }
+  if (value >= 70) {
+    return 'Deploying...';
+  }
+  if (value >= 40) {
+    return 'Evaluating candidates...';
+  }
+  if (value >= 30) {
+    return 'Generating candidates...';
+  }
+  if (value >= 20) {
+    return 'Analyzing failures...';
+  }
+  if (value >= 10) {
+    return 'Observing...';
+  }
+  return 'Queued...';
+}
+
+function getProgressDescription(label: string): string {
+  switch (label) {
+    case 'Observing...':
+      return 'The optimizer is looking at recent conversations to understand how the current agent is behaving.';
+    case 'Analyzing failures...':
+      return 'Recent misses are being grouped into failure patterns so the optimizer can target the right configuration area.';
+    case 'Generating candidates...':
+      return 'Candidate config changes are being drafted based on the observed failure patterns.';
+    case 'Evaluating candidates...':
+      return 'Each candidate is being scored against the acceptance gates before anything is deployed.';
+    case 'Deploying...':
+      return 'A deployable candidate has cleared checks and is being promoted to the active configuration.';
+    case 'Complete':
+      return 'This optimization cycle is complete and the latest result is ready to review below.';
+    case 'Failed':
+      return 'The optimization cycle stopped before completion. Review the error details and retry when ready.';
+    default:
+      return 'The optimizer is queued and waiting for the first stage to begin.';
+  }
+}
+
+function getStepState(step: (typeof optimizeProgressSteps)[number], status: TaskState | undefined, progress: number | undefined): StepState {
+  if (status === 'completed') {
+    return 'complete';
+  }
+  const value = getProgressValue(status, progress);
+  if (value >= step.max) {
+    return 'complete';
+  }
+  if (value >= step.min) {
+    return 'current';
+  }
+  return 'upcoming';
+}
+
+function parseHealthContextEntries(raw: string): Array<{ label: string; value: string }> {
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (isRecord(parsed)) {
+      return Object.entries(parsed)
+        .slice(0, 6)
+        .map(([key, value]) => ({
+          label: prettifyKey(key),
+          value: formatContextValue(value),
+        }));
+    }
+  } catch {
+    return [{ label: 'Health context', value: raw }];
+  }
+
+  return [{ label: 'Health context', value: raw }];
+}
+
+function extractMetricEntries(metrics: Record<string, unknown>): Array<{ label: string; value: string }> {
+  return Object.entries(metrics)
+    .filter(([, value]) => ['number', 'string', 'boolean'].includes(typeof value))
+    .slice(0, 8)
+    .map(([key, value]) => {
+      if (typeof value === 'number') {
+        const normalized = normalizeScore(value);
+        return {
+          label: prettifyKey(key),
+          value: normalized === null ? '—' : formatScore(normalized),
+        };
+      }
+      return {
+        label: prettifyKey(key),
+        value: formatContextValue(value),
+      };
+    });
+}
+
+function normalizeOptimizeResult(payload: unknown): OptimizeCycleResult | null {
+  if (!isRecord(payload) || typeof payload.accepted !== 'boolean' || typeof payload.status_message !== 'string') {
+    return null;
+  }
+
+  return {
+    accepted: payload.accepted,
+    status_message: payload.status_message,
+    change_description: typeof payload.change_description === 'string' ? payload.change_description : null,
+    config_diff: typeof payload.config_diff === 'string' ? payload.config_diff : null,
+    score_before: typeof payload.score_before === 'number' ? payload.score_before : null,
+    score_after: typeof payload.score_after === 'number' ? payload.score_after : null,
+    deploy_message: typeof payload.deploy_message === 'string' ? payload.deploy_message : null,
+    search_strategy: typeof payload.search_strategy === 'string' ? payload.search_strategy : 'simple',
+    selected_operator_family:
+      typeof payload.selected_operator_family === 'string' ? payload.selected_operator_family : null,
+    pareto_front: Array.isArray(payload.pareto_front)
+      ? payload.pareto_front.filter((candidate): candidate is Record<string, unknown> => isRecord(candidate))
+      : [],
+    pareto_recommendation_id:
+      typeof payload.pareto_recommendation_id === 'string' ? payload.pareto_recommendation_id : null,
+    governance_notes: Array.isArray(payload.governance_notes)
+      ? payload.governance_notes.filter((note): note is string => typeof note === 'string' && note.length > 0)
+      : [],
+    global_dimensions: isRecord(payload.global_dimensions) ? payload.global_dimensions : {},
+  };
+}
+
+function getAttemptImpact(attempt: OptimizationAttempt): string {
+  switch (attempt.status) {
+    case 'accepted':
+      return 'Deployed to the active config';
+    case 'rejected_noop':
+      return 'No config change';
+    case 'error':
+      return 'Failed before deployment';
+    default:
+      return 'Rejected by acceptance gates';
+  }
+}
+
+function getAttemptLabel(attempt: OptimizationAttempt): string {
+  if (attempt.status === 'rejected_noop') {
+    return 'no-op';
+  }
+  return attempt.status;
+}
+
+function getResultLabel(result: OptimizeCycleResult): string {
+  if (result.accepted) {
+    return 'accepted';
+  }
+  if (!result.config_diff) {
+    return 'no-op';
+  }
+  return 'rejected';
+}
+
+function ResultStat({
+  label,
+  value,
+  helper,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  helper?: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">{label}</p>
+      <p className={classNames('mt-2 text-lg font-semibold text-gray-900', valueClassName)}>{value}</p>
+      {helper ? <p className="mt-1 text-xs text-gray-500">{helper}</p> : null}
+    </div>
+  );
 }
 
 function OptimizeTabButton({
@@ -161,7 +519,7 @@ export function Optimize() {
     <div className="space-y-6">
       <PageHeader
         title="Optimize"
-        description="Run optimization cycles and live monitoring. Review outputs in Improvements."
+        description="Run optimization cycles and review live progress, accepted changes, and next steps in one place."
         actions={
           <Link
             to="/improvements"
@@ -225,61 +583,91 @@ function OptimizeRunSection({
   const [expandedAttempt, setExpandedAttempt] = useState<string | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [activeTaskAgent, setActiveTaskAgent] = useState<AgentLibraryItem | null>(null);
-  const [completedAgent, setCompletedAgent] = useState<AgentLibraryItem | null>(null);
+  const [activeTaskStartedAt, setActiveTaskStartedAt] = useState<string | null>(null);
+  const [completedRun, setCompletedRun] = useState<CompletedOptimizationSummary | null>(null);
+  const [latestResult, setLatestResult] = useState<PersistedOptimizeResult | null>(null);
   const [optimizeMode, setOptimizeMode] = useState<OptimizeMode>('standard');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [objective, setObjective] = useState('');
   const [guardrails, setGuardrails] = useState<string[]>([]);
   const [newGuardrail, setNewGuardrail] = useState('');
   const [researchAlgorithm, setResearchAlgorithm] = useState('bayesian');
   const [budgetCycles, setBudgetCycles] = useState(10);
   const [budgetDollars, setBudgetDollars] = useState(50);
+  const [now, setNow] = useState(() => Date.now());
 
   const taskStatus = useTaskStatus(activeTaskId);
+  const handledTerminalTaskId = useRef<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = wsClient.onMessage('optimize_complete', (payload) => {
       const data = payload as { task_id: string; accepted: boolean; status: string };
-      const optimizationAgent = activeTaskAgent ?? activeAgent ?? null;
+      if (activeTaskId && data.task_id === activeTaskId) {
+        void taskStatus.refetch();
+        void refetch();
+        return;
+      }
+
       if (data.accepted) {
         toastSuccess('Optimization accepted', data.status);
       } else {
         toastInfo('Optimization completed', data.status);
       }
-      if (optimizationAgent) {
-        setCompletedAgent(optimizationAgent);
-      }
-      refetch();
+      void refetch();
     });
 
     return () => unsubscribe();
-  }, [activeAgent, activeTaskAgent, refetch]);
+  }, [activeTaskId, refetch, taskStatus.refetch]);
 
   useEffect(() => {
-    if (!taskStatus.data) return;
+    if (!taskStatus.data || taskStatus.data.task_id === handledTerminalTaskId.current) {
+      return;
+    }
 
     if (taskStatus.data.status === 'completed') {
-      const result = (taskStatus.data.result || {}) as { accepted?: boolean; status_message?: string };
-      if (result.accepted) {
-        toastSuccess('Optimization cycle finished', result.status_message || 'Change accepted.');
-      } else {
-        toastInfo('Optimization cycle finished', result.status_message || 'No deployable change this cycle.');
+      const result = normalizeOptimizeResult(taskStatus.data.result);
+      const finishedAgent = activeTaskAgent ?? activeAgent ?? null;
+      if (result) {
+        setLatestResult({
+          agent: finishedAgent,
+          taskId: taskStatus.data.task_id,
+          startedAt: taskStatus.data.created_at,
+          completedAt: taskStatus.data.updated_at,
+          result,
+        });
+        setCompletedRun({ agent: finishedAgent, accepted: result.accepted });
+        if (result.accepted) {
+          toastSuccess('Optimization cycle finished', result.status_message || 'Change accepted.');
+        } else {
+          toastInfo('Optimization cycle finished', result.status_message || 'No deployable change this cycle.');
+        }
       }
-      if (activeTaskAgent) {
-        setCompletedAgent(activeTaskAgent);
-      }
-      refetch();
+      handledTerminalTaskId.current = taskStatus.data.task_id;
+      void refetch();
     }
 
     if (taskStatus.data.status === 'failed') {
       toastError('Optimization failed', taskStatus.data.error || 'Unknown error');
+      handledTerminalTaskId.current = taskStatus.data.task_id;
     }
-  }, [activeTaskAgent, refetch, taskStatus.data]);
+  }, [activeAgent, activeTaskAgent, refetch, taskStatus.data]);
 
   const taskIsRunning =
     !!activeTaskId &&
     (!taskStatus.data ||
       taskStatus.data.status === 'running' ||
       taskStatus.data.status === 'pending');
+
+  useEffect(() => {
+    if (!taskIsRunning) {
+      return;
+    }
+    setNow(Date.now());
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [taskIsRunning]);
 
   const trajectoryData = useMemo(() => {
     return (history || []).slice().reverse().map((attempt, index) => ({
@@ -289,18 +677,60 @@ function OptimizeRunSection({
   }, [history]);
 
   const attempts = history || [];
-  const selectedAttempt = attempts.find((attempt) => attempt.attempt_id === expandedAttempt) || null;
+  const progressValue = getProgressValue(taskStatus.data?.status, taskStatus.data?.progress);
+  const progressLabel = getProgressLabel(taskStatus.data?.status, taskStatus.data?.progress);
+  const progressDescription = getProgressDescription(progressLabel);
+  const activeRunAgent = activeTaskAgent ?? activeAgent ?? null;
+  const activeTaskStart = taskStatus.data?.created_at ?? activeTaskStartedAt;
+  const elapsedSeconds =
+    activeTaskStart && Number.isFinite(Date.parse(activeTaskStart))
+      ? Math.max(0, Math.floor((now - Date.parse(activeTaskStart)) / 1000))
+      : 0;
+  const latestResultDelta = latestResult
+    ? scoreDelta(latestResult.result.score_before, latestResult.result.score_after)
+    : null;
+  const latestResultMetrics = latestResult ? extractMetricEntries(latestResult.result.global_dimensions) : [];
+  const latestResultDuration =
+    latestResult &&
+    Number.isFinite(Date.parse(latestResult.startedAt)) &&
+    Number.isFinite(Date.parse(latestResult.completedAt))
+      ? Math.max(
+          0,
+          Math.floor((Date.parse(latestResult.completedAt) - Date.parse(latestResult.startedAt)) / 1000)
+        )
+      : null;
 
-  function handleStart() {
+  const resultActionAgent = latestResult?.agent ?? completedRun?.agent ?? activeTaskAgent ?? activeAgent;
+  const hasFailure = taskStatus.data?.status === 'failed';
+
+  function navigateToEval(agent: AgentLibraryItem | null) {
+    if (!agent) {
+      toastError('Select an agent', 'Pick an agent from the library before navigating to eval.');
+      return;
+    }
+
+    navigate(`/evals?agent=${encodeURIComponent(agent.id)}&new=1`, { state: { agent } });
+  }
+
+  function handleStart(forceOverride?: boolean) {
     if (!activeAgent) {
       toastError('Select an agent', 'Pick an agent from the library before starting optimization.');
       return;
     }
 
+    const requestedForce = forceOverride ?? force;
+    if (forceOverride !== undefined) {
+      setForce(forceOverride);
+    }
+
+    setLatestResult(null);
+    handledTerminalTaskId.current = null;
+    setCompletedRun(null);
+
     startOptimize.mutate(
       {
         window: windowSize,
-        force,
+        force: requestedForce,
         config_path: activeAgent.config_path,
         mode: optimizeMode,
         objective,
@@ -313,6 +743,7 @@ function OptimizeRunSection({
         onSuccess: (response) => {
           setActiveTaskId(response.task_id);
           setActiveTaskAgent(activeAgent);
+          setActiveTaskStartedAt(new Date().toISOString());
           toastInfo(
             `Optimization ${response.task_id.slice(0, 8)} started`,
             `Running against ${activeAgent.name}.`
@@ -323,6 +754,15 @@ function OptimizeRunSection({
         },
       }
     );
+  }
+
+  function addGuardrail() {
+    const trimmed = newGuardrail.trim();
+    if (!trimmed) {
+      return;
+    }
+    setGuardrails((current) => [...current, trimmed]);
+    setNewGuardrail('');
   }
 
   if (isLoading) {
@@ -336,308 +776,768 @@ function OptimizeRunSection({
 
   return (
     <div className="space-y-6">
-      {completedAgent && (
-        <section className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {!latestResult && completedRun && !taskIsRunning && (
+        <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-semibold text-emerald-900">{completedAgent.name} finished its optimization cycle</p>
+              <p className="text-sm font-semibold text-emerald-900">
+                {completedRun.agent ? `${completedRun.agent.name} finished its last optimization cycle` : 'Last optimization cycle finished'}
+              </p>
               <p className="mt-1 text-sm text-emerald-800">
-                Keep the loop moving by reviewing the results or re-running evals on the same saved agent.
+                {completedRun.accepted
+                  ? 'Re-run eval to verify the improvement or open Configs to inspect the deployed YAML.'
+                  : 'Open advanced settings to adjust the search or force another run when you are ready.'}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => navigate(`/evals?agent=${encodeURIComponent(completedAgent.id)}&new=1`, { state: { agent: completedAgent } })}
-                className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-              >
-                Re-eval
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/improvements')}
-                className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-              >
-                View Results
-              </button>
+              {completedRun.accepted ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigateToEval(completedRun.agent)}
+                    className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Re-run Eval to verify
+                  </button>
+                  <Link
+                    to="/configs"
+                    className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                  >
+                    View deployed config
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(true)}
+                    className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Try again with different settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStart(true)}
+                    disabled={startOptimize.isPending || taskIsRunning || !activeAgent}
+                    className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+                  >
+                    Force optimize
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </section>
       )}
 
-      <PageHeader
-        title="Optimize"
-        description="Run optimization cycles and inspect exactly which candidate changes were accepted or rejected."
-        actions={
-          <button
-            onClick={handleStart}
-            disabled={startOptimize.isPending || taskIsRunning || !activeAgent}
-            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
-          >
-            <Play className="h-4 w-4" />
-            {startOptimize.isPending || taskIsRunning ? 'Running...' : 'Start Optimization'}
-          </button>
-        }
-      />
-
-      <section className="rounded-lg border border-gray-200 bg-white p-5">
-        <div className="mb-3 flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
-          {(['standard', 'advanced', 'research'] as OptimizeMode[]).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setOptimizeMode(mode)}
-              className={classNames(
-                'rounded-md px-4 py-2 text-sm font-medium capitalize transition-colors',
-                optimizeMode === mode
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              )}
-            >
-              {mode}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-gray-500">{modeDescriptions[optimizeMode]}</p>
-
-        {evalRunId && (
-          <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-            Using eval context from run <span className="font-mono">{evalRunId.slice(0, 8)}</span> while optimizing this agent.
-          </div>
-        )}
-
-        {optimizeMode === 'research' && (
-          <div className="mt-4 space-y-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <div className="rounded-lg border border-blue-200 bg-white/80 px-3 py-2 text-xs text-blue-900">
-              Research mode now configures the backend search strategy and evaluation budget.
-              Objective text and algorithm selection are still informational in this build.
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Algorithm</label>
-              <div className="flex flex-wrap gap-2">
-                {researchAlgorithms.map((algo) => (
-                  <button
-                    key={algo.key}
-                    onClick={() => setResearchAlgorithm(algo.key)}
-                    className={classNames(
-                      'rounded-md border px-3 py-1.5 text-xs font-medium transition-colors',
-                      researchAlgorithm === algo.key
-                        ? 'border-blue-500 bg-blue-100 text-blue-800'
-                        : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                    )}
-                  >
-                    {algo.label}
-                  </button>
-                ))}
+      {taskIsRunning ? (
+        <section className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-white p-6 shadow-sm">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-800">
+                  <Workflow className="h-3.5 w-3.5" />
+                  Optimization running
+                </span>
+                {activeRunAgent ? (
+                  <span className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600">
+                    {activeRunAgent.name}
+                  </span>
+                ) : null}
               </div>
+              <h3 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900">{progressLabel}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">{progressDescription}</p>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Objective</label>
-              <input
-                type="text"
-                placeholder="e.g. Maximize task_success_rate while maintaining safety > 0.99"
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            <div className="grid w-full gap-3 sm:grid-cols-3 lg:max-w-xl">
+              <ResultStat label="Progress" value={`${progressValue}%`} helper="Current cycle" />
+              <ResultStat label="Elapsed" value={`${formatDuration(elapsedSeconds)} elapsed`} helper="Since start" />
+              <ResultStat
+                label="Task"
+                value={activeTaskId ? activeTaskId.slice(0, 8) : 'Pending'}
+                helper="Background task id"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">
-                Guardrails ({guardrails.length})
-              </label>
-              <div className="space-y-1.5">
-                {guardrails.map((g, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-1.5"
-                  >
-                    <span className="text-xs text-gray-700">{g}</span>
-                    <button
-                      onClick={() => setGuardrails(guardrails.filter((_, idx) => idx !== i))}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add guardrail..."
-                    value={newGuardrail}
-                    onChange={(e) => setNewGuardrail(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newGuardrail.trim()) {
-                        setGuardrails([...guardrails, newGuardrail.trim()]);
-                        setNewGuardrail('');
-                      }
-                    }}
-                    className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                  <button
-                    onClick={() => {
-                      if (newGuardrail.trim()) {
-                        setGuardrails([...guardrails, newGuardrail.trim()]);
-                        setNewGuardrail('');
-                      }
-                    }}
-                    className="rounded-md border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-50"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
+          <div className="mt-6">
+            <div className="mb-2 flex items-center justify-between text-sm font-medium text-gray-700">
+              <span>Optimization progress</span>
+              <span>{progressValue}%</span>
+            </div>
+            <div
+              role="progressbar"
+              aria-label="Optimization progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progressValue}
+              className="h-3 overflow-hidden rounded-full bg-sky-100"
+            >
+              <div
+                className="h-full rounded-full bg-sky-600 transition-all duration-300"
+                style={{ width: `${progressValue}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-2 lg:grid-cols-5">
+            {optimizeProgressSteps.map((step) => {
+              const state = getStepState(step, taskStatus.data?.status, taskStatus.data?.progress);
+              return (
+                <div
+                  key={step.key}
+                  className={classNames(
+                    'rounded-xl border px-3 py-3 text-sm',
+                    state === 'complete' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                    state === 'current' && 'border-sky-200 bg-sky-100 text-sky-800 shadow-sm',
+                    state === 'upcoming' && 'border-gray-200 bg-white text-gray-500'
+                  )}
+                >
+                  <p className="font-semibold">{step.shortLabel}</p>
                 </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : latestResult ? (
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge variant={statusVariant(getResultLabel(latestResult.result))} label={getResultLabel(latestResult.result)} />
+                {latestResult.agent ? (
+                  <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+                    {latestResult.agent.name}
+                  </span>
+                ) : null}
+                <span className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500">
+                  Task {latestResult.taskId.slice(0, 8)}
+                </span>
               </div>
+              <h3 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900">
+                {latestResult.result.status_message}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                {latestResult.result.change_description ||
+                  (latestResult.result.accepted
+                    ? 'A configuration change was accepted and deployed.'
+                    : 'The optimizer finished without a deployable change this cycle.')}
+              </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Budget (cycles)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={budgetCycles}
-                  onChange={(e) => setBudgetCycles(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
+            <div className="flex items-start gap-3">
+              <div className={classNames('rounded-2xl border px-5 py-4 text-right shadow-sm', deltaTone(latestResultDelta))}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Composite delta</p>
+                <p className="mt-2 text-3xl font-semibold">{formatDeltaValue(latestResultDelta)}</p>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Budget ($)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={10000}
-                  value={budgetDollars}
-                  onChange={(e) => setBudgetDollars(Number(e.target.value))}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
+              <button
+                type="button"
+                aria-label="Dismiss latest result"
+                onClick={() => setLatestResult(null)}
+                className="rounded-lg border border-gray-200 p-2 text-gray-400 transition hover:border-gray-300 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-4">
+            <ResultStat label="Score before" value={formatScoreValue(latestResult.result.score_before)} />
+            <ResultStat label="Score after" value={formatScoreValue(latestResult.result.score_after)} />
+            <ResultStat
+              label="Strategy used"
+              value={prettifyKey(latestResult.result.search_strategy)}
+              helper={
+                latestResult.result.selected_operator_family
+                  ? `Operator family: ${prettifyKey(latestResult.result.selected_operator_family)}`
+                  : undefined
+              }
+            />
+            <ResultStat
+              label="Completed"
+              value={formatTimestamp(latestResult.completedAt)}
+              helper={latestResultDuration !== null ? `${formatDuration(latestResultDuration)} total runtime` : undefined}
+            />
+          </div>
+
+          {latestResultMetrics.length > 0 ? (
+            <div className="mt-6">
+              <div className="mb-3 flex items-center gap-2">
+                <Gauge className="h-4 w-4 text-gray-400" />
+                <h4 className="text-sm font-semibold text-gray-900">Score breakdown</h4>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {latestResultMetrics.map((entry) => (
+                  <ResultStat key={entry.label} label={entry.label} value={entry.value} />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-gray-400" />
+                <h4 className="text-sm font-semibold text-gray-900">Config diff</h4>
+              </div>
+              {latestResult.result.config_diff ? (
+                <DiffViewer lines={parseDiffLines(latestResult.result.config_diff)} versionA={0} versionB={1} />
+              ) : (
+                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                  No config diff was recorded for this cycle.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Deployment</h4>
+                <p className="mt-2 text-sm text-gray-600">
+                  {latestResult.result.deploy_message ||
+                    (latestResult.result.accepted
+                      ? 'Accepted and deployed to the active config.'
+                      : 'No deployment happened because no candidate cleared the acceptance gates.')}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Governance notes</h4>
+                {latestResult.result.governance_notes.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {latestResult.result.governance_notes.map((note) => (
+                      <span
+                        key={note}
+                        className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-medium text-emerald-700"
+                      >
+                        {note}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-gray-600">No extra governance notes were returned for this cycle.</p>
+                )}
+
+                {latestResult.result.pareto_recommendation_id ? (
+                  <p className="mt-3 text-xs text-gray-500">
+                    Pareto recommendation: <span className="font-mono">{latestResult.result.pareto_recommendation_id}</span>
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
-        )}
-      </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-5">
-        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="mt-6 flex flex-wrap gap-3">
+            {latestResult.result.accepted ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigateToEval(resultActionAgent)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Re-run Eval to verify
+                </button>
+                <Link
+                  to="/configs"
+                  className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                  View deployed config
+                </Link>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Try again with different settings
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleStart(true)}
+                  disabled={startOptimize.isPending || taskIsRunning || !activeAgent}
+                  className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Force optimize
+                </button>
+              </>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+                <Sparkles className="h-3.5 w-3.5" />
+                Ready to optimize
+              </div>
+              <h3 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900">
+                {activeAgent ? `Optimize ${activeAgent.name}` : 'Select an agent to begin'}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                {activeAgent
+                  ? 'Run a cycle to inspect recent failures, evaluate new candidates, and promote safe improvements into the active config.'
+                  : 'Pick a saved agent above so Optimize and Eval can stay on the same configuration.'}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">Main outcome</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">Live progress, rich results, clear next steps</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {hasFailure ? (
+        <section className="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-red-900">Optimization failed</p>
+              <p className="mt-1 text-sm leading-relaxed text-red-800">
+                {taskStatus.data?.error || 'The optimizer stopped before it could finish this cycle.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(true)}
+                className="rounded-lg border border-red-200 bg-white px-3.5 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
+              >
+                Review settings
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStart(force)}
+                disabled={startOptimize.isPending || taskIsRunning || !activeAgent}
+                className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700">
+              <Bot className="h-3.5 w-3.5" />
+              Run setup
+            </div>
+            <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">Selected agent</p>
+              <p className="mt-2 text-lg font-semibold text-gray-900">
+                {activeAgent ? activeAgent.name : 'Choose an agent from the library'}
+              </p>
+              <p className="mt-1 text-sm text-gray-600">
+                {activeAgent ? activeAgent.config_path : 'The optimizer needs a saved config before it can start.'}
+              </p>
+              {evalRunId ? (
+                <p className="mt-2 text-xs text-sky-700">
+                  Using eval context from run <span className="font-mono">{evalRunId.slice(0, 8)}</span>.
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">Start a cycle</p>
+            <button
+              type="button"
+              onClick={() => handleStart()}
+              disabled={startOptimize.isPending || taskIsRunning || !activeAgent}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+            >
+              <Play className="h-4 w-4" />
+              {startOptimize.isPending || taskIsRunning ? 'Running...' : 'Start Optimization'}
+            </button>
+            <p className="mt-3 text-xs text-gray-500">
+              {activeAgent
+                ? `This run will use ${activeAgent.name} and its saved config.`
+                : 'Choose an agent above before you start the optimizer.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_220px]">
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Observation window</label>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">Mode</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(['standard', 'advanced', 'research'] as OptimizeMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setOptimizeMode(mode)}
+                  className={classNames(
+                    'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                    optimizeMode === mode
+                      ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900'
+                  )}
+                >
+                  {modeLabels[mode]}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-gray-500">{modeDescriptions[optimizeMode]}</p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="observation-window"
+              className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500"
+            >
+              Observation window
+            </label>
             <input
+              id="observation-window"
               type="number"
               min={10}
               max={1000}
               value={windowSize}
               onChange={(event) => setWindowSize(Number(event.target.value))}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
             />
-          </div>
-          <div className="flex items-center gap-2 self-end pb-2">
-            <input
-              id="force-optimization"
-              type="checkbox"
-              checked={force}
-              onChange={(event) => setForce(event.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="force-optimization" className="text-sm text-gray-700">
-              Force optimization even if healthy
-            </label>
-          </div>
-          <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-            {activeAgent
-              ? `Optimization will run against ${activeAgent.name} using its saved config.`
-              : 'Choose an agent above before starting optimization.'}
+            <p className="mt-2 text-xs text-gray-500">How many recent conversations the optimizer should inspect first.</p>
           </div>
         </div>
 
-        {taskIsRunning && activeTaskId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-blue-800">Active task {activeTaskId.slice(0, 8)}</p>
-              <p className="text-xs text-blue-700">{taskStatus.data?.progress ?? 0}%</p>
+        <div className="mt-6 border-t border-gray-100 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((current) => !current)}
+            aria-expanded={showAdvanced}
+            className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition hover:bg-gray-100"
+          >
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Advanced settings</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Objective, guardrails, force mode, and research-specific controls live here.
+              </p>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-blue-100">
-              <div
-                className="h-full rounded-full bg-gray-600 transition-all duration-200"
-                style={{ width: `${taskStatus.data?.progress ?? 0}%` }}
-              />
+            {showAdvanced ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+          </button>
+
+          {showAdvanced ? (
+            <div id="optimize-advanced" className="mt-4 space-y-5 rounded-2xl border border-gray-200 bg-white p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  id="force-optimization"
+                  type="checkbox"
+                  checked={force}
+                  onChange={(event) => setForce(event.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="force-optimization" className="text-sm text-gray-700">
+                  Force optimization even if the observer says the system is healthy
+                </label>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="optimize-objective"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Objective
+                </label>
+                <input
+                  id="optimize-objective"
+                  type="text"
+                  placeholder="e.g. Maximize task_success_rate while maintaining safety > 0.99"
+                  value={objective}
+                  onChange={(event) => setObjective(event.target.value)}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Guardrails ({guardrails.length})
+                </label>
+                <div className="space-y-2">
+                  {guardrails.map((guardrail, index) => (
+                    <div
+                      key={`${guardrail}-${index}`}
+                      className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+                    >
+                      <span className="text-sm text-gray-700">{guardrail}</span>
+                      <button
+                        type="button"
+                        onClick={() => setGuardrails((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                        className="text-gray-400 transition hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="optimize-guardrail"
+                      type="text"
+                      placeholder="Add a guardrail..."
+                      value={newGuardrail}
+                      onChange={(event) => setNewGuardrail(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          addGuardrail();
+                        }
+                      }}
+                      className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={addGuardrail}
+                      className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 transition hover:bg-gray-50"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {optimizeMode === 'research' ? (
+                <div className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                  <div className="rounded-lg border border-blue-200 bg-white/80 px-3 py-2 text-xs text-blue-900">
+                    Research mode adjusts the backend search strategy and budget. Objective text and algorithm choice are still operator notes in this build.
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-sm font-medium text-gray-700">Algorithm</p>
+                    <div className="flex flex-wrap gap-2">
+                      {researchAlgorithms.map((algorithm) => (
+                        <button
+                          key={algorithm.key}
+                          type="button"
+                          onClick={() => setResearchAlgorithm(algorithm.key)}
+                          className={classNames(
+                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                            researchAlgorithm === algorithm.key
+                              ? 'border-blue-500 bg-blue-100 text-blue-800'
+                              : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                          )}
+                        >
+                          {algorithm.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="budget-cycles"
+                        className="mb-1 block text-sm font-medium text-gray-700"
+                      >
+                        Budget (cycles)
+                      </label>
+                      <input
+                        id="budget-cycles"
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={budgetCycles}
+                        onChange={(event) => setBudgetCycles(Number(event.target.value))}
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="budget-dollars"
+                        className="mb-1 block text-sm font-medium text-gray-700"
+                      >
+                        Budget ($)
+                      </label>
+                      <input
+                        id="budget-dollars"
+                        type="number"
+                        min={1}
+                        max={10000}
+                        value={budgetDollars}
+                        onChange={(event) => setBudgetDollars(Number(event.target.value))}
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
-          </div>
-        )}
+          ) : null}
+        </div>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-5">
+      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">Cycle Score Trajectory</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Cycle score trajectory</h3>
           <Sparkles className="h-4 w-4 text-gray-400" />
         </div>
         {trajectoryData.length > 0 ? (
           <ScoreChart data={trajectoryData} height={260} />
         ) : (
-          <div className="flex h-[260px] items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-500">
+          <div className="flex h-[260px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-500">
             No optimization history yet.
           </div>
         )}
       </section>
 
       {attempts.length > 0 ? (
-        <section className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900">Cycle Timeline</h3>
-            <div className="space-y-3 border-l border-dashed border-gray-200 pl-2">
-              {attempts.map((attempt) => (
-                <button
-                  key={attempt.attempt_id}
-                  onClick={() =>
-                    setExpandedAttempt((current) =>
-                      current === attempt.attempt_id ? null : attempt.attempt_id
-                    )
-                  }
-                  className="w-full text-left"
-                >
-                  <TimelineEntry
-                    timestamp={attempt.timestamp}
-                    title={attempt.change_description || `Attempt ${attempt.attempt_id.slice(0, 8)}`}
-                    description={`Score ${attempt.score_before.toFixed(1)} → ${attempt.score_after.toFixed(1)}`}
-                    status={attempt.status}
-                  />
-                </button>
-              ))}
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Optimization history</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Expand any attempt to inspect the config diff, score movement, and deployment outcome.
+              </p>
             </div>
+            <Clock3 className="h-4 w-4 text-gray-400" />
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
-            <h3 className="mb-4 text-sm font-semibold text-gray-900">Attempt Details</h3>
-            {selectedAttempt ? (
-              <div className="space-y-4">
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="font-mono text-xs text-gray-600">{selectedAttempt.attempt_id.slice(0, 12)}</p>
-                    <StatusBadge variant={statusVariant(selectedAttempt.status)} label={selectedAttempt.status.replaceAll('_', ' ')} />
-                  </div>
-                  <p className="text-sm text-gray-700">{selectedAttempt.change_description || 'No change description'}</p>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {formatTimestamp(selectedAttempt.timestamp)} · {selectedAttempt.score_before.toFixed(1)} → {selectedAttempt.score_after.toFixed(1)}
-                  </p>
-                </div>
+          <div className="hidden rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500 lg:grid lg:grid-cols-[190px_140px_110px_minmax(0,1fr)_24px]">
+            <span>Time</span>
+            <span>Status</span>
+            <span>Score delta</span>
+            <span>Change</span>
+            <span />
+          </div>
 
-                {selectedAttempt.config_diff ? (
-                  <DiffViewer
-                    lines={parseDiffLines(selectedAttempt.config_diff)}
-                    versionA={0}
-                    versionB={1}
-                  />
-                ) : (
-                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
-                    No config diff available for this attempt.
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-500">
-                Select a timeline item to inspect details.
-              </div>
-            )}
+          <div className="divide-y divide-gray-100">
+            {attempts.map((attempt) => {
+              const expanded = expandedAttempt === attempt.attempt_id;
+              const impact = getAttemptImpact(attempt);
+              const contextEntries = parseHealthContextEntries(attempt.health_context);
+
+              return (
+                <div key={attempt.attempt_id} className="py-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedAttempt((current) => (current === attempt.attempt_id ? null : attempt.attempt_id))
+                    }
+                    aria-expanded={expanded}
+                    className="w-full rounded-xl px-2 py-2 text-left transition hover:bg-gray-50"
+                  >
+                    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[190px_140px_110px_minmax(0,1fr)_24px] lg:items-center">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{formatTimestamp(attempt.timestamp)}</p>
+                        <p className="text-xs text-gray-500">{attempt.attempt_id.slice(0, 12)}</p>
+                      </div>
+
+                      <div>
+                        <StatusBadge variant={statusVariant(attempt.status)} label={getAttemptLabel(attempt)} />
+                        <p className="mt-1 text-xs text-gray-500">{impact}</p>
+                      </div>
+
+                      <div>
+                        <span
+                          className={classNames(
+                            'inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold',
+                            deltaTone(attempt.score_delta)
+                          )}
+                        >
+                          {formatDeltaValue(attempt.score_delta)}
+                        </span>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {formatScore(attempt.score_before)} → {formatScore(attempt.score_after)}
+                        </p>
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {truncate(attempt.change_description || impact, 110)}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {attempt.status === 'rejected_noop'
+                            ? 'No config change'
+                            : attempt.config_section
+                              ? `Config section: ${attempt.config_section}`
+                              : impact}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end">
+                        {expanded ? (
+                          <ChevronUp className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+                  </button>
+
+                  {expanded ? (
+                    <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                        <div>
+                          <div className="mb-3 flex items-center gap-2">
+                            {attempt.status === 'accepted' ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-amber-600" />
+                            )}
+                            <h4 className="text-sm font-semibold text-gray-900">Config diff</h4>
+                          </div>
+                          {attempt.config_diff ? (
+                            <DiffViewer lines={parseDiffLines(attempt.config_diff)} versionA={0} versionB={1} />
+                          ) : (
+                            <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                              No config diff available for this attempt.
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="rounded-xl border border-gray-200 bg-white p-4">
+                            <h4 className="text-sm font-semibold text-gray-900">Deployment status</h4>
+                            <p className="mt-2 text-sm text-gray-600">{impact}</p>
+                          </div>
+
+                          <div className="rounded-xl border border-gray-200 bg-white p-4">
+                            <h4 className="text-sm font-semibold text-gray-900">Scores</h4>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                              <ResultStat label="Before" value={formatScore(attempt.score_before)} />
+                              <ResultStat label="After" value={formatScore(attempt.score_after)} />
+                              <ResultStat
+                                label="Observed delta"
+                                value={formatDeltaValue(attempt.score_delta)}
+                                valueClassName={classNames(
+                                  attempt.score_delta > 0 && 'text-emerald-700',
+                                  attempt.score_delta < 0 && 'text-rose-700',
+                                  attempt.score_delta === 0 && 'text-amber-700'
+                                )}
+                              />
+                              <ResultStat label="P-value" value={attempt.significance_p_value.toFixed(2)} />
+                            </div>
+                            <p className="mt-3 text-xs text-gray-500">{attempt.significance_n} paired eval cases</p>
+                          </div>
+
+                          {contextEntries.length > 0 ? (
+                            <div className="rounded-xl border border-gray-200 bg-white p-4">
+                              <h4 className="text-sm font-semibold text-gray-900">Health context</h4>
+                              <div className="mt-3 grid gap-2">
+                                {contextEntries.map((entry) => (
+                                  <div
+                                    key={`${attempt.attempt_id}-${entry.label}`}
+                                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                                  >
+                                    <span className="text-xs font-medium text-gray-500">{entry.label}</span>
+                                    <span className="text-sm text-gray-700">{entry.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </section>
       ) : activeAgent ? (
@@ -646,7 +1546,7 @@ function OptimizeRunSection({
           title="No optimization history"
           description="Start a cycle to let the optimizer inspect failures, propose a config update, and run gate checks."
           actionLabel="Start optimization"
-          onAction={handleStart}
+          onAction={() => handleStart()}
         />
       ) : (
         <EmptyState

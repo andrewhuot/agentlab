@@ -432,11 +432,30 @@ export interface OptimizationAttempt {
   config_diff: string;
   config_section: string;
   health_context: string;
+  significance_p_value: number;
+  significance_delta: number;
+  significance_n: number;
 }
 
 export interface OptimizeResult {
   task_id: string;
   message: string;
+}
+
+export interface OptimizeCycleResult {
+  accepted: boolean;
+  status_message: string;
+  change_description: string | null;
+  config_diff: string | null;
+  score_before: number | null;
+  score_after: number | null;
+  deploy_message: string | null;
+  search_strategy: string;
+  selected_operator_family: string | null;
+  pareto_front: Array<Record<string, unknown>>;
+  pareto_recommendation_id: string | null;
+  governance_notes: string[];
+  global_dimensions: Record<string, unknown>;
 }
 
 export interface ConfigVersion {

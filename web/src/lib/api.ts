@@ -963,13 +963,16 @@ export function useOptimizeHistory() {
       const rows = await fetchApi<
         Array<{
           attempt_id: string;
-          timestamp: number;
+          timestamp: number | string;
           change_description: string;
           config_diff: string;
           config_section: string;
           status: OptimizationAttempt['status'];
           score_before: number;
           score_after: number;
+          significance_p_value?: number;
+          significance_delta?: number;
+          significance_n?: number;
           health_context: string;
         }>
       >('/optimize/history');
@@ -984,6 +987,9 @@ export function useOptimizeHistory() {
         score_before: percent(row.score_before),
         score_after: percent(row.score_after),
         score_delta: percent(row.score_after - row.score_before),
+        significance_p_value: row.significance_p_value ?? 1,
+        significance_delta: percent(row.significance_delta ?? row.score_after - row.score_before),
+        significance_n: row.significance_n ?? 0,
         health_context: row.health_context,
       }));
     },
